@@ -90,6 +90,7 @@ export async function sendEmail(data: DeliverEmail) {
 
     return response;
   } catch (e) {
-    logger.error(`Error: ${e}`);
+    logger.error(`Error sending email: ${e}`);
+    throw e;
   }
 }
