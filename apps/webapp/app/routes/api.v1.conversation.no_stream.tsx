@@ -36,7 +36,12 @@ const ChatRequestSchema = z.object({
     .optional(),
   id: z.string(),
   source: z.string().default("core"),
+  senderPhone: z.string().optional(),
 });
+
+function normalizePhone(phone: string): string {
+  return phone.replace(/[\s\-\(\)]/g, "").replace(/^00/, "+");
+}
 
 const { loader, action } = createHybridActionApiRoute(
   {
@@ -48,6 +53,20 @@ const { loader, action } = createHybridActionApiRoute(
     corsStrategy: "all",
   },
   async ({ body, authentication }) => {
+    // Reject WhatsApp messages from unregistered senders
+    if (body.source === "whatsapp" && body.senderPhone) {
+      const owner = await getUserById(authentication.userId);
+      if (
+        !owner?.phoneNumber ||
+        normalizePhone(body.senderPhone) !== normalizePhone(owner.phoneNumber)
+      ) {
+        return Response.json(
+          { error: "Sender phone does not match registered user" },
+          { status: 403 },
+        );
+      }
+    }
+
     const conversation = await getConversationAndHistory(
       body.id,
       authentication.userId,
