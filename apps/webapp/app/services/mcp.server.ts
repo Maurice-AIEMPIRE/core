@@ -74,14 +74,15 @@ async function createMcpServer(
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
 
-    // Handle memory tools and integration meta-tools
+    // Handle memory tools, integration meta-tools, and CIM
     if (
       name.startsWith("memory_") ||
       name === "initialize_conversation_session" ||
       name === "get_integrations" ||
       name === "get_integration_actions" ||
       name === "execute_integration_action" ||
-      name === "get_labels"
+      name === "get_labels" ||
+      name === "cim_query"
     ) {
       // Get workspace for integration tools
       return await callMemoryTool(

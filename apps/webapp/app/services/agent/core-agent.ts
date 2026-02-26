@@ -2,6 +2,7 @@ import { type Tool, tool, readUIMessageStream } from "ai";
 import { z } from "zod";
 
 import { runOrchestrator } from "./orchestrator";
+import { runCIM } from "~/services/cim";
 
 import { logger } from "../logger.service";
 
@@ -100,6 +101,42 @@ export const createTools = (
         })) {
           yield message;
         }
+      },
+    }),
+    cim_query: tool({
+      description: `Goal-driven agent that plans and executes multi-step tasks using the CIM (Cognitive Intelligence Module) architecture.
+      Use for COMPLEX tasks that need planning: multi-step workflows, tasks spanning multiple integrations, or goals requiring observation-decision-action cycles.
+
+      The CIM engine will:
+      1. PERCEIVE - observe state, gather context from memory and integrations
+      2. DECIDE - classify intent, create a step-by-step plan
+      3. ACT - execute each step with guardrails, retry on failure
+      4. OBSERVE - verify results, log to audit trail
+
+      WHEN TO USE:
+      - Complex multi-step tasks: "migrate data from X to Y", "prepare a weekly summary from all sources"
+      - Tasks requiring judgment: "check all channels for urgent items and prioritize them"
+      - Cross-integration workflows: "find open issues, check related emails, draft a status update"
+
+      WHEN NOT TO USE:
+      - Simple lookups → use gather_context instead
+      - Direct single actions → use take_action instead`,
+      inputSchema: z.object({
+        goal: z
+          .string()
+          .describe(
+            "The goal to achieve. Be specific about what success looks like. The CIM engine will plan and execute steps to reach this goal.",
+          ),
+      }),
+      execute: async ({ goal }) => {
+        logger.info(`Core brain: CIM query for goal: ${goal}`);
+
+        const result = await runCIM(goal, userId, workspaceId, {
+          timezone,
+          source,
+        });
+
+        return result.summary;
       },
     }),
   };

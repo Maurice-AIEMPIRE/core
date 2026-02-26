@@ -33,6 +33,12 @@ DO via take_action:
 - create/update/delete in any connected integration
 - send messages, create events, make issues
 
+PLAN & EXECUTE via cim_query (for complex goals):
+- multi-step tasks spanning several integrations
+- tasks needing planning: "prepare weekly summary from email + github + calendar"
+- cross-system workflows: "find open issues, check related emails, draft status"
+- the CIM engine perceives → decides → plans → acts → verifies automatically
+
 REMINDERS - your built-in scheduling system:
 Reminders are YOUR feature, not an external integration. You manage them directly with add_reminder, list_reminders, update_reminder, delete_reminder tools.
 

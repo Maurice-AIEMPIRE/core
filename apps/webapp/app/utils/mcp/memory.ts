@@ -12,6 +12,7 @@ import {
   handleExecuteIntegrationAction,
 } from "./integration-operations";
 import { searchMemoryWithAgent } from "~/services/agent/memory";
+import { runCIM } from "~/services/cim";
 
 const IngestSchema = {
   type: "object",
@@ -236,6 +237,32 @@ export const memoryTools = [
       destructiveHint: true,
     },
   },
+  {
+    name: "cim_query",
+    description:
+      "Goal-driven agent that plans and executes multi-step tasks using the CIM (Cognitive Intelligence Module) architecture. USE THIS TOOL: For complex tasks that need planning: multi-step workflows, tasks spanning multiple integrations, or goals requiring observation-decision-action cycles. The CIM engine will: 1) PERCEIVE - observe state, gather context from memory and integrations, 2) DECIDE - classify intent, create a step-by-step plan, 3) ACT - execute each step with guardrails and retry on failure, 4) OBSERVE - verify results, log to audit trail. EXAMPLES: 'Prepare a weekly summary from email, calendar, and GitHub', 'Check all channels for urgent items and prioritize them', 'Find open issues, check related emails, draft a status update'. Returns: Summary of the completed goal with audit trail.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        goal: {
+          type: "string",
+          description:
+            "The goal to achieve. Be specific about what success looks like. The CIM engine will plan and execute steps to reach this goal.",
+        },
+        timezone: {
+          type: "string",
+          description:
+            "Optional: User's timezone for scheduling context. Defaults to UTC.",
+        },
+      },
+      required: ["goal"],
+    },
+    annotations: {
+      readOnlyHint: false,
+      idempotentHint: false,
+      destructiveHint: false,
+    },
+  },
 ];
 
 // Function to call memory tools based on toolName
@@ -279,8 +306,26 @@ export async function callMemoryTool(
           userId,
           source,
         });
-      // case "memory_deep_search":
-      //   return await handleMemoryDeepSearch({ ...args, userId, source });
+      case "cim_query": {
+        const cimResult = await runCIM(
+          args.goal,
+          userId,
+          args.workspaceId,
+          {
+            timezone: args.timezone || "UTC",
+            source,
+          },
+        );
+        return {
+          content: [
+            {
+              type: "text",
+              text: cimResult.summary,
+            },
+          ],
+          isError: !cimResult.success,
+        };
+      }
       default:
         throw new Error(`Unknown memory tool: ${toolName}`);
     }
