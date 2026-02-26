@@ -12,7 +12,7 @@ import {
   handleExecuteIntegrationAction,
 } from "./integration-operations";
 import { searchMemoryWithAgent } from "~/services/agent/memory";
-import { runCIM } from "~/services/cim";
+import { runCIM, runTeam, type CIMEngineConfig } from "~/services/cim";
 
 const IngestSchema = {
   type: "object",
@@ -263,6 +263,32 @@ export const memoryTools = [
       destructiveHint: false,
     },
   },
+  {
+    name: "team_execute",
+    description:
+      "Deploy the full automated agent team for large, multi-faceted goals. The team auto-coordinates: a router breaks the goal into sub-tasks, assigns each to specialist agents (researcher, executor, monitor, analyst), runs them in dependency order (parallel where possible), and synthesizes results. USE THIS TOOL: For goals that span MULTIPLE domains or need DIFFERENT skills. EXAMPLES: 'Prepare weekly review from email + calendar + github + slack', 'Audit all integrations and flag what needs attention', 'Catch me up on everything since last Monday'. Returns: Synthesized team report with all agent findings.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        goal: {
+          type: "string",
+          description:
+            "The multi-faceted goal. Be specific — the team router will decompose it into sub-tasks for specialist agents.",
+        },
+        timezone: {
+          type: "string",
+          description:
+            "Optional: User's timezone. Defaults to UTC.",
+        },
+      },
+      required: ["goal"],
+    },
+    annotations: {
+      readOnlyHint: false,
+      idempotentHint: false,
+      destructiveHint: false,
+    },
+  },
 ];
 
 // Function to call memory tools based on toolName
@@ -324,6 +350,29 @@ export async function callMemoryTool(
             },
           ],
           isError: !cimResult.success,
+        };
+      }
+      case "team_execute": {
+        const teamConfig: CIMEngineConfig = {
+          userId,
+          workspaceId: args.workspaceId,
+          timezone: args.timezone || "UTC",
+          source,
+          maxLoopIterations: 10,
+          modelTier: "high",
+        };
+        const teamResult = await runTeam(
+          args.goal,
+          teamConfig,
+        );
+        return {
+          content: [
+            {
+              type: "text",
+              text: teamResult.synthesis,
+            },
+          ],
+          isError: !teamResult.success,
         };
       }
       default:

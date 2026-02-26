@@ -82,7 +82,8 @@ async function createMcpServer(
       name === "get_integration_actions" ||
       name === "execute_integration_action" ||
       name === "get_labels" ||
-      name === "cim_query"
+      name === "cim_query" ||
+      name === "team_execute"
     ) {
       // Get workspace for integration tools
       return await callMemoryTool(

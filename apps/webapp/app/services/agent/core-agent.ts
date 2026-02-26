@@ -2,7 +2,7 @@ import { type Tool, tool, readUIMessageStream } from "ai";
 import { z } from "zod";
 
 import { runOrchestrator } from "./orchestrator";
-import { runCIM } from "~/services/cim";
+import { runCIM, runTeam, type CIMEngineConfig } from "~/services/cim";
 
 import { logger } from "../logger.service";
 
@@ -137,6 +137,39 @@ export const createTools = (
         });
 
         return result.summary;
+      },
+    }),
+    team_execute: tool({
+      description: `Deploy the full agent team for large, multi-faceted goals. The team auto-coordinates: a router breaks the goal into sub-tasks, assigns each to specialist agents (researcher, executor, monitor, analyst), runs them in dependency order (parallel where possible), and synthesizes results.
+
+      USE THIS for goals that span MULTIPLE domains or need DIFFERENT skills:
+      - "Prepare my weekly review: check email, calendar, github, slack, summarize everything"
+      - "Audit all my integrations and tell me what needs attention"
+      - "Research competitor X, check our github for related work, draft a summary"
+      - "Catch me up on everything since last Monday"
+
+      DO NOT USE for single-domain tasks — use gather_context, take_action, or cim_query instead.`,
+      inputSchema: z.object({
+        goal: z
+          .string()
+          .describe(
+            "The multi-faceted goal. Be specific — the team router will decompose it into sub-tasks for specialist agents.",
+          ),
+      }),
+      execute: async ({ goal }, { abortSignal }) => {
+        logger.info(`Core brain: Team execute for goal: ${goal}`);
+
+        const config: CIMEngineConfig = {
+          userId,
+          workspaceId,
+          timezone,
+          source,
+          maxLoopIterations: 10,
+          modelTier: "high",
+        };
+
+        const result = await runTeam(goal, config, abortSignal);
+        return result.synthesis;
       },
     }),
   };

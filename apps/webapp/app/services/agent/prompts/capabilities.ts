@@ -39,6 +39,12 @@ PLAN & EXECUTE via cim_query (for complex goals):
 - cross-system workflows: "find open issues, check related emails, draft status"
 - the CIM engine perceives → decides → plans → acts → verifies automatically
 
+FULL TEAM via team_execute (for multi-domain goals):
+- deploys the full agent team: researcher + executor + monitor + analyst
+- auto-routes sub-tasks to the right specialist, runs in parallel where possible
+- use for: "catch me up on everything", "audit all integrations", "weekly review"
+- the team coordinator handles decomposition, assignment, parallel execution, and synthesis
+
 REMINDERS - your built-in scheduling system:
 Reminders are YOUR feature, not an external integration. You manage them directly with add_reminder, list_reminders, update_reminder, delete_reminder tools.
 

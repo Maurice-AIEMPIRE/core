@@ -25,13 +25,20 @@
  *   - Multi-Agent: Team orchestration, context bundling, message passing
  *
  * Usage:
- *   import { runCIM } from "~/services/cim";
+ *   import { runCIM, runTeam } from "~/services/cim";
  *
+ *   // Single-agent CIM query
  *   const result = await runCIM(
  *     "What meetings do I have this week?",
  *     userId,
  *     workspaceId,
  *     { timezone: "America/New_York" },
+ *   );
+ *
+ *   // Multi-agent team execution (fully automated)
+ *   const teamResult = await runTeam(
+ *     "Prepare weekly summary from email + github + calendar",
+ *     config,
  *   );
  */
 
@@ -156,3 +163,13 @@ export {
   createHandoff,
   createEscalation,
 } from "./multi-agent";
+
+// Team Coordinator (fully automated multi-agent)
+export {
+  runTeam,
+  getOrCreateDefaultTeam,
+  startHeartbeat,
+  stopHeartbeat,
+  isHeartbeatRunning,
+} from "./team-coordinator";
+export type { TeamRunResult } from "./team-coordinator";
