@@ -7,7 +7,39 @@ import {
   TabsList,
   TabsTrigger,
 } from "../ui";
-import * as LucideIcons from "lucide-react";
+import {
+  Search,
+  Heart,
+  Star,
+  Settings,
+  User,
+  Home,
+  Clock,
+  Calendar,
+  Mail,
+  Bell,
+  AlertCircle,
+  CheckCircle,
+  Plus,
+  Minus,
+  Download,
+  Upload,
+  Trash2,
+  Edit,
+  Copy,
+  Share2,
+  Link,
+  Lock,
+  Unlock,
+  Eye,
+  EyeOff,
+  Menu,
+  X,
+  ChevronRight,
+  ChevronLeft,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
 import { useState } from "react";
 
 import { emojiData } from "./emoji-data";
@@ -19,6 +51,16 @@ interface IconPickerProps {
   onRemove?: () => void;
   onUploadIcon?: (file: File) => void;
 }
+
+// Pre-selected common icons to avoid loading all 1000+ lucide icons
+const COMMON_ICONS = {
+  Heart, Star, Settings, User, Home, Clock, Calendar, Mail, Bell,
+  AlertCircle, CheckCircle, Plus, Minus, Download, Upload, Trash2,
+  Edit, Copy, Share2, Link, Lock, Unlock, Eye, EyeOff, Menu, X,
+  ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Search
+};
+
+const COMMON_ICON_NAMES = Object.keys(COMMON_ICONS);
 
 const colorOptions = [
   "#000",
@@ -43,14 +85,11 @@ export function IconPicker({
   const [emojiSearch, setEmojiSearch] = useState("");
   const [selectedColor, setSelectedColor] = useState(colorOptions[0]);
 
-  // Filter icons based on search
-  const filteredIcons = Object.keys(LucideIcons)
-    .filter(
-      (iconName) =>
-        iconName !== "createLucideIcon" &&
-        iconName.toLowerCase().includes(iconSearch.toLowerCase()),
-    )
-    .slice(0, 100); // Limit to 120 icons for performance
+  // Filter icons based on search (using pre-selected common icons only)
+  const filteredIcons = COMMON_ICON_NAMES.filter(
+    (iconName) =>
+      iconName.toLowerCase().includes(iconSearch.toLowerCase()),
+  );
 
   // Filter emojis based on search
   const filteredEmojis = emojiSearch
@@ -93,7 +132,7 @@ export function IconPicker({
               ))}
             </div>
             <div className="relative mb-4">
-              <LucideIcons.Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
+              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
               <Input
                 placeholder="Search Icons..."
                 className="pl-9"
@@ -105,7 +144,8 @@ export function IconPicker({
               <div className="grid grid-cols-8 gap-2">
                 {filteredIcons.map((iconName) => {
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const IconComponent = (LucideIcons as any)[iconName];
+                  const IconComponent = (COMMON_ICONS as any)[iconName];
+                  if (!IconComponent) return null;
                   return (
                     <Button
                       key={iconName}
@@ -136,7 +176,7 @@ export function IconPicker({
         <TabsContent value="emojis" className="p-0">
           <div className="p-1">
             <div className="relative mb-4">
-              <LucideIcons.Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
+              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
               <Input
                 placeholder="Search Icons..."
                 className="pl-9"

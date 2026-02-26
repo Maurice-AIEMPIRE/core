@@ -286,53 +286,58 @@ export class PgVectorProvider implements IVectorProvider {
   }
 
   /**
-   * Batch upsert embeddings using Prisma transaction
+   * Batch upsert embeddings using Prisma transaction with chunking
+   * Process items in chunks to avoid long-running transactions and locks
    */
   async batchUpsert(items: VectorItem[], namespace?: string): Promise<void> {
     if (items.length === 0) return;
 
     const tableName = this.getTableName(namespace);
     const contentName = this.getContentName(namespace);
+    const CHUNK_SIZE = 500; // Process 500 items per transaction
 
-    // Use Prisma transaction with extended timeout for large batches
-    // Default timeout is 5s, we set to 60s to handle large batches
-    await this.prisma.$transaction(
-      async (tx) => {
-        for (const item of items) {
-          const userId = item.metadata?.userId;
-          const workspaceId = item.metadata?.workspaceId;
-          if (!userId) {
-            throw new Error(`userId is required in metadata for item ${item.id}`);
+    // Process items in chunks to avoid long transaction locks
+    for (let i = 0; i < items.length; i += CHUNK_SIZE) {
+      const chunk = items.slice(i, i + CHUNK_SIZE);
+
+      await this.prisma.$transaction(
+        async (tx) => {
+          for (const item of chunk) {
+            const userId = item.metadata?.userId;
+            const workspaceId = item.metadata?.workspaceId;
+            if (!userId) {
+              throw new Error(`userId is required in metadata for item ${item.id}`);
+            }
+
+            const vectorString = `[${item.vector.join(",")}]`;
+            const metadataString = JSON.stringify(item.metadata);
+
+            await tx.$executeRaw`
+            INSERT INTO ${Prisma.raw(tableName)} (id, "userId", "workspaceId", vector, metadata, ${Prisma.raw(`"${contentName}"`)}, "createdAt", "updatedAt")
+            VALUES (
+              ${item.id},
+              ${userId},
+              ${workspaceId},
+              ${vectorString}::vector,
+              ${metadataString}::jsonb,
+              ${item.content},
+              NOW(),
+              NOW()
+            )
+            ON CONFLICT (id) DO UPDATE
+            SET vector = EXCLUDED.vector,
+                ${Prisma.raw(`"${contentName}"`)} = EXCLUDED.${Prisma.raw(`"${contentName}"`)},
+                metadata = EXCLUDED.metadata,
+                "updatedAt" = NOW()
+          `;
           }
-
-          const vectorString = `[${item.vector.join(",")}]`;
-          const metadataString = JSON.stringify(item.metadata);
-
-          await tx.$executeRaw`
-          INSERT INTO ${Prisma.raw(tableName)} (id, "userId", "workspaceId", vector, metadata, ${Prisma.raw(`"${contentName}"`)}, "createdAt", "updatedAt")
-          VALUES (
-            ${item.id},
-            ${userId},
-            ${workspaceId},
-            ${vectorString}::vector,
-            ${metadataString}::jsonb,
-            ${item.content},
-            NOW(),
-            NOW()
-          )
-          ON CONFLICT (id) DO UPDATE
-          SET vector = EXCLUDED.vector,
-              ${Prisma.raw(`"${contentName}"`)} = EXCLUDED.${Prisma.raw(`"${contentName}"`)},
-              metadata = EXCLUDED.metadata,
-              "updatedAt" = NOW()
-        `;
+        },
+        {
+          maxWait: 5000, // 5 seconds max wait to acquire transaction
+          timeout: 10000, // 10 seconds transaction timeout (per chunk)
         }
-      },
-      {
-        maxWait: 60000, // 60 seconds max wait to acquire transaction
-        timeout: 60000, // 60 seconds transaction timeout
-      }
-    );
+      );
+    }
   }
 
   /**

@@ -10,6 +10,44 @@ import { logger } from "../logger.service";
 import { CohereClientV2 } from "cohere-ai";
 
 /**
+ * Helper function to batch Cohere API requests to avoid sending too many documents at once
+ * Cohere API has limits on document count per request, so we batch in chunks of 50
+ */
+async function batchCohereRerank(
+  cohere: CohereClientV2,
+  query: string,
+  documents: string[],
+  model: string,
+  topN: number,
+): Promise<Array<{ index: number; relevanceScore: number }>> {
+  const BATCH_SIZE = 50;
+  const batches: Array<{ index: number; relevanceScore: number }> = [];
+
+  for (let i = 0; i < documents.length; i += BATCH_SIZE) {
+    const batchDocs = documents.slice(i, i + BATCH_SIZE);
+    const batchIndices = Array.from({ length: batchDocs.length }, (_, idx) => i + idx);
+
+    const response = await cohere.rerank({
+      query,
+      documents: batchDocs,
+      model,
+      topN: Math.min(topN, batchDocs.length),
+    });
+
+    // Adjust indices to global position and add to results
+    response.results.forEach((result) => {
+      batches.push({
+        index: batchIndices[result.index],
+        relevanceScore: result.relevanceScore,
+      });
+    });
+  }
+
+  // Sort by relevance score descending and return top N overall
+  return batches.sort((a, b) => b.relevanceScore - a.relevanceScore).slice(0, topN);
+}
+
+/**
  * Apply Cohere Rerank 3.5 to search results for improved question-to-fact matching
  * This is particularly effective for bridging the semantic gap between questions and factual statements
  */
@@ -67,19 +105,18 @@ export async function applyCohereReranking(
     logger.info(`Cohere query: "${query}"`);
     logger.info(`First 5 documents: ${documents.slice(0, 5).join(" | ")}`);
 
-    // Call Cohere Rerank API
-    const response = await cohere.rerank({
+    // Call Cohere Rerank API with batching to avoid timeout
+    const results = await batchCohereRerank(
+      cohere,
       query,
       documents,
       model,
-      topN: Math.min(limit, documents.length),
-    });
-
-    console.log("Cohere reranking billed units:", response.meta?.billedUnits);
+      Math.min(limit, documents.length),
+    );
 
     // Log top 5 Cohere results for debugging
     logger.info(
-      `Cohere top 5 results:\n${response.results
+      `Cohere top 5 results:\n${results
         .slice(0, 5)
         .map(
           (r, i) =>
@@ -89,7 +126,7 @@ export async function applyCohereReranking(
     );
 
     // Map results back to StatementNodes with Cohere scores
-    const rerankedResults = response.results.map((result, index) => ({
+    const rerankedResults = results.map((result, index) => ({
       ...uniqueResults[result.index],
       cohereScore: result.relevanceScore,
       cohereRank: index + 1,
@@ -161,21 +198,18 @@ export async function applyCohereEpisodeReranking<
       `Cohere reranking ${episodes.length} episodes with model ${model}`,
     );
 
-    // Call Cohere Rerank API
-    const response = await cohere.rerank({
+    // Call Cohere Rerank API with batching to avoid timeout
+    const results = await batchCohereRerank(
+      cohere,
       query,
       documents,
       model,
-      topN: Math.min(limit, documents.length),
-    });
-
-    logger.info(
-      `Cohere episode reranking - billed units: ${response.meta?.billedUnits || "N/A"}`,
+      Math.min(limit, documents.length),
     );
 
     // Log top 5 Cohere results for debugging
     logger.info(
-      `Cohere top 5 episodes:\n${response.results
+      `Cohere top 5 episodes:\n${results
         .slice(0, 5)
         .map(
           (r, i) =>
@@ -185,7 +219,7 @@ export async function applyCohereEpisodeReranking<
     );
 
     // Map results back to episodes with Cohere scores
-    const rerankedEpisodes = response.results.map((result) => ({
+    const rerankedEpisodes = results.map((result) => ({
       ...episodes[result.index],
       cohereScore: result.relevanceScore,
     }));

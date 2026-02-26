@@ -100,6 +100,7 @@ async function handleSubscriptionCreated(subscription: any) {
 
 
     if (workspace?.UserWorkspace) {
+      // Batch update all user credits at once (instead of N+1 queries)
       const usersInWorkspace = await prisma.user.findMany({
         where: {
           id: {
@@ -109,22 +110,23 @@ async function handleSubscriptionCreated(subscription: any) {
         include: {
           UserUsage: true
         }
-      })
+      });
 
+      const userUsageIds = usersInWorkspace
+        .map(user => user.UserUsage?.id)
+        .filter(Boolean);
 
-      for await (const user of usersInWorkspace) {
-        if (user.UserUsage) {
-          await prisma.userUsage.update({
-            where: { id: user.UserUsage.id },
-            data: {
-              availableCredits: planConfig.monthlyCredits,
-              usedCredits: 0,
-              overageCredits: 0,
-              lastResetAt: new Date(),
-              nextResetAt: new Date(subscription.current_period_end * 1000),
-            },
-          });
-        }
+      if (userUsageIds.length > 0) {
+        await prisma.userUsage.updateMany({
+          where: { id: { in: userUsageIds } },
+          data: {
+            availableCredits: planConfig.monthlyCredits,
+            usedCredits: 0,
+            overageCredits: 0,
+            lastResetAt: new Date(),
+            nextResetAt: new Date(subscription.current_period_end * 1000),
+          },
+        });
       }
     }
   }
@@ -203,6 +205,7 @@ async function handleSubscriptionUpdated(subscription: any) {
 
 
       if (workspace?.UserWorkspace) {
+        // Batch update all user credits at once (instead of N+1 queries)
         const usersInWorkspace = await prisma.user.findMany({
           where: {
             id: {
@@ -212,24 +215,24 @@ async function handleSubscriptionUpdated(subscription: any) {
           include: {
             UserUsage: true
           }
-        })
+        });
 
-        for await (const user of usersInWorkspace) {
-          if (user.UserUsage) {
-            await prisma.userUsage.update({
-              where: { id: user.UserUsage.id },
-              data: {
-                availableCredits: planConfig.monthlyCredits,
-                usedCredits: 0,
-                overageCredits: 0,
-                lastResetAt: new Date(),
-                nextResetAt: new Date(subscription.current_period_end * 1000),
-              },
-            });
-          }
+        const userUsageIds = usersInWorkspace
+          .map(user => user.UserUsage?.id)
+          .filter(Boolean);
+
+        if (userUsageIds.length > 0) {
+          await prisma.userUsage.updateMany({
+            where: { id: { in: userUsageIds } },
+            data: {
+              availableCredits: planConfig.monthlyCredits,
+              usedCredits: 0,
+              overageCredits: 0,
+              lastResetAt: new Date(),
+              nextResetAt: new Date(subscription.current_period_end * 1000),
+            },
+          });
         }
-
-
       }
     }
   }
@@ -272,6 +275,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     });
 
     if (workspace?.UserWorkspace) {
+      // Batch update all user credits at once (instead of N+1 queries)
       const usersInWorkspace = await prisma.user.findMany({
         where: {
           id: {
@@ -281,19 +285,21 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
         include: {
           UserUsage: true
         }
-      })
+      });
 
-      for await (const user of usersInWorkspace) {
-        if (user.UserUsage) {
-          await prisma.userUsage.update({
-            where: { id: user.UserUsage.id },
-            data: {
-              availableCredits: freeConfig.monthlyCredits,
-              usedCredits: 0,
-              overageCredits: 0,
-            },
-          });
-        }
+      const userUsageIds = usersInWorkspace
+        .map(user => user.UserUsage?.id)
+        .filter(Boolean);
+
+      if (userUsageIds.length > 0) {
+        await prisma.userUsage.updateMany({
+          where: { id: { in: userUsageIds } },
+          data: {
+            availableCredits: freeConfig.monthlyCredits,
+            usedCredits: 0,
+            overageCredits: 0,
+          },
+        });
       }
     }
   }

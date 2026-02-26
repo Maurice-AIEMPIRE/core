@@ -48,6 +48,24 @@ import {
   batchDeleteStatementEmbeddings,
 } from "~/services/vectorStorage.server";
 import { type ModelMessage } from "ai";
+
+/**
+ * Helper function to process items in batches to avoid memory issues
+ * Processes max 100 items at a time in parallel, then moves to next batch
+ */
+async function processBatch<T, R>(
+  items: T[],
+  processor: (item: T) => Promise<R>,
+  batchSize: number = 100,
+): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    const batchResults = await Promise.all(batch.map(processor));
+    results.push(...batchResults);
+  }
+  return results;
+}
 import { reconcileCredits } from "../credit_utils";
 
 export interface GraphResolutionPayload {
@@ -417,8 +435,10 @@ async function resolveExtractedNodesWithMerges(
 
   // Step 2: For each entity, find similar entities for LLM evaluation
   // Note: Exact name matches are already deduplicated before this function is called
-  const allEntityResults = await Promise.all(
-    uniqueEntities.map(async (entity) => {
+  // Process in batches to avoid memory issues with large entity lists
+  const allEntityResults = await processBatch(
+    uniqueEntities,
+    async (entity) => {
       const embedding = entityEmbeddings.get(entity.uuid);
       if (!embedding || embedding.length === 0) {
         // No embedding found, skip similarity search
@@ -440,7 +460,8 @@ async function resolveExtractedNodesWithMerges(
         entity,
         similarEntities,
       };
-    }),
+    },
+    100, // Process 100 entities at a time
   );
 
   logger.info("end finding similar entities");
@@ -697,12 +718,14 @@ async function resolveStatementsWithDuplicates(
   );
 
   // Step 2: Run all semantic similarity searches in parallel
-  const semanticResults = await Promise.all(
-    triples.map((triple) => {
+  // Process in batches to avoid memory issues with large statement lists
+  const semanticResults = await processBatch(
+    triples,
+    async (triple) => {
       const embedding = statementEmbeddings.get(triple.statement.uuid);
       if (!embedding || embedding.length === 0) {
         // No embedding found, skip similarity search
-        return Promise.resolve([]);
+        return [];
       }
 
       const structural = structuralMatches.get(triple.statement.uuid);
@@ -718,7 +741,8 @@ async function resolveStatementsWithDuplicates(
         userId: triple.provenance.userId,
         workspaceId: workspaceId,
       });
-    }),
+    },
+    100, // Process 100 statements at a time
   );
 
   logger.info("end finding similar statements");

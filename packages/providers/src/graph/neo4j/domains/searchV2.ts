@@ -26,11 +26,12 @@ export function createSearchV2Methods(core: Neo4jCore) {
       const wsFilter = params.workspaceId ? ", workspaceId: $workspaceId" : "";
 
       const query = `
+                WITH datetime() as now
                 MATCH (e:Episode{userId: $userId${wsFilter}})-[:HAS_PROVENANCE]->(s:Statement)
                 WHERE TRUE
                 ${params.labelIds.length > 0 ? "AND ANY(lid IN e.labelIds WHERE lid IN $labelIds)" : ""}
                 ${params.aspects.length > 0 ? "AND s.aspect IN $aspects" : ""}
-                AND (s.invalidAt IS NULL OR s.invalidAt > datetime())
+                AND (s.invalidAt IS NULL OR s.invalidAt > now)
                 ${
                   params.temporalStart || params.temporalEnd
                     ? `AND (
@@ -77,14 +78,15 @@ export function createSearchV2Methods(core: Neo4jCore) {
       const wsFilter = params.workspaceId ? ", workspaceId: $workspaceId" : "";
 
       const query = `
+                WITH datetime() as now
                 UNWIND $entityUuids as entityUuid
                 MATCH (ent:Entity {uuid: entityUuid, userId: $userId${wsFilter}})
 
                 // Find statements where entity is subject or object
                 OPTIONAL MATCH (s1:Statement{userId: $userId${wsFilter}})-[:HAS_SUBJECT|HAS_OBJECT]->(ent)
-                WHERE (s1.invalidAt IS NULL OR s1.invalidAt > datetime())
+                WHERE (s1.invalidAt IS NULL OR s1.invalidAt > now)
 
-                WITH DISTINCT s1 as s
+                WITH DISTINCT s1 as s, now
                 WHERE s IS NOT NULL
 
                 MATCH (e:Episode{userId: $userId${wsFilter}})-[:HAS_PROVENANCE]->(s)
@@ -124,6 +126,7 @@ export function createSearchV2Methods(core: Neo4jCore) {
       const wsFilter = params.workspaceId ? ", workspaceId: $workspaceId" : "";
 
       const query = `
+                WITH datetime() as now
                 MATCH (e:Episode {userId: $userId${wsFilter}})-[:HAS_PROVENANCE]->(s:Statement)
                 WHERE (
                 (s.validAt >= datetime($startTime) ${params.endTime ? "AND s.validAt <= datetime($endTime)" : ""})
@@ -136,7 +139,7 @@ export function createSearchV2Methods(core: Neo4jCore) {
                 )
                 ${params.labelIds.length > 0 ? "AND ANY(lid IN e.labelIds WHERE lid IN $labelIds)" : ""}
                 ${params.aspects.length > 0 ? "AND s.aspect IN $aspects" : ""}
-                AND (s.invalidAt IS NULL OR s.invalidAt > datetime())
+                AND (s.invalidAt IS NULL OR s.invalidAt > now)
 
                 WITH DISTINCT e
                 ORDER BY e.validAt DESC
@@ -171,6 +174,7 @@ export function createSearchV2Methods(core: Neo4jCore) {
       const wsFilter = params.workspaceId ? ", workspaceId: $workspaceId" : "";
 
       const query = `
+                WITH datetime() as now
                 // Find entities matching first hint
                 MATCH (ent1:Entity {userId: $userId${wsFilter}})
                 WHERE toLower(ent1.name) CONTAINS toLower($hint1)
@@ -187,7 +191,7 @@ export function createSearchV2Methods(core: Neo4jCore) {
                 OR
                 ((s)-[:HAS_SUBJECT]->(ent2) AND (s)-[:HAS_OBJECT]->(ent1))
                 )
-                AND (s.invalidAt IS NULL OR s.invalidAt > datetime())
+                AND (s.invalidAt IS NULL OR s.invalidAt > now)
 
                 MATCH (e:Episode)-[:HAS_PROVENANCE]->(s)
                 MATCH (s)-[:HAS_SUBJECT]->(sub:Entity)

@@ -43,10 +43,15 @@ async function getPreviousVersionEpisodes(
   previousVersion: number,
   workspaceId?: string,
 ): Promise<EpisodeEmbedding[]> {
-  const allEpisodes = await getRecentEpisodes(userId, 200, sessionId, undefined, undefined, workspaceId);
-
-  // Filter to get only episodes from previous version
-  return allEpisodes.filter((ep) => ep.version === previousVersion);
+  // Pass version parameter to database for filtering (avoid client-side filtering)
+  return await getRecentEpisodes(
+    userId,
+    200,
+    sessionId,
+    undefined,
+    previousVersion, // Filter by version in database
+    workspaceId
+  );
 }
 
 /**
