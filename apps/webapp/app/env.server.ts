@@ -140,6 +140,9 @@ const EnvironmentSchema = z
     MODEL_PROVIDER: z.enum(["vercel-ai"]).default("vercel-ai"),
 
     EXA_API_KEY: z.string().optional(),
+
+    // WhatsApp
+    WHATSAPP_BOT_NUMBER: z.string().optional(),
   })
   .refine(
     (data) => {

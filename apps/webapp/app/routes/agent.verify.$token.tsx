@@ -11,6 +11,7 @@ import { logger } from "~/services/logger.service";
 
 import { createPersonalAccessTokenFromAuthorizationCode } from "~/services/personalAccessToken.server";
 import { requireUser } from "~/services/session.server";
+import { env } from "~/env.server";
 
 const ParamsSchema = z.object({
   token: z.string(),
@@ -92,7 +93,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 export default function Page() {
   const result = useTypedLoaderData<typeof loader>();
 
-  const whatsappNumber = "+12314444889"; // Replace with your actual WhatsApp number
+  const whatsappNumber = env.WHATSAPP_BOT_NUMBER ?? "";
   const whatsappMessage = encodeURIComponent(
     "hey I have connected. What can you do?",
   );
@@ -118,7 +119,7 @@ export default function Page() {
                     <div className="text-md text-center">
                       <p>{getInstructionsForSource(result.source)}</p>
                     </div>
-                    {result.source === "whatsapp" && (
+                    {result.source === "whatsapp" && whatsappNumber && (
                       <a
                         href={`https://wa.me/${whatsappNumber}?text=${whatsappMessage}`}
                         target="_blank"

@@ -22,9 +22,15 @@ import { IntegrationLoader } from "~/utils/mcp/integration-loader";
 
 import { addToQueue } from "~/lib/ingest.server";
 import { getPersonaDocumentForUser } from "~/services/document.server";
-import { getCorePrompt } from "~/services/agent/prompts";
+import { getCorePrompt, type ChannelType } from "~/services/agent/prompts";
 import { getUserById } from "~/models/user.server";
 import { createTools } from "~/services/agent/core-agent";
+
+const SOURCE_TO_CHANNEL: Record<string, ChannelType> = {
+  whatsapp: "whatsapp",
+  slack: "slack",
+  email: "email",
+};
 
 const ChatRequestSchema = z.object({
   message: z
@@ -128,7 +134,8 @@ const { loader, action } = createHybridActionApiRoute(
     // Build system prompt with persona context if available
     // Using minimal prompt for better execution without explanatory text
     // Use onboarding-specific capabilities if onboarding summary is available
-    let systemPrompt = getCorePrompt('web', {
+    const channel: ChannelType = SOURCE_TO_CHANNEL[body.source] ?? "web";
+    let systemPrompt = getCorePrompt(channel, {
       name: user?.displayName ?? user?.name ?? user?.email ?? "",
       email: user?.email ?? "",
       timezone,
