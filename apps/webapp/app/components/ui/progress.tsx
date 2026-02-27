@@ -30,7 +30,7 @@ const Progress = React.forwardRef<
       {sortedSegments.map((segment, index) => (
         <ProgressPrimitive.Indicator
           key={index}
-          className="bg-primary absolute top-0 h-full transition-all"
+          className="bg-primary absolute top-0 h-full origin-left transition-transform"
           style={{
             width: `${segment.value}%`,
             left: "0%",

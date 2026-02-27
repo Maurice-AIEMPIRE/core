@@ -30,7 +30,7 @@ export function ProviderCard({ provider, isConnected }: ProviderCardProps) {
   return (
     <>
       <Card
-        className="transition-all"
+        className="transition-shadow"
         onClick={() => {
           setIsOnboardingOpen(true);
         }}

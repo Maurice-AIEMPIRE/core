@@ -45,7 +45,7 @@ export function ProviderSelectionStep({
               variant="outline"
               onClick={() => onSelectProvider(provider.id)}
               size="2xl"
-              className={`relative flex flex-col items-start justify-center gap-1 rounded-lg border-1 border-gray-300 p-4 text-left transition-all ${
+              className={`relative flex flex-col items-start justify-center gap-1 rounded-lg border-1 border-gray-300 p-4 text-left transition-colors ${
                 isSelected
                   ? "border-primary bg-primary/5"
                   : "hover:border-primary/50 border-gray-300"

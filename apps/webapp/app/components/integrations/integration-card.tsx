@@ -30,7 +30,7 @@ export function IntegrationCard({
       to={`/home/integration/${integration.slug || integration.id}`}
       className="bg-background-3 h-full rounded-lg"
     >
-      <Card className="transition-all">
+      <Card className="transition-shadow">
         <CardHeader className="p-4">
           <div className="flex items-center justify-between">
             <div className="bg-background-2 mb-2 flex h-6 w-6 items-center justify-center rounded">
