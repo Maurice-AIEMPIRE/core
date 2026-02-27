@@ -36,6 +36,8 @@ benchmarks/
 
 # Misc
 .DS_Store
+._*
+__MACOSX/
 *.pem
 
 docker-compose.dev.yaml
