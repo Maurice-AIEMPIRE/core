@@ -22,12 +22,8 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
-
     if (!workspaceId) {
-      return json(
-        { error: "Workspace is required" },
-        { status: 400 },
-      );
+      return json({ error: "Workspace is required" }, { status: 400 });
     }
 
     // Get the current integration account
@@ -65,7 +61,7 @@ export async function action({ request }: ActionFunctionArgs) {
       integrationAccountId,
       userId,
       "mcp.disconnected",
-      workspaceId
+      workspaceId,
     );
 
     logger.info("MCP configuration disconnected", {

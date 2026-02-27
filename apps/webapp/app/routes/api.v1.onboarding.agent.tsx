@@ -146,7 +146,6 @@ const { loader, action } = createHybridActionApiRoute(
       authentication?.workspaceId as string,
     );
 
-
     let currentIteration = 0;
     let totalEmailsFetched = 0;
     const maxIterations = 13; // ~6 months (13 * 2 weeks)

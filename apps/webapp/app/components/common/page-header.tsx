@@ -76,7 +76,7 @@ export function PageHeader({
     navigation.state === "loading" || navigation.state === "submitting";
 
   return (
-    <header className="relative flex h-(--header-height) shrink-0 items-center gap-2 border-b border-gray-300 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
+    <header className="h-(--header-height) group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) relative flex shrink-0 items-center gap-2 border-b border-gray-300 transition-[width,height] ease-linear">
       {/* Keyframes for the loading bar animation */}
       <style>
         {`
@@ -168,7 +168,7 @@ export function PageHeader({
       {isLoading && (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute top-[40px] left-0 z-20 h-0.5 w-full overflow-hidden rounded-md"
+          className="pointer-events-none absolute left-0 top-[40px] z-20 h-0.5 w-full overflow-hidden rounded-md"
         >
           <div
             className={`bg-primary/50 h-full w-full transition-opacity duration-200 ${

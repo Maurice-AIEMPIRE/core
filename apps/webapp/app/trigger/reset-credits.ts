@@ -14,8 +14,8 @@ export const runCredits = schedules.task({
       },
     });
 
-    for await (const workspace of workspaces) {
-      for await (const uw of workspace.UserWorkspace) {
+    for (const workspace of workspaces) {
+      for (const uw of workspace.UserWorkspace) {
         await resetMonthlyCredits(workspace.id, uw.userId);
       }
     }

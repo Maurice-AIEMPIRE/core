@@ -3,7 +3,6 @@ import { createHybridLoaderApiRoute } from "~/services/routeBuilders/apiBuilder.
 
 import { LabelService } from "~/services/label.server";
 
-
 // This route handles the OAuth redirect URL generation, similar to the NestJS controller
 const loader = createHybridLoaderApiRoute(
   {
@@ -13,7 +12,6 @@ const loader = createHybridLoaderApiRoute(
   },
   async ({ authentication }) => {
     const labelService = new LabelService();
-
 
     const labels = await labelService.getWorkspaceLabels(
       authentication.workspaceId as string,

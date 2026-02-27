@@ -13,12 +13,20 @@
 
 import { logger } from "~/services/logger.service";
 
-import type { RecallResult, SearchV2Options, HandlerContext, RouterOutput } from "./types";
+import type {
+  RecallResult,
+  SearchV2Options,
+  HandlerContext,
+  RouterOutput,
+} from "./types";
 import { routeIntent, shouldProceedWithSearch } from "./router";
 import { routeToHandler } from "./handlers";
 import { formatRecallAsMarkdown, formatForV1Compatibility } from "./formatter";
 import { prisma } from "~/db.server";
-import { applyTokenBudget, DEFAULT_TOKEN_BUDGET } from "~/services/search/tokenBudget";
+import {
+  applyTokenBudget,
+  DEFAULT_TOKEN_BUDGET,
+} from "~/services/search/tokenBudget";
 
 /**
  * Log recall event to database for analytics
@@ -31,7 +39,8 @@ async function logRecallEvent(params: {
   routerOutput: RouterOutput;
   options: SearchV2Options;
 }): Promise<void> {
-  const { query, userId, result, responseTimeMs, routerOutput, options } = params;
+  const { query, userId, result, responseTimeMs, routerOutput, options } =
+    params;
 
   const episodeCount = result.episodes.length;
   const statementCount = result.statements?.length || 0;
@@ -100,14 +109,16 @@ async function logRecallEvent(params: {
 export async function searchV2(
   query: string,
   userId: string,
-  options: SearchV2Options = {}
+  options: SearchV2Options = {},
 ): Promise<ReturnType<typeof formatForV1Compatibility> | string> {
   const startTime = Date.now();
 
-  const workspace = await prisma.workspace.findFirst({where: {
-    userId
-  }})
-  if(!workspace) {
+  const workspace = await prisma.workspace.findFirst({
+    where: {
+      userId,
+    },
+  });
+  if (!workspace) {
     throw new Error("Workspace not found");
   }
 
@@ -152,10 +163,11 @@ export async function searchV2(
   // Apply token budget to episodes (drop least relevant from tail until under budget)
   const tokenBudget = options.tokenBudget ?? DEFAULT_TOKEN_BUDGET;
   if (result.episodes.length > 0) {
-    const { episodes: budgetedEpisodes, droppedCount, totalTokens } = applyTokenBudget(
-      result.episodes,
-      tokenBudget
-    );
+    const {
+      episodes: budgetedEpisodes,
+      droppedCount,
+      totalTokens,
+    } = applyTokenBudget(result.episodes, tokenBudget);
     result = {
       ...result,
       episodes: budgetedEpisodes,
@@ -164,7 +176,7 @@ export async function searchV2(
     if (droppedCount > 0) {
       logger.info(
         `[SearchV2] Token budget applied: dropped ${droppedCount} episodes, ` +
-          `${budgetedEpisodes.length} remaining (${totalTokens}/${tokenBudget} tokens)`
+          `${budgetedEpisodes.length} remaining (${totalTokens}/${tokenBudget} tokens)`,
       );
     }
   }
@@ -173,7 +185,7 @@ export async function searchV2(
 
   logger.info(
     `[SearchV2] Search completed in ${responseTimeMs}ms. ` +
-      `Found ${result.episodes.length} episodes, ${result.statements?.length || 0} statements, entity: ${result.entity ? 'yes' : 'no'}`
+      `Found ${result.episodes.length} episodes, ${result.statements?.length || 0} statements, entity: ${result.entity ? "yes" : "no"}`,
   );
 
   // Step 5: Log recall event (non-blocking)
@@ -200,17 +212,16 @@ export async function searchV2(
  * Get just the router output without executing the search
  * Useful for debugging and testing the routing logic
  */
-export async function analyzeQuery(
-  query: string,
-  userId: string
-) {
-  const workspace = await prisma.workspace.findFirst({where: {
-    userId
-  }})
-  if(!workspace) {
+export async function analyzeQuery(query: string, userId: string) {
+  const workspace = await prisma.workspace.findFirst({
+    where: {
+      userId,
+    },
+  });
+  if (!workspace) {
     throw new Error("Workspace not found");
   }
-  
+
   const routerOutput = await routeIntent(query, userId, workspace.id);
 
   return {

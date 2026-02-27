@@ -20,7 +20,6 @@ import { EpisodeType, UserTypeEnum } from "@core/types";
 import { enqueueCreateConversationTitle } from "~/lib/queue-adapter.server";
 import { IntegrationLoader } from "~/utils/mcp/integration-loader";
 
-
 import { addToQueue } from "~/lib/ingest.server";
 import { getPersonaDocumentForUser } from "~/services/document.server";
 import { getCorePrompt } from "~/services/agent/prompts";
@@ -118,25 +117,32 @@ const { loader, action } = createHybridActionApiRoute(
 
     const user = await getUserById(authentication.userId);
     // Fetch user's persona to condition AI behavior
-    const latestPersona = await getPersonaDocumentForUser(authentication.workspaceId as string);
-    const personaContent = latestPersona
-      ? latestPersona
-      : "";
+    const latestPersona = await getPersonaDocumentForUser(
+      authentication.workspaceId as string,
+    );
+    const personaContent = latestPersona ? latestPersona : "";
 
     const metadata = user?.metadata as Record<string, unknown> | null;
-    const timezone = metadata?.timezone as string ?? "UTC"
-    const tools = createTools(authentication.userId, authentication.workspaceId as string, timezone, body.source);
-
+    const timezone = (metadata?.timezone as string) ?? "UTC";
+    const tools = createTools(
+      authentication.userId,
+      authentication.workspaceId as string,
+      timezone,
+      body.source,
+    );
 
     // Build system prompt with persona context if available
     // Using minimal prompt for better execution without explanatory text
     // Use onboarding-specific capabilities if onboarding summary is available
-    let systemPrompt = getCorePrompt('web', {
-      name: user?.displayName ?? user?.name ?? user?.email ?? "",
-      email: user?.email ?? "",
-      timezone,
-    }, personaContent);
-
+    let systemPrompt = getCorePrompt(
+      "web",
+      {
+        name: user?.displayName ?? user?.name ?? user?.email ?? "",
+        email: user?.email ?? "",
+        timezone,
+      },
+      personaContent,
+    );
 
     // Add connected integrations context
     const integrationsContext = `
@@ -169,7 +175,6 @@ const { loader, action } = createHybridActionApiRoute(
     </current_datetime>`;
 
     systemPrompt = `${systemPrompt}${dateTimeContext}`;
-
 
     // If onboarding and no messages yet, generate first message from agent
     let modelMessages: ModelMessage[];
@@ -229,7 +234,7 @@ const { loader, action } = createHybridActionApiRoute(
                 sessionId: body.id,
               },
               authentication.userId,
-              authentication.workspaceId || ""
+              authentication.workspaceId || "",
             );
           }
         }

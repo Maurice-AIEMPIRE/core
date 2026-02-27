@@ -5,11 +5,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
     // Get authorization header
     const authHeader = request.headers.get("authorization");
-    
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return json(
-        { error: "invalid_token", error_description: "Missing or invalid authorization header" },
-        { status: 401 }
+        {
+          error: "invalid_token",
+          error_description: "Missing or invalid authorization header",
+        },
+        { status: 401 },
       );
     }
 
@@ -21,16 +24,18 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       return json(userInfo);
     } catch (error) {
       return json(
-        { error: "invalid_token", error_description: "Invalid or expired access token" },
-        { status: 401 }
+        {
+          error: "invalid_token",
+          error_description: "Invalid or expired access token",
+        },
+        { status: 401 },
       );
     }
-
   } catch (error) {
     console.error("OAuth2 userinfo endpoint error:", error);
     return json(
       { error: "server_error", error_description: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 };
@@ -38,7 +43,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 // This endpoint only supports GET
 export const action = () => {
   return json(
-    { error: "invalid_request", error_description: "Only GET method is allowed" },
-    { status: 405 }
+    {
+      error: "invalid_request",
+      error_description: "Only GET method is allowed",
+    },
+    { status: 405 },
   );
 };

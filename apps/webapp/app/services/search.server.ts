@@ -99,7 +99,12 @@ export class SearchService {
 
     // Note: We still need to extract entities from graph for Episode Graph search
     // The LLM entities are just strings, we need EntityNode objects from the graph
-    const entities = await extractEntitiesFromQuery(query, userId, workspaceId, []);
+    const entities = await extractEntitiesFromQuery(
+      query,
+      userId,
+      workspaceId,
+      [],
+    );
     logger.info(
       `Extracted entities ${entities.map((e: EntityNode) => e.name).join(", ")}`,
     );
@@ -133,27 +138,40 @@ export class SearchService {
         logger.info(`Vector search completed in ${searchTimings.vector}ms`);
         return r;
       }),
-      performBfsSearch(query, queryVector, userId, workspaceId, entities, opts).then((r) => {
+      performBfsSearch(
+        query,
+        queryVector,
+        userId,
+        workspaceId,
+        entities,
+        opts,
+      ).then((r) => {
         searchTimings.bfs = Date.now() - searchStartTime;
         logger.info(`BFS search completed in ${searchTimings.bfs}ms`);
         return r;
       }),
-      performEpisodeGraphSearch(entities, queryVector, userId, workspaceId, opts).then(
+      performEpisodeGraphSearch(
+        entities,
+        queryVector,
+        userId,
+        workspaceId,
+        opts,
+      ).then((r) => {
+        searchTimings.episodeGraph = Date.now() - searchStartTime;
+        logger.info(
+          `Episode graph search completed in ${searchTimings.episodeGraph}ms`,
+        );
+        return r;
+      }),
+      performEpisodeVectorSearch(queryVector, userId, workspaceId, opts).then(
         (r) => {
-          searchTimings.episodeGraph = Date.now() - searchStartTime;
+          searchTimings.episodeVector = Date.now() - searchStartTime;
           logger.info(
-            `Episode graph search completed in ${searchTimings.episodeGraph}ms`,
+            `Episode vector search completed in ${searchTimings.episodeVector}ms`,
           );
           return r;
         },
       ),
-      performEpisodeVectorSearch(queryVector, userId, workspaceId, opts).then((r) => {
-        searchTimings.episodeVector = Date.now() - searchStartTime;
-        logger.info(
-          `Episode vector search completed in ${searchTimings.episodeVector}ms`,
-        );
-        return r;
-      }),
     ]);
 
     logger.info(
@@ -335,13 +353,13 @@ export class SearchService {
     const tokenBudget = opts.tokenBudget ?? DEFAULT_TOKEN_BUDGET;
     const { episodes: unifiedEpisodes, droppedCount } = applyTokenBudget(
       compactedEpisodes,
-      tokenBudget
+      tokenBudget,
     );
 
     if (droppedCount > 0) {
       logger.info(
         `Token budget applied: dropped ${droppedCount} episodes, ` +
-          `${unifiedEpisodes.length} remaining`
+          `${unifiedEpisodes.length} remaining`,
       );
     }
 
@@ -489,8 +507,16 @@ export class SearchService {
     const statementIds = statements.map((statement) => statement.uuid);
 
     const graphProvider = ProviderFactory.getGraphProvider();
-    await graphProvider.updateEpisodeRecallCount(userId, episodeIds, workspaceId);
-    await graphProvider.updateStatementRecallCount(userId, statementIds, workspaceId);
+    await graphProvider.updateEpisodeRecallCount(
+      userId,
+      episodeIds,
+      workspaceId,
+    );
+    await graphProvider.updateStatementRecallCount(
+      userId,
+      statementIds,
+      workspaceId,
+    );
   }
 
   /**

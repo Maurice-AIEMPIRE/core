@@ -64,7 +64,7 @@ export default function AccountSettings() {
   const canDelete = confirmText === user.email;
 
   return (
-    <div className="mx-auto flex w-auto flex-col gap-4 px-4 py-6 md:w-3xl">
+    <div className="md:w-3xl mx-auto flex w-auto flex-col gap-4 px-4 py-6">
       <SettingSection
         title="Account Settings"
         description="Manage your account information and preferences"
@@ -197,14 +197,14 @@ export default function AccountSettings() {
 
       {/* Success Message */}
       {fetcher.data && "success" in fetcher.data && fetcher.data.success && (
-        <div className="fixed right-4 bottom-4 rounded-md bg-green-600 p-4 text-white shadow-lg">
+        <div className="fixed bottom-4 right-4 rounded-md bg-green-600 p-4 text-white shadow-lg">
           Account deleted successfully. Redirecting...
         </div>
       )}
 
       {/* Error Message */}
       {fetcher.data && "error" in fetcher.data && (
-        <div className="fixed right-4 bottom-4 rounded-md bg-red-600 p-4 text-white shadow-lg">
+        <div className="fixed bottom-4 right-4 rounded-md bg-red-600 p-4 text-white shadow-lg">
           {fetcher.data.error}
         </div>
       )}

@@ -15,8 +15,7 @@ import { LabelService } from "~/services/label.server";
 import { requireUser } from "~/services/session.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const {workspaceId} = await requireUser(request);
-
+  const { workspaceId } = await requireUser(request);
 
   if (!workspaceId) {
     throw new Error("Workspace not found");
@@ -29,10 +28,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-  const {workspaceId} = await requireUser(request);
+  const { workspaceId } = await requireUser(request);
   const formData = await request.formData();
   const intent = formData.get("intent");
-
 
   if (!workspaceId) {
     throw json({ error: "Workspace not found" }, { status: 404 });
@@ -116,7 +114,7 @@ export default function Labels() {
   >(undefined);
 
   return (
-    <div className="mx-auto flex w-auto flex-col gap-4 px-4 py-6 md:w-3xl">
+    <div className="md:w-3xl mx-auto flex w-auto flex-col gap-4 px-4 py-6">
       <SettingSection
         title="Labels"
         description="Use labels and label groups to help organize and filter episodes in your workspace."

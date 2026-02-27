@@ -42,12 +42,12 @@ export function IngestionStep({
             {SUGGESTED_INGESTION_PROMPTS.map((prompt, index) => (
               <div
                 key={index}
-                className="group bg-grayAlpha-100 hover:border-primary/50 relative rounded-lg border border-gray-300 p-4 transition-colors"
+                className="bg-grayAlpha-100 hover:border-primary/50 group relative rounded-lg border border-gray-300 p-4 transition-colors"
               >
                 <p className="pr-10 text-sm">{prompt}</p>
                 <button
                   onClick={() => handleCopy(prompt, index)}
-                  className="hover:bg-background absolute top-3 right-3 rounded-md p-2 transition-colors"
+                  className="hover:bg-background absolute right-3 top-3 rounded-md p-2 transition-colors"
                   title="Copy to clipboard"
                 >
                   {copiedIndex === index ? (

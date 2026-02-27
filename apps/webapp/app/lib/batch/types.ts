@@ -1,9 +1,14 @@
 import { type CoreMessage } from "ai";
 import { z } from "zod";
 
-export type BatchStatus = "pending" | "processing" | "completed" | "failed" | "cancelled";
+export type BatchStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "cancelled";
 
-export type ModelComplexity = 'high' | 'low';
+export type ModelComplexity = "high" | "low";
 export interface BatchRequest {
   customId: string;
   messages: CoreMessage[];
@@ -20,7 +25,12 @@ export interface BatchResponse<T = any> {
 export interface BatchError {
   code: string;
   message: string;
-  type: "validation_error" | "api_error" | "timeout_error" | "rate_limit_error" | "unknown_error";
+  type:
+    | "validation_error"
+    | "api_error"
+    | "timeout_error"
+    | "rate_limit_error"
+    | "unknown_error";
 }
 
 export interface BatchJob {
@@ -66,11 +76,19 @@ export const BatchRequestSchema = z.object({
 export const BatchResponseSchema = z.object({
   customId: z.string(),
   response: z.any().optional(),
-  error: z.object({
-    code: z.string(),
-    message: z.string(),
-    type: z.enum(["validation_error", "api_error", "timeout_error", "rate_limit_error", "unknown_error"]),
-  }).optional(),
+  error: z
+    .object({
+      code: z.string(),
+      message: z.string(),
+      type: z.enum([
+        "validation_error",
+        "api_error",
+        "timeout_error",
+        "rate_limit_error",
+        "unknown_error",
+      ]),
+    })
+    .optional(),
 });
 
 export const CreateBatchParamsSchema = z.object({

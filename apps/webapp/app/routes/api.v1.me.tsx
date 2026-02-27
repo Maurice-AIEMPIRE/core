@@ -16,12 +16,16 @@ const loader = createHybridLoaderApiRoute(
     let personaLog;
 
     try {
-      const documentId = await getPersonaForUser(authentication.workspaceId as string);
+      const documentId = await getPersonaForUser(
+        authentication.workspaceId as string,
+      );
       personaLog = await getDocument(
         documentId as string,
         authentication.workspaceId as string,
       );
-    } catch (e) { }
+    } catch (e) {
+      console.warn("Failed to load persona for user:", e);
+    }
 
     const metadata = user?.metadata as Record<string, unknown> | null;
 

@@ -21,12 +21,14 @@ export function useIngestionStatus() {
 
   const hasActiveRecords = (data: IngestionStatusResponse | undefined) => {
     if (!data || !data.queue) return false;
-    return data.queue.some(item => item.status === "PROCESSING" || item.status === "PENDING");
+    return data.queue.some(
+      (item) => item.status === "PROCESSING" || item.status === "PENDING",
+    );
   };
 
   const startPolling = () => {
     if (intervalId) return; // Already polling
-    
+
     const pollIngestionStatus = () => {
       if (fetcher.state === "idle") {
         fetcher.load("/api/v1/ingestion-queue/status");
@@ -56,7 +58,7 @@ export function useIngestionStatus() {
   useEffect(() => {
     if (fetcher.data) {
       const activeRecords = hasActiveRecords(fetcher.data);
-      
+
       if (activeRecords && !isPolling) {
         // Start polling if we have active records and aren't already polling
         startPolling();
@@ -77,6 +79,9 @@ export function useIngestionStatus() {
     data: fetcher.data,
     isLoading: fetcher.state === "loading",
     isPolling,
-    error: fetcher.data === undefined && fetcher.state === "idle" ? "Error loading ingestion status" : null
+    error:
+      fetcher.data === undefined && fetcher.state === "idle"
+        ? "Error loading ingestion status"
+        : null,
   };
 }

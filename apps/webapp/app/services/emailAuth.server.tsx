@@ -29,7 +29,11 @@ const emailStrategy = new EmailLinkStrategy(
         authenticationMethod: "MAGIC_LINK",
       });
 
-      const workspace = await postAuthentication({ user, isNewUser, loginMethod: "MAGIC_LINK" });
+      const workspace = await postAuthentication({
+        user,
+        isNewUser,
+        loginMethod: "MAGIC_LINK",
+      });
 
       return { userId: user.id, workspaceId: workspace?.id };
     } catch (error) {

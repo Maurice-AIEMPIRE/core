@@ -24,8 +24,6 @@ export const loader = createHybridLoaderApiRoute(
     }
 
     try {
-    
-
       if (!authentication.workspaceId) {
         return json({ error: "Workspace not found" }, { status: 404 });
       }

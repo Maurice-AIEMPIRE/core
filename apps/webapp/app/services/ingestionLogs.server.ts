@@ -24,7 +24,11 @@ export const deleteIngestionQueue = async (id: string) => {
 };
 
 // Delete a single log with its episode and related nodes
-export const deleteLog = async (logId: string, userId: string, workspaceId?: string) => {
+export const deleteLog = async (
+  logId: string,
+  userId: string,
+  workspaceId?: string,
+) => {
   const ingestionQueue = await getIngestionQueue(logId);
 
   if (!ingestionQueue) {

@@ -18,7 +18,6 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   }
 
   try {
-
     if (!user.workspaceId) {
       return json({ error: "No workspace found" }, { status: 404 });
     }
@@ -73,8 +72,6 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   }
 
   try {
-  
-
     if (!user?.workspaceId) {
       return json({ error: "No workspace found" }, { status: 404 });
     }

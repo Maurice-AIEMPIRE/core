@@ -34,7 +34,6 @@ const { action } = createHybridActionApiRoute(
     }
 
     try {
-      
       const document = await getDocument(
         params.documentId,
         authentication.workspaceId,

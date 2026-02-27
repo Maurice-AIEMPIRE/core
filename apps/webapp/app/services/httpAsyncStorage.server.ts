@@ -9,9 +9,15 @@ export type HttpLocalStorage = {
 
 const httpLocalStorage = new AsyncLocalStorage<HttpLocalStorage>();
 
-export type RunWithHttpContextFunction = <T>(context: HttpLocalStorage, fn: () => T) => T;
+export type RunWithHttpContextFunction = <T>(
+  context: HttpLocalStorage,
+  fn: () => T,
+) => T;
 
-export function runWithHttpContext<T>(context: HttpLocalStorage, fn: () => T): T {
+export function runWithHttpContext<T>(
+  context: HttpLocalStorage,
+  fn: () => T,
+): T {
   return httpLocalStorage.run(context, fn);
 }
 

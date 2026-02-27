@@ -15,7 +15,10 @@ const GMAIL_SCOPES = [
 ];
 const CALENDAR_SCOPES = ["https://www.googleapis.com/auth/calendar"];
 
-function hasRequiredScopes(grantedScopes: string[], requiredScopes: string[]): boolean {
+function hasRequiredScopes(
+  grantedScopes: string[],
+  requiredScopes: string[],
+): boolean {
   return requiredScopes.every((scope) => grantedScopes.includes(scope));
 }
 
@@ -327,7 +330,7 @@ export async function postAuthentication({
         workspace: true,
       },
       orderBy: {
-        createdAt: 'asc', // Get the oldest (likely primary) workspace
+        createdAt: "asc", // Get the oldest (likely primary) workspace
       },
     });
 

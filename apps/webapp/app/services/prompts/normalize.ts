@@ -388,7 +388,9 @@ export const normalizeDocumentPrompt = (
 
 Transform this document content into enriched factual statements for knowledge graph storage.
 
-${context.previousVersionContent ? `
+${
+  context.previousVersionContent
+    ? `
 SEMANTIC DIFF MODE ENABLED:
 You are comparing two versions of the same document. Your task is to extract ONLY the changes between versions.
 
@@ -418,7 +420,9 @@ Describe all changes as natural factual statements. Examples:
 - "PostgreSQL version specified as 15, added BullMQ message queue"
 
 Focus on semantic meaning. Lines starting with "[+]" are additions, lines starting with "[-]" are deletions. For deletions, describe them as facts using natural language with verbs like "removed", "cancelled", "deleted", "no longer uses", etc.
-` : `CRITICAL: CAPTURE ALL DISTINCT PIECES OF INFORMATION from the document. Every separate fact, specification, procedure, data point, or detail mentioned must be preserved in your enriched output. Missing information is unacceptable.`}
+`
+    : `CRITICAL: CAPTURE ALL DISTINCT PIECES OF INFORMATION from the document. Every separate fact, specification, procedure, data point, or detail mentioned must be preserved in your enriched output. Missing information is unacceptable.`
+}
 
 <document_processing_approach>
 Focus on STRUCTURED CONTENT EXTRACTION optimized for documents:
@@ -521,7 +525,9 @@ ALWAYS include opening <output> and closing </output> tags around your entire re
 `;
 
   const userPrompt = `
-${context.previousVersionContent ? `<PREVIOUS_VERSION>
+${
+  context.previousVersionContent
+    ? `<PREVIOUS_VERSION>
 ${context.previousVersionContent}
 </PREVIOUS_VERSION>
 
@@ -530,10 +536,12 @@ ${context.episodeContent}
 </CURRENT_VERSION_CHANGES>
 
 Note: The CURRENT_VERSION_CHANGES is in git-style diff format with "[+]" prefixes for additions and "[-]" prefixes for deletions. Compare with PREVIOUS_VERSION to identify what was added, modified, or deleted. Describe deletions as natural facts (e.g., "X was removed", "Y was cancelled").
-` : `<DOCUMENT_CONTENT>
+`
+    : `<DOCUMENT_CONTENT>
 ${context.episodeContent}
 </DOCUMENT_CONTENT>
-`}
+`
+}
 
 <SOURCE>
 ${context.source}

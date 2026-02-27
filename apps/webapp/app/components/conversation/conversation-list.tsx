@@ -182,7 +182,7 @@ export const ConversationList = ({
   );
 
   return (
-    <div className="flex h-full min-h-[200px] w-full flex-col pt-1 pl-1">
+    <div className="flex h-full min-h-[200px] w-full flex-col pl-1 pt-1">
       {!isLoading && conversations.length > 0 && (
         <div className="group w-full grow overflow-hidden">
           <AutoSizer>

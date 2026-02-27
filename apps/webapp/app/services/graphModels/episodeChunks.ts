@@ -14,7 +14,11 @@ export async function getEpisodeWithAdjacentChunks(
   userId: string,
   contextWindow: number = 1,
 ): Promise<AdjacentChunks> {
-  return graphProvider().getEpisodeWithAdjacentChunks(episodeUuid, userId, contextWindow);
+  return graphProvider().getEpisodeWithAdjacentChunks(
+    episodeUuid,
+    userId,
+    contextWindow,
+  );
 }
 
 /**
@@ -67,13 +71,16 @@ export function reconstructContentFromChunks(chunks: EpisodicNode[]): string {
  * Format chunks with context for display
  */
 export function formatChunksWithContext(chunks: EpisodicNode[]): string {
-  const sorted = chunks.sort((a, b) => (a.chunkIndex || 0) - (b.chunkIndex || 0));
+  const sorted = chunks.sort(
+    (a, b) => (a.chunkIndex || 0) - (b.chunkIndex || 0),
+  );
 
   return sorted
     .map((chunk, idx) => {
-      const header = chunk.chunkIndex !== undefined
-        ? `## Section ${chunk.chunkIndex + 1}`
-        : `## Part ${idx + 1}`;
+      const header =
+        chunk.chunkIndex !== undefined
+          ? `## Section ${chunk.chunkIndex + 1}`
+          : `## Part ${idx + 1}`;
 
       return `${header}\n\n${chunk.content}`;
     })

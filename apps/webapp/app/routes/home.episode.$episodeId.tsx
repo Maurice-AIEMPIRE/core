@@ -22,9 +22,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       documentId as string,
       workspaceId as string,
     );
-    const labels = await labelService.getWorkspaceLabels(
-      workspaceId as string,
-    );
+    const labels = await labelService.getWorkspaceLabels(workspaceId as string);
     return json({ document, labels });
   } catch (e) {
     return json({ document: null, labels: [] });

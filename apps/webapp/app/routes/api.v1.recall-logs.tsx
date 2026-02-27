@@ -23,7 +23,6 @@ export const loader = createHybridLoaderApiRoute(
     const query = searchParams.query;
     const skip = (page - 1) * limit;
 
-
     if (!authentication.userId) {
       throw new Response("Workspace not found", { status: 404 });
     }

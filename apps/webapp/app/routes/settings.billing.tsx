@@ -41,9 +41,11 @@ import { SettingSection } from "~/components/setting-section";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const user = await requireUser(request);
 
-
   // Get usage summary
-  const usageSummary = await getUsageSummary(user.workspaceId as string, user.id);
+  const usageSummary = await getUsageSummary(
+    user.workspaceId as string,
+    user.id,
+  );
 
   // Get billing history
   const subscription = await prisma.subscription.findUnique({
@@ -66,10 +68,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     billingEnabled,
     subscription: subscription
       ? {
-        status: subscription.status,
-        planType: subscription.planType,
-        currentPeriodEnd: subscription.currentPeriodEnd,
-      }
+          status: subscription.status,
+          planType: subscription.planType,
+          currentPeriodEnd: subscription.currentPeriodEnd,
+        }
       : null,
   });
 };
@@ -231,7 +233,7 @@ export default function BillingSettings() {
   }
 
   return (
-    <div className="mx-auto flex w-auto flex-col gap-4 px-4 py-6 md:w-3xl">
+    <div className="md:w-3xl mx-auto flex w-auto flex-col gap-4 px-4 py-6">
       <SettingSection
         title="Billing"
         description=" Manage your subscription, usage, and billing history"

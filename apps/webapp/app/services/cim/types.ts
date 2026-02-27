@@ -31,7 +31,12 @@ export type GuardrailAction = "allow" | "deny" | "require_approval";
 
 export type PermissionLevel = "read" | "write" | "admin";
 
-export type PlanStepStatus = "pending" | "in_progress" | "completed" | "failed" | "skipped";
+export type PlanStepStatus =
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "failed"
+  | "skipped";
 
 export type HeartbeatCheckType =
   | "email"

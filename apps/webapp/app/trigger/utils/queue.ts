@@ -53,7 +53,7 @@ export const addToQueue = async (
     const labelService = new LabelService();
     const hasAccess = await labelService.validateLabelAccess(
       body.labelIds,
-      workspaceId
+      workspaceId,
     );
 
     if (!hasAccess) {

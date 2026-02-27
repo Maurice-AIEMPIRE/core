@@ -25,8 +25,6 @@ export const loader = async ({ request }: { request: Request }) => {
   }
   const searchParams = parseResult.data;
 
-
-
   if (!user.workspaceId) {
     return json({ error: "No workspace found" }, { status: 404 });
   }

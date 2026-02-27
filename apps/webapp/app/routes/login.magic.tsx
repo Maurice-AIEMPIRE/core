@@ -197,7 +197,7 @@ export default function LoginMagicLinkPage() {
               <CardHeader className="flex flex-col items-center">
                 <CardTitle className="text-2xl">Welcome to Core</CardTitle>
               </CardHeader>
-              <CardContent className="pt-2 pl-2">
+              <CardContent className="pl-2 pt-2">
                 <Fieldset className="flex w-full flex-col items-center gap-y-2">
                   <div className="mb-10 flex justify-center">
                     <Logo size={60} />

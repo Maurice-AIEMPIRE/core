@@ -1,2 +1,2 @@
-export * from './icon-picker';
-export * from './utils';
+export * from "./icon-picker";
+export * from "./utils";

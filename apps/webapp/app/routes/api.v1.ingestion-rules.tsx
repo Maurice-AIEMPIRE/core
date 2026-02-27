@@ -31,8 +31,6 @@ const { action, loader } = createActionApiRoute(
   },
   async ({ body, authentication, request }) => {
     try {
-     
-
       if (!authentication.workspaceId) {
         throw new Error("User workspace not found");
       }
@@ -40,8 +38,11 @@ const { action, loader } = createActionApiRoute(
       if (request.method === "POST") {
         // Create new rule
         const createData = body as z.infer<typeof IngestionRuleCreateSchema>;
-        
-        logger.log("Creating ingestion rule", { createData, userId: authentication.userId });
+
+        logger.log("Creating ingestion rule", {
+          createData,
+          userId: authentication.userId,
+        });
 
         const rule = await prisma.ingestionRule.create({
           data: {
@@ -69,8 +70,11 @@ const { action, loader } = createActionApiRoute(
       } else if (request.method === "PUT") {
         // Update existing rule
         const updateData = body as z.infer<typeof IngestionRuleUpdateSchema>;
-        
-        logger.log("Updating ingestion rule", { updateData, userId: authentication.userId });
+
+        logger.log("Updating ingestion rule", {
+          updateData,
+          userId: authentication.userId,
+        });
 
         const rule = await prisma.ingestionRule.update({
           where: {
@@ -81,7 +85,9 @@ const { action, loader } = createActionApiRoute(
             ...(updateData.name !== undefined && { name: updateData.name }),
             ...(updateData.text && { text: updateData.text }),
             ...(updateData.source && { source: updateData.source }),
-            ...(updateData.isActive !== undefined && { isActive: updateData.isActive }),
+            ...(updateData.isActive !== undefined && {
+              isActive: updateData.isActive,
+            }),
           },
         });
 
@@ -133,7 +139,10 @@ const { action, loader } = createActionApiRoute(
         return json({ success: true, rules });
       }
 
-      return json({ success: false, message: "Method not supported" }, { status: 405 });
+      return json(
+        { success: false, message: "Method not supported" },
+        { status: 405 },
+      );
     } catch (error) {
       logger.error("Failed to manage ingestion rules", { error, body });
       throw error;

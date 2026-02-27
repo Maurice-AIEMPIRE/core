@@ -45,8 +45,7 @@ const BUILTIN_GUARDRAILS: Guardrail[] = [
       ];
       const paramStr = JSON.stringify(request.parameters);
       const isDestructive = destructivePatterns.some(
-        (pattern) =>
-          pattern.test(request.tool) || pattern.test(paramStr),
+        (pattern) => pattern.test(request.tool) || pattern.test(paramStr),
       );
 
       if (isDestructive && request.permissions !== "admin") {
@@ -217,8 +216,7 @@ export function checkPermission(
   if (policy.deniedActions.length > 0) {
     const isDenied = policy.deniedActions.some(
       (denied) =>
-        action.toLowerCase().includes(denied.toLowerCase()) ||
-        denied === "*",
+        action.toLowerCase().includes(denied.toLowerCase()) || denied === "*",
     );
     if (isDenied) {
       return {
@@ -232,8 +230,7 @@ export function checkPermission(
   if (policy.allowedActions.length > 0) {
     const isAllowed = policy.allowedActions.some(
       (allowed) =>
-        action.toLowerCase().includes(allowed.toLowerCase()) ||
-        allowed === "*",
+        action.toLowerCase().includes(allowed.toLowerCase()) || allowed === "*",
     );
     if (!isAllowed) {
       return {

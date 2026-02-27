@@ -5,7 +5,7 @@ export function isValidDatabaseUrl(url: string) {
 
     if (schemaFromSearchParam === "") {
       console.error(
-        "Invalid Database URL: The schema search param can't have an empty value. To use the `public` schema, either omit the schema param entirely or specify it in full: `?schema=public`"
+        "Invalid Database URL: The schema search param can't have an empty value. To use the `public` schema, either omit the schema param entirely or specify it in full: `?schema=public`",
       );
       return false;
     }

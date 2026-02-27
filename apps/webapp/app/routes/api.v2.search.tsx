@@ -4,7 +4,6 @@ import { json } from "@remix-run/node";
 import { trackFeatureUsage } from "~/services/telemetry.server";
 import { searchMemoryWithAgent } from "~/services/agent/memory";
 
-
 export const SearchBodyRequest = z.object({
   query: z.string(),
   startTime: z.string().optional(),
@@ -33,16 +32,22 @@ const { action, loader } = createHybridActionApiRoute(
     corsStrategy: "all",
   },
   async ({ body, authentication }) => {
-    const results = await searchMemoryWithAgent(body.query, authentication.userId, authentication.workspaceId!, "api", {
-      startTime: body.startTime ? new Date(body.startTime) : undefined,
-      endTime: body.endTime ? new Date(body.endTime) : undefined,
-      limit: body.limit,
-      labelIds: body.labelIds,
-      structured: body.structured,
-      sortBy: body.sortBy,
-      fallbackThreshold: body.scoreThreshold,
-      adaptiveFiltering: body.adaptiveFiltering,
-    });
+    const results = await searchMemoryWithAgent(
+      body.query,
+      authentication.userId,
+      authentication.workspaceId!,
+      "api",
+      {
+        startTime: body.startTime ? new Date(body.startTime) : undefined,
+        endTime: body.endTime ? new Date(body.endTime) : undefined,
+        limit: body.limit,
+        labelIds: body.labelIds,
+        structured: body.structured,
+        sortBy: body.sortBy,
+        fallbackThreshold: body.scoreThreshold,
+        adaptiveFiltering: body.adaptiveFiltering,
+      },
+    );
 
     // Track search
     trackFeatureUsage("search_performed", authentication.userId).catch(

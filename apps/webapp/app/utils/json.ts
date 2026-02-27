@@ -62,5 +62,7 @@ export async function safeParseBodyFromResponse<T>(
     const parsedJson = schema.safeParse(unknownJson);
 
     return parsedJson;
-  } catch (error) {}
+  } catch (error) {
+    console.warn("Failed to parse response body:", error);
+  }
 }

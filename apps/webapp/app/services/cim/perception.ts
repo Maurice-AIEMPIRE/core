@@ -87,9 +87,8 @@ export async function gatherContext(
 
   const relevantMemories: MemoryFragment[] = [];
   const pendingEvents: PerceptionEvent[] = [];
-  const activeIntegrations = (
-    (state.context.connectedIntegrations as string[]) || []
-  );
+  const activeIntegrations =
+    (state.context.connectedIntegrations as string[]) || [];
 
   // Search memory for relevant context
   try {

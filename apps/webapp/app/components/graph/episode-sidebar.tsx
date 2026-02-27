@@ -85,7 +85,7 @@ export function EpisodeSidebar({ sessionId, onClose }: EpisodeSidebarProps) {
                 <h3 className="text-muted-foreground mb-1 text-sm font-medium">
                   Content
                 </h3>
-                <div className="rounded-md p-3 text-base whitespace-pre-wrap">
+                <div className="whitespace-pre-wrap rounded-md p-3 text-base">
                   {logContent.data.episodeBody}
                 </div>
               </div>

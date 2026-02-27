@@ -91,7 +91,7 @@ export default function WebhooksSettings() {
   };
 
   return (
-    <div className="mx-auto flex w-auto flex-col gap-4 px-4 py-6 md:w-3xl">
+    <div className="md:w-3xl mx-auto flex w-auto flex-col gap-4 px-4 py-6">
       <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
         <SettingSection
           title="Logs"

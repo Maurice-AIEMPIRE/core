@@ -72,7 +72,7 @@ export const ConversationNew = ({
                 What would you like me to remember?
               </h1>
 
-              <div className="bg-background-3 mb-4 rounded-lg border-1 border-gray-300 py-2">
+              <div className="bg-background-3 border-1 mb-4 rounded-lg border-gray-300 py-2">
                 <EditorRoot>
                   <EditorContent
                     ref={editorRef}

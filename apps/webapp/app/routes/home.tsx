@@ -18,7 +18,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const labelService = new LabelService();
 
   if (!workspace) {
-    return { labels: [] }
+    return { labels: [] };
   }
 
   const labels = await labelService.getWorkspaceLabels(workspace.id);
@@ -60,7 +60,7 @@ export default function Home() {
       <AppSidebar labels={labels} />
       <SidebarInset className="bg-background-2 h-full rounded pr-0">
         <div className="flex h-full flex-col rounded">
-          <div className="@container/main flex h-full flex-col gap-2">
+          <div className="flex h-full flex-col gap-2 @container/main">
             <div className="flex h-full flex-col">
               <Outlet />
             </div>

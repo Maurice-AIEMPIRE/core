@@ -260,7 +260,7 @@ export default function McpIntegrations() {
   const [showNewForm, setShowNewForm] = React.useState(false);
 
   return (
-    <div className="mx-auto flex w-auto flex-col gap-4 px-4 py-6 md:w-3xl">
+    <div className="md:w-3xl mx-auto flex w-auto flex-col gap-4 px-4 py-6">
       <SettingSection
         title="MCP Integrations"
         description="Use the Model Context Protocol to extend Core's capabilities with external data and tools"

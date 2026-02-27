@@ -17,9 +17,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const workspaceId = await getWorkspaceId(request, user?.id as string);
 
   try {
-    const labels = await labelService.getWorkspaceLabels(
-      workspaceId as string,
-    );
+    const labels = await labelService.getWorkspaceLabels(workspaceId as string);
     return json({ labels });
   } catch (e) {
     return json({ labels: [] });
@@ -110,9 +108,9 @@ export default function LogsAll() {
                         </h3>
                         <p className="text-muted-foreground">
                           {selectedSource ||
-                            selectedStatus ||
-                            selectedType ||
-                            selectedLabel
+                          selectedStatus ||
+                          selectedType ||
+                          selectedLabel
                             ? "Try adjusting your filters to see more results."
                             : "No documents are available yet."}
                         </p>

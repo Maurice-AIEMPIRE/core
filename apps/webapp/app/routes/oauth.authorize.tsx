@@ -143,7 +143,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return redirect("/login");
   }
 
-
   const formData = await request.formData();
   const action = formData.get("action");
 
@@ -262,7 +261,7 @@ export default function OAuthAuthorize() {
           <div className="mt-4 space-y-4 sm:mt-6 sm:space-y-6">
             <div className="flex items-center justify-center px-2 text-center">
               <div>
-                <p className="text-base leading-tight font-normal sm:text-lg md:text-xl">
+                <p className="text-base font-normal leading-tight sm:text-lg md:text-xl">
                   {client.name} is requesting access
                 </p>
                 <p className="text-muted-foreground mt-2 text-sm leading-relaxed sm:text-base">
@@ -283,7 +282,7 @@ export default function OAuthAuthorize() {
                   return (
                     <li
                       key={index}
-                      className={`flex items-start gap-2 border-x border-t border-gray-300 p-2 sm:gap-3 ${isLast ? "border-b" : ""} ${isFirst ? "rounded-tl-md rounded-tr-md" : ""} ${isLast ? "rounded-br-md rounded-bl-md" : ""} `}
+                      className={`flex items-start gap-2 border-x border-t border-gray-300 p-2 sm:gap-3 ${isLast ? "border-b" : ""} ${isFirst ? "rounded-tl-md rounded-tr-md" : ""} ${isLast ? "rounded-bl-md rounded-br-md" : ""} `}
                     >
                       <div className="mt-0.5 shrink-0">
                         {getScopeIcon(trimmedScope)}

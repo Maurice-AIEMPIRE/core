@@ -33,8 +33,6 @@ export const loader = createHybridLoaderApiRoute(
     const label = searchParams.label;
     const cursor = searchParams.cursor; // Cursor is a createdAt timestamp
 
-
-
     if (!authentication.workspaceId) {
       throw new Response("Workspace not found", { status: 404 });
     }
@@ -160,37 +158,37 @@ export const loader = createHybridLoaderApiRoute(
     const [latestLogs, queueCounts] =
       documentIds.length > 0
         ? await Promise.all([
-          // Get latest log for each sessionId (document.id)
-          prisma.ingestionQueue.findMany({
-            where: {
-              sessionId: { in: documentIds },
-              workspaceId: authentication.workspaceId,
-            },
-            select: {
-              id: true,
-              sessionId: true,
-              status: true,
-              createdAt: true,
-              updatedAt: true,
-              error: true,
-            },
-            orderBy: {
-              createdAt: "desc",
-            },
-            distinct: ["sessionId"],
-          }),
-          // Get count for each sessionId
-          prisma.ingestionQueue.groupBy({
-            by: ["sessionId"],
-            where: {
-              sessionId: { in: documentIds },
-              workspaceId: authentication.workspaceId,
-            },
-            _count: {
-              id: true,
-            },
-          }),
-        ])
+            // Get latest log for each sessionId (document.id)
+            prisma.ingestionQueue.findMany({
+              where: {
+                sessionId: { in: documentIds },
+                workspaceId: authentication.workspaceId,
+              },
+              select: {
+                id: true,
+                sessionId: true,
+                status: true,
+                createdAt: true,
+                updatedAt: true,
+                error: true,
+              },
+              orderBy: {
+                createdAt: "desc",
+              },
+              distinct: ["sessionId"],
+            }),
+            // Get count for each sessionId
+            prisma.ingestionQueue.groupBy({
+              by: ["sessionId"],
+              where: {
+                sessionId: { in: documentIds },
+                workspaceId: authentication.workspaceId,
+              },
+              _count: {
+                id: true,
+              },
+            }),
+          ])
         : [[], []];
 
     // Create lookup maps for O(1) access

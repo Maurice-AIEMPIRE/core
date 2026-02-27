@@ -28,34 +28,25 @@ function getClient() {
     `🔌 setting up prisma client to ${redactUrlSecrets(databaseUrl)}`,
   );
 
+  const logConfig: Prisma.LogDefinition[] = [
+    { emit: "stdout", level: "error" },
+    { emit: "stdout", level: "info" },
+    { emit: "stdout", level: "warn" },
+    ...(process.env.VERBOSE_PRISMA_LOGS === "1"
+      ? ([
+          { emit: "event", level: "query" },
+          { emit: "stdout", level: "query" },
+        ] as Prisma.LogDefinition[])
+      : []),
+  ];
+
   const client = new PrismaClient({
     datasources: {
       db: {
         url: databaseUrl.href,
       },
     },
-    // @ts-expect-error
-    log: [
-      {
-        emit: "stdout",
-        level: "error",
-      },
-      {
-        emit: "stdout",
-        level: "info",
-      },
-      {
-        emit: "stdout",
-        level: "warn",
-      },
-    ].concat(
-      process.env.VERBOSE_PRISMA_LOGS === "1"
-        ? [
-            { emit: "event", level: "query" },
-            { emit: "stdout", level: "query" },
-          ]
-        : [],
-    ),
+    log: logConfig,
   });
 
   // connect eagerly
@@ -82,34 +73,25 @@ function getReplicaClient() {
     `🔌 setting up read replica connection to ${redactUrlSecrets(replicaUrl)}`,
   );
 
+  const replicaLogConfig: Prisma.LogDefinition[] = [
+    { emit: "stdout", level: "error" },
+    { emit: "stdout", level: "info" },
+    { emit: "stdout", level: "warn" },
+    ...(process.env.VERBOSE_PRISMA_LOGS === "1"
+      ? ([
+          { emit: "event", level: "query" },
+          { emit: "stdout", level: "query" },
+        ] as Prisma.LogDefinition[])
+      : []),
+  ];
+
   const replicaClient = new PrismaClient({
     datasources: {
       db: {
         url: replicaUrl.href,
       },
     },
-    // @ts-expect-error
-    log: [
-      {
-        emit: "stdout",
-        level: "error",
-      },
-      {
-        emit: "stdout",
-        level: "info",
-      },
-      {
-        emit: "stdout",
-        level: "warn",
-      },
-    ].concat(
-      process.env.VERBOSE_PRISMA_LOGS === "1"
-        ? [
-            { emit: "event", level: "query" },
-            { emit: "stdout", level: "query" },
-          ]
-        : [],
-    ),
+    log: replicaLogConfig,
   });
 
   // connect eagerly

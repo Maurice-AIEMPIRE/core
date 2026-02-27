@@ -3,7 +3,6 @@ import { json } from "@remix-run/node";
 import { prisma } from "~/db.server";
 import { createHybridLoaderApiRoute } from "~/services/routeBuilders/apiBuilder.server";
 
-
 const SearchParamsSchema = z.object({
   page: z.string().optional().default("1"),
   limit: z.string().optional().default("10"),

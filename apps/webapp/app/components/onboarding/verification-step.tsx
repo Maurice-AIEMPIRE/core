@@ -45,12 +45,12 @@ export function VerificationStep({
 
       {!verificationResult && !isCheckingRecall && (
         <>
-          <div className="group bg-grayAlpha-100 relative rounded-lg border border-gray-300 p-4">
+          <div className="bg-grayAlpha-100 group relative rounded-lg border border-gray-300 p-4">
             <p className="mb-1 text-sm font-medium">Copy this prompt:</p>
             <p className="pr-10 text-sm">{VERIFICATION_PROMPT}</p>
             <button
               onClick={handleCopy}
-              className="hover:bg-background absolute top-3 right-3 rounded-md p-2 transition-colors"
+              className="hover:bg-background absolute right-3 top-3 rounded-md p-2 transition-colors"
               title="Copy to clipboard"
             >
               {copied ? (

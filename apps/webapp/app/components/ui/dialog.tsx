@@ -37,7 +37,7 @@ const DialogContent = React.forwardRef<
   DialogContentProps
 >(({ className, children, closeIcon = true, ...props }, ref) => (
   <DialogPortal>
-    <div className="fixed top-0 left-0 z-20 h-[100vh] w-[100vw]">
+    <div className="fixed left-0 top-0 z-20 h-[100vh] w-[100vw]">
       <DialogOverlay />
       <DialogPrimitive.Content
         ref={ref}
@@ -54,7 +54,7 @@ const DialogContent = React.forwardRef<
         >
           {children}
           {closeIcon && (
-            <DialogPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none">
+            <DialogPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none">
               <Cross2Icon className="h-4 w-4" />
               <span className="sr-only">Close</span>
             </DialogPrimitive.Close>

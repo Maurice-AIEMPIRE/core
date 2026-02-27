@@ -88,7 +88,7 @@ const Tool = ({
       open={isOpen}
       onOpenChange={setIsOpen}
       className={cn(
-        "my-1 w-full rounded border-1 border-gray-300 px-2",
+        "border-1 my-1 w-full rounded border-gray-300 px-2",
         isDisabled && "cursor-not-allowed opacity-50",
       )}
     >

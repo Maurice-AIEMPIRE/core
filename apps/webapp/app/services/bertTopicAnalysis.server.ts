@@ -48,10 +48,9 @@ export async function shouldTriggerTopicAnalysis(
     // Trigger if 20+ new episodes
     return episodeCount >= 20;
   } catch (error) {
-    logger.error(
-      `[Topic Analysis Check] Error checking episode count:`,
-      {error},
-    );
+    logger.error(`[Topic Analysis Check] Error checking episode count:`, {
+      error,
+    });
     return false;
   }
 }
@@ -89,9 +88,8 @@ export async function updateLastTopicAnalysisTime(
       `[Topic Analysis] Updated last analysis timestamp for workspace: ${workspaceId}`,
     );
   } catch (error) {
-    logger.error(
-      `[Topic Analysis] Error updating last analysis timestamp:`,
-      {error},
-    );
+    logger.error(`[Topic Analysis] Error updating last analysis timestamp:`, {
+      error,
+    });
   }
 }

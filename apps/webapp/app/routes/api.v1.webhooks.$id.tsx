@@ -13,21 +13,31 @@ export async function loader({ request }: ActionFunctionArgs) {
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
-  const authResult = await authenticateHybridRequest(request, { allowJWT: true });
+  const authResult = await authenticateHybridRequest(request, {
+    allowJWT: true,
+  });
 
   if (!authResult) {
-    return apiCors(request, json({ error: "Authentication required" }, { status: 401 }));
+    return apiCors(
+      request,
+      json({ error: "Authentication required" }, { status: 401 }),
+    );
   }
 
   const webhookId = params.id;
 
   if (!webhookId) {
-    return apiCors(request, json({ error: "Webhook ID is required" }, { status: 400 }));
+    return apiCors(
+      request,
+      json({ error: "Webhook ID is required" }, { status: 400 }),
+    );
   }
 
-
   if (!authResult.workspaceId) {
-    return apiCors(request, json({ error: "User workspace not found" }, { status: 400 }));
+    return apiCors(
+      request,
+      json({ error: "User workspace not found" }, { status: 400 }),
+    );
   }
 
   // Verify webhook belongs to the workspace
@@ -39,7 +49,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
   });
 
   if (!webhook) {
-    return apiCors(request, json({ error: "Webhook not found" }, { status: 404 }));
+    return apiCors(
+      request,
+      json({ error: "Webhook not found" }, { status: 404 }),
+    );
   }
 
   const contentType = request.headers.get("content-type") || "";
@@ -54,7 +67,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
       return apiCors(request, json({ success: true }));
     } catch (error) {
       logger.error("Error deleting webhook:", { error });
-      return apiCors(request, json({ error: "Failed to delete webhook" }, { status: 500 }));
+      return apiCors(
+        request,
+        json({ error: "Failed to delete webhook" }, { status: 500 }),
+      );
     }
   }
 
@@ -83,10 +99,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
         return apiCors(request, json({ success: true }));
       } catch (error) {
         logger.error("Error deleting webhook:", { error });
-        return apiCors(request, json({ error: "Failed to delete webhook" }, { status: 500 }));
+        return apiCors(
+          request,
+          json({ error: "Failed to delete webhook" }, { status: 500 }),
+        );
       }
     }
   }
 
-  return apiCors(request, json({ error: "Method not allowed" }, { status: 405 }));
+  return apiCors(
+    request,
+    json({ error: "Method not allowed" }, { status: 405 }),
+  );
 }

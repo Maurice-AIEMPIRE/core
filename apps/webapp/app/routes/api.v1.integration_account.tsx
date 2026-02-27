@@ -29,7 +29,6 @@ const loader = createHybridLoaderApiRoute(
     findResource: async () => 1,
   },
   async ({ authentication }) => {
-
     if (!authentication.workspaceId) {
       throw new Error("User workspace not found");
     }
@@ -59,7 +58,6 @@ const { action } = createHybridActionApiRoute(
   async ({ body, authentication }) => {
     const { integrationDefinitionId, apiKey } = body;
     const { userId } = authentication;
-
 
     try {
       // Get the integration definition

@@ -246,7 +246,7 @@ export const ExampleUseCases = ({ onSelectPrompt }: ExampleUseCasesProps) => {
                     <div
                       key={index}
                       className={cn(
-                        "group hover:bg-background-3/80 relative flex flex-col rounded-xl bg-white p-4 transition-all",
+                        "hover:bg-background-3/80 group relative flex flex-col rounded-xl bg-white p-4 transition-all",
                       )}
                     >
                       <h3 className="mb-4 text-base">{useCase.title}</h3>

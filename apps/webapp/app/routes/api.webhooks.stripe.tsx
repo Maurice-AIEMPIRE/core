@@ -13,7 +13,7 @@ import Stripe from "stripe";
 import { prisma } from "~/db.server";
 import { BILLING_CONFIG, getPlanConfig } from "~/config/billing.server";
 import { logger } from "~/services/logger.service";
-import type { PlanType } from "@prisma/client";
+import type { PlanType, SubscriptionStatus } from "@prisma/client";
 
 // Initialize Stripe
 const stripe = BILLING_CONFIG.stripe.secretKey
@@ -47,7 +47,7 @@ function verifyStripeSignature(
 /**
  * Handle customer.subscription.created event
  */
-async function handleSubscriptionCreated(subscription: any) {
+async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
   logger.info("Handling subscription.created", {
     subscriptionId: subscription.id,
   });
@@ -98,21 +98,19 @@ async function handleSubscriptionCreated(subscription: any) {
       include: { UserWorkspace: true },
     });
 
-
     if (workspace?.UserWorkspace) {
       const usersInWorkspace = await prisma.user.findMany({
         where: {
           id: {
-            in: workspace.UserWorkspace.map((uw) => uw.userId)
-          }
+            in: workspace.UserWorkspace.map((uw) => uw.userId),
+          },
         },
         include: {
-          UserUsage: true
-        }
-      })
+          UserUsage: true,
+        },
+      });
 
-
-      for await (const user of usersInWorkspace) {
+      for (const user of usersInWorkspace) {
         if (user.UserUsage) {
           await prisma.userUsage.update({
             where: { id: user.UserUsage.id },
@@ -133,7 +131,7 @@ async function handleSubscriptionCreated(subscription: any) {
 /**
  * Handle customer.subscription.updated event
  */
-async function handleSubscriptionUpdated(subscription: any) {
+async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   logger.info("Handling subscription.updated", {
     subscriptionId: subscription.id,
   });
@@ -156,23 +154,18 @@ async function handleSubscriptionUpdated(subscription: any) {
   });
 
   if (existingSubscription) {
-    // Determine status - if cancel_at_period_end is true, keep as CANCELED
-    let subscriptionStatus;
-    if (subscription.cancel_at_period_end) {
-      subscriptionStatus = "CANCELED";
-    } else if (subscription.status === "active") {
-      subscriptionStatus = "ACTIVE";
-    } else if (subscription.status === "canceled") {
-      subscriptionStatus = "CANCELED";
-    } else if (subscription.status === "past_due") {
-      subscriptionStatus = "PAST_DUE";
-    } else if (subscription.status === "trialing") {
-      subscriptionStatus = "TRIALING";
-    } else if (subscription.status === "paused") {
-      subscriptionStatus = "PAUSED";
-    } else {
-      subscriptionStatus = "ACTIVE";
-    }
+    // Map Stripe subscription status to our SubscriptionStatus enum
+    const statusMap: Record<string, SubscriptionStatus> = {
+      active: "ACTIVE",
+      canceled: "CANCELED",
+      past_due: "PAST_DUE",
+      trialing: "TRIALING",
+      paused: "PAUSED",
+    };
+    const subscriptionStatus: SubscriptionStatus =
+      subscription.cancel_at_period_end
+        ? "CANCELED"
+        : (statusMap[subscription.status] ?? "ACTIVE");
 
     await prisma.subscription.update({
       where: { id: existingSubscription.id },
@@ -182,7 +175,7 @@ async function handleSubscriptionUpdated(subscription: any) {
           subscription.current_period_end * 1000,
         ),
         planType,
-        status: subscriptionStatus as any,
+        status: subscriptionStatus,
         monthlyCredits: planConfig.monthlyCredits,
         enableUsageBilling: planConfig.enableOverage,
         usagePricePerCredit: planConfig.enableOverage
@@ -201,20 +194,19 @@ async function handleSubscriptionUpdated(subscription: any) {
         include: { UserWorkspace: true },
       });
 
-
       if (workspace?.UserWorkspace) {
         const usersInWorkspace = await prisma.user.findMany({
           where: {
             id: {
-              in: workspace.UserWorkspace.map((uw) => uw.userId)
-            }
+              in: workspace.UserWorkspace.map((uw) => uw.userId),
+            },
           },
           include: {
-            UserUsage: true
-          }
-        })
+            UserUsage: true,
+          },
+        });
 
-        for await (const user of usersInWorkspace) {
+        for (const user of usersInWorkspace) {
           if (user.UserUsage) {
             await prisma.userUsage.update({
               where: { id: user.UserUsage.id },
@@ -228,8 +220,6 @@ async function handleSubscriptionUpdated(subscription: any) {
             });
           }
         }
-
-
       }
     }
   }
@@ -275,15 +265,15 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       const usersInWorkspace = await prisma.user.findMany({
         where: {
           id: {
-            in: workspace.UserWorkspace.map((uw) => uw.userId)
-          }
+            in: workspace.UserWorkspace.map((uw) => uw.userId),
+          },
         },
         include: {
-          UserUsage: true
-        }
-      })
+          UserUsage: true,
+        },
+      });
 
-      for await (const user of usersInWorkspace) {
+      for (const user of usersInWorkspace) {
         if (user.UserUsage) {
           await prisma.userUsage.update({
             where: { id: user.UserUsage.id },
@@ -299,17 +289,17 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   }
 }
 
-
-
-
 /**
  * Handle invoice.payment_succeeded event
  */
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
   logger.info("Handling invoice.payment_succeeded", { invoiceId: invoice.id });
 
-  const subscriptionId = (invoice as any).subscription as string;
-  const tax = (invoice as any).tax || 0;
+  const subscriptionId =
+    typeof invoice.subscription === "string"
+      ? invoice.subscription
+      : invoice.subscription?.id;
+  const tax = invoice.tax ?? 0;
 
   if (subscriptionId) {
     const subscription = await prisma.subscription.findUnique({
@@ -352,11 +342,25 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   logger.error("Handling invoice.payment_failed", { invoiceId: invoice.id });
 
-  const subscriptionId = (invoice as any).subscription as string;
+  const subscriptionId =
+    typeof invoice.subscription === "string"
+      ? invoice.subscription
+      : invoice.subscription?.id;
 
   if (subscriptionId) {
     const subscription = await prisma.subscription.findUnique({
       where: { stripeSubscriptionId: subscriptionId },
+      include: {
+        workspace: {
+          include: {
+            UserWorkspace: {
+              include: {
+                user: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (subscription) {
@@ -367,7 +371,18 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
         },
       });
 
-      // TODO: Send email notification to user about failed payment
+      // Log failed payment for workspace users
+      const userEmails = subscription.workspace?.UserWorkspace?.map(
+        (uw) => uw.user.email,
+      ).filter(Boolean);
+      if (userEmails?.length) {
+        logger.warn("Payment failed for subscription", {
+          subscriptionId: subscription.id,
+          workspaceId: subscription.workspaceId,
+          userEmails,
+          invoiceId: invoice.id,
+        });
+      }
     }
   }
 }

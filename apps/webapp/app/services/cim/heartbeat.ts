@@ -95,15 +95,10 @@ export function isWithinActiveHours(config: HeartbeatConfig): boolean {
 
 export async function runHeartbeatCheck(
   check: HeartbeatCheck,
-  executeQuery: (
-    integration: string,
-    query: string,
-  ) => Promise<string>,
+  executeQuery: (integration: string, query: string) => Promise<string>,
 ): Promise<HeartbeatResult> {
   const startTime = Date.now();
-  logger.info(
-    `[CIM:Heartbeat] Running check: ${check.id} (${check.type})`,
-  );
+  logger.info(`[CIM:Heartbeat] Running check: ${check.id} (${check.type})`);
 
   const findings: HeartbeatFinding[] = [];
 
@@ -163,10 +158,7 @@ export async function runHeartbeatCheck(
 
 export async function runHeartbeatCycle(
   config: HeartbeatConfig,
-  executeQuery: (
-    integration: string,
-    query: string,
-  ) => Promise<string>,
+  executeQuery: (integration: string, query: string) => Promise<string>,
 ): Promise<HeartbeatResult[]> {
   if (!config.enabled) {
     logger.info("[CIM:Heartbeat] Heartbeat is disabled, skipping cycle");
@@ -174,9 +166,7 @@ export async function runHeartbeatCycle(
   }
 
   if (!isWithinActiveHours(config)) {
-    logger.info(
-      "[CIM:Heartbeat] Outside active hours, skipping cycle",
-    );
+    logger.info("[CIM:Heartbeat] Outside active hours, skipping cycle");
     return [];
   }
 
@@ -197,10 +187,7 @@ export async function runHeartbeatCycle(
     results.push(result);
   }
 
-  const totalFindings = results.reduce(
-    (sum, r) => sum + r.findings.length,
-    0,
-  );
+  const totalFindings = results.reduce((sum, r) => sum + r.findings.length, 0);
   const actionRequired = results.some((r) =>
     r.findings.some((f) => f.actionRequired),
   );

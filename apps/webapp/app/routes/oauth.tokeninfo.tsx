@@ -7,8 +7,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   if (!idToken) {
     return json(
-      { error: "invalid_request", error_description: "Missing id_token parameter" },
-      { status: 400 }
+      {
+        error: "invalid_request",
+        error_description: "Missing id_token parameter",
+      },
+      { status: 400 },
     );
   }
 
@@ -17,8 +20,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     return json(userInfo);
   } catch (error) {
     return json(
-      { error: "invalid_token", error_description: "Invalid or expired ID token" },
-      { status: 401 }
+      {
+        error: "invalid_token",
+        error_description: "Invalid or expired ID token",
+      },
+      { status: 401 },
     );
   }
 };

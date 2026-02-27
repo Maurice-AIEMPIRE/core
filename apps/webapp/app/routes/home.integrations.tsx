@@ -22,7 +22,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     return {
       integrationDefinitions: [],
       integrationAccounts: [],
-      userId
+      userId,
     };
   }
 

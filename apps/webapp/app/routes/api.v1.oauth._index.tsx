@@ -7,7 +7,6 @@ import {
   getRedirectURLForMCP,
 } from "~/services/oauth/oauth.server";
 
-
 // This route handles the OAuth redirect URL generation, similar to the NestJS controller
 const { action, loader } = createHybridActionApiRoute(
   {
@@ -19,12 +18,18 @@ const { action, loader } = createHybridActionApiRoute(
     corsStrategy: "all",
   },
   async ({ body, authentication }) => {
-
-
     // Call the appropriate service based on MCP flag
     const redirectURL = body.mcp
-      ? await getRedirectURLForMCP(body, authentication.userId, authentication.workspaceId)
-      : await getRedirectURL(body, authentication.userId, authentication.workspaceId);
+      ? await getRedirectURLForMCP(
+          body,
+          authentication.userId,
+          authentication.workspaceId,
+        )
+      : await getRedirectURL(
+          body,
+          authentication.userId,
+          authentication.workspaceId,
+        );
 
     return json(redirectURL);
   },

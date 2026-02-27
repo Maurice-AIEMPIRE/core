@@ -1,1 +1,1 @@
-export * from './skill-extension';
+export * from "./skill-extension";

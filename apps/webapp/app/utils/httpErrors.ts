@@ -13,7 +13,9 @@ export function friendlyErrorDisplay(statusCode: number, statusText?: string) {
     case 500:
       return {
         title: "500: Server error",
-        message: statusText ?? "Something went wrong on our end. Please try again later.",
+        message:
+          statusText ??
+          "Something went wrong on our end. Please try again later.",
       };
     default:
       return {

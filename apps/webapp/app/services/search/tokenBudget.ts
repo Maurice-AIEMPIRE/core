@@ -38,7 +38,7 @@ export function countTokens(text: string): number {
  */
 export function applyTokenBudget<T extends EpisodeWithContent>(
   episodes: T[],
-  budget: number = DEFAULT_TOKEN_BUDGET
+  budget: number = DEFAULT_TOKEN_BUDGET,
 ): { episodes: T[]; droppedCount: number; totalTokens: number } {
   if (episodes.length === 0) {
     return { episodes: [], droppedCount: 0, totalTokens: 0 };
@@ -56,7 +56,7 @@ export function applyTokenBudget<T extends EpisodeWithContent>(
   if (totalTokens <= budget) {
     logger.debug(
       `[TokenBudget] All ${episodes.length} episodes fit within budget ` +
-        `(${totalTokens}/${budget} tokens)`
+        `(${totalTokens}/${budget} tokens)`,
     );
     return { episodes, droppedCount: 0, totalTokens };
   }
@@ -75,7 +75,7 @@ export function applyTokenBudget<T extends EpisodeWithContent>(
 
   logger.info(
     `[TokenBudget] Dropped ${droppedCount} episodes to fit budget. ` +
-      `${finalEpisodes.length} episodes remaining (${totalTokens}/${budget} tokens)`
+      `${finalEpisodes.length} episodes remaining (${totalTokens}/${budget} tokens)`,
   );
 
   return {
@@ -90,10 +90,10 @@ export function applyTokenBudget<T extends EpisodeWithContent>(
  * Used by search-v2
  */
 export function applyTokenBudgetToRecallEpisodes<
-  T extends { uuid: string; content: string }
+  T extends { uuid: string; content: string },
 >(
   episodes: T[],
-  budget: number = DEFAULT_TOKEN_BUDGET
+  budget: number = DEFAULT_TOKEN_BUDGET,
 ): { episodes: T[]; droppedCount: number; totalTokens: number } {
   return applyTokenBudget(episodes, budget);
 }

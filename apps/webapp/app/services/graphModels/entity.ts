@@ -108,7 +108,10 @@ export async function deduplicateEntitiesByName(
   userId: string,
   workspaceId?: string,
 ): Promise<{ count: number; deletedUuids: string[] }> {
-  const result = await graphProvider().deduplicateEntitiesByName(userId, workspaceId ?? "");
+  const result = await graphProvider().deduplicateEntitiesByName(
+    userId,
+    workspaceId ?? "",
+  );
 
   if (result.count > 0) {
     logger.info(`Deduplicated ${result.count} entities for user ${userId}`);
@@ -128,7 +131,12 @@ export async function mergeEntities(
   userId: string,
   workspaceId?: string,
 ): Promise<void> {
-  await graphProvider().mergeEntities(sourceUuid, targetUuid, userId, workspaceId ?? "");
+  await graphProvider().mergeEntities(
+    sourceUuid,
+    targetUuid,
+    userId,
+    workspaceId ?? "",
+  );
 }
 
 /**

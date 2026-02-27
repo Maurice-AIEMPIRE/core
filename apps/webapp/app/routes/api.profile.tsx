@@ -5,9 +5,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
     // Require OAuth2 authentication
     const oauth2Context = await requireOAuth2(request);
-    
+
     // Require 'read' scope
-    requireScope(oauth2Context, 'read');
+    requireScope(oauth2Context, "read");
 
     // Return user profile information
     return json({
@@ -27,7 +27,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 // This endpoint only supports GET
 export const action = () => {
   return json(
-    { error: "method_not_allowed", error_description: "Only GET method is allowed" },
-    { status: 405 }
+    {
+      error: "method_not_allowed",
+      error_description: "Only GET method is allowed",
+    },
+    { status: 405 },
   );
 };

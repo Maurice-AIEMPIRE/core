@@ -108,12 +108,12 @@ export function CommandBar({ open, onOpenChange }: CommandBarProps) {
                   <div className="flex w-full items-start gap-2">
                     {episode.type === "DOCUMENT" ? (
                       <File
-                        className="mt-0.5 mr-2 !h-4 !w-4 flex-shrink-0"
+                        className="mr-2 mt-0.5 !h-4 !w-4 flex-shrink-0"
                         size={14}
                       />
                     ) : (
                       <MessageSquare
-                        className="mt-0.5 mr-2 !h-4 !w-4 flex-shrink-0"
+                        className="mr-2 mt-0.5 !h-4 !w-4 flex-shrink-0"
                         size={14}
                       />
                     )}

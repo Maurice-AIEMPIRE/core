@@ -3,11 +3,7 @@ import { json } from "@remix-run/node";
 import { createActionApiRoute } from "~/services/routeBuilders/apiBuilder.server";
 import { trackFeatureUsage } from "~/services/telemetry.server";
 
-import {
-  generateText,
-  type LanguageModel,
-  streamText,
-} from "ai";
+import { generateText, type LanguageModel, streamText } from "ai";
 import { logger } from "~/services/logger.service";
 import { getModel } from "~/lib/model.server";
 import { searchMemoryWithAgent } from "~/services/agent/memory";
@@ -50,7 +46,7 @@ const { action, loader } = createActionApiRoute(
         body.metadata?.source || "api",
         {
           limit: 10,
-        }
+        },
       );
 
       // Extract only episodes and invalidated facts
@@ -109,11 +105,9 @@ Provide a clear, helpful summary based ONLY on the memory above. Do not add any 
           ],
         });
 
-
         return json({ text });
       }
     } catch (error: any) {
-
       logger.error(`Deep search error: ${error}`);
 
       return json({

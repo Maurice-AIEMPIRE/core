@@ -11,6 +11,7 @@
  * (compaction-proof instructions that persist across context resets).
  */
 
+import crypto from "node:crypto";
 import { logger } from "~/services/logger.service";
 
 import type {
@@ -46,7 +47,7 @@ export function addToContext(
 ): ContextWindow {
   const newItem: ContextItem = {
     ...item,
-    id: `ctx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: `ctx-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
     addedAt: new Date(),
   };
 

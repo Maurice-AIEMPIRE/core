@@ -1,4 +1,3 @@
-
 import type { RecallResult } from "./types";
 
 /**
@@ -14,7 +13,10 @@ export function formatRecallAsMarkdown(result: RecallResult): string {
     sections.push(`**Name**: ${result.entity.name}`);
     sections.push(`**UUID**: ${result.entity.uuid}`);
 
-    if (result.entity.attributes && Object.keys(result.entity.attributes).length > 0) {
+    if (
+      result.entity.attributes &&
+      Object.keys(result.entity.attributes).length > 0
+    ) {
       sections.push("\n**Attributes**:");
       for (const [key, value] of Object.entries(result.entity.attributes)) {
         sections.push(`- ${key}: ${value}`);
@@ -205,4 +207,3 @@ export function formatForV1Compatibility(result: RecallResult): {
     entity,
   };
 }
-

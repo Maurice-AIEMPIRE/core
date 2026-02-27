@@ -7,7 +7,7 @@ const PROCESSING_STALE_THRESHOLD_MS = 60 * 60 * 1000; // 1 hour for PROCESSING i
 const PENDING_STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24 hours for PENDING items
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { workspaceId} = await requireUser(request);
+  const { workspaceId } = await requireUser(request);
 
   if (!workspaceId) {
     throw new Response("Workspace not found", { status: 404 });
@@ -42,9 +42,15 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const itemTime = item.updatedAt || item.createdAt;
     const timeDiff = now.getTime() - itemTime.getTime();
 
-    if (item.status === "PROCESSING" && timeDiff > PROCESSING_STALE_THRESHOLD_MS) {
+    if (
+      item.status === "PROCESSING" &&
+      timeDiff > PROCESSING_STALE_THRESHOLD_MS
+    ) {
       staleProcessingItems.push(item.id);
-    } else if (item.status === "PENDING" && timeDiff > PENDING_STALE_THRESHOLD_MS) {
+    } else if (
+      item.status === "PENDING" &&
+      timeDiff > PENDING_STALE_THRESHOLD_MS
+    ) {
       stalePendingItems.push(item.id);
     }
   });

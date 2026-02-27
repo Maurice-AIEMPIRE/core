@@ -13,14 +13,22 @@ export async function loader({ request }: ActionFunctionArgs) {
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-  const authResult = await authenticateHybridRequest(request, { allowJWT: true });
+  const authResult = await authenticateHybridRequest(request, {
+    allowJWT: true,
+  });
 
   if (!authResult) {
-    return apiCors(request, json({ error: "Authentication required" }, { status: 401 }));
+    return apiCors(
+      request,
+      json({ error: "Authentication required" }, { status: 401 }),
+    );
   }
 
   if (!authResult.workspaceId) {
-    return apiCors(request, json({ error: "User workspace not found" }, { status: 400 }));
+    return apiCors(
+      request,
+      json({ error: "User workspace not found" }, { status: 400 }),
+    );
   }
 
   if (request.method === "POST") {
@@ -42,13 +50,19 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     if (!url) {
-      return apiCors(request, json({ error: "Missing required fields" }, { status: 400 }));
+      return apiCors(
+        request,
+        json({ error: "Missing required fields" }, { status: 400 }),
+      );
     }
 
     try {
       new URL(url);
     } catch {
-      return apiCors(request, json({ error: "Invalid URL format" }, { status: 400 }));
+      return apiCors(
+        request,
+        json({ error: "Invalid URL format" }, { status: 400 }),
+      );
     }
 
     try {
@@ -83,9 +97,15 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     } catch (error) {
       logger.error("Error creating webhook:", { error });
-      return apiCors(request, json({ error: "Failed to create webhook" }, { status: 500 }));
+      return apiCors(
+        request,
+        json({ error: "Failed to create webhook" }, { status: 500 }),
+      );
     }
   }
 
-  return apiCors(request, json({ error: "Method not allowed" }, { status: 405 }));
+  return apiCors(
+    request,
+    json({ error: "Method not allowed" }, { status: 405 }),
+  );
 }

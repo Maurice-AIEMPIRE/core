@@ -17,15 +17,18 @@ const ParamsSchema = z.object({
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   try {
     // Authenticate OAuth request and verify integration:credentials scope
-    const authResult = await authenticateOAuthRequest(request, ["integration:credentials", "integration"]);
-    
+    const authResult = await authenticateOAuthRequest(request, [
+      "integration:credentials",
+      "integration",
+    ]);
+
     if (!authResult.success) {
       return json(
-        { 
-          error: "unauthorized", 
-          error_description: authResult.error 
+        {
+          error: "unauthorized",
+          error_description: authResult.error,
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -33,11 +36,11 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     const parseResult = ParamsSchema.safeParse(params);
     if (!parseResult.success) {
       return json(
-        { 
-          error: "invalid_request", 
-          error_description: "Invalid integration account ID" 
+        {
+          error: "invalid_request",
+          error_description: "Invalid integration account ID",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -66,17 +69,20 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
     if (!integrationAccount) {
       return json(
-        { 
-          error: "not_found", 
-          error_description: "Integration account not found or access denied" 
+        {
+          error: "not_found",
+          error_description: "Integration account not found or access denied",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Extract credentials from integrationConfiguration
-    const credentials = integrationAccount.integrationConfiguration as Record<string, any>;
-    
+    const credentials = integrationAccount.integrationConfiguration as Record<
+      string,
+      any
+    >;
+
     // Return the credentials and metadata
     return json({
       id: integrationAccount.id,
@@ -89,15 +95,14 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       connectedAt: integrationAccount.createdAt,
       isActive: integrationAccount.isActive,
     });
-
   } catch (error) {
     console.error("Error fetching integration account credentials:", error);
     return json(
-      { 
-        error: "server_error", 
-        error_description: "Internal server error" 
+      {
+        error: "server_error",
+        error_description: "Internal server error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 };
@@ -105,10 +110,10 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 // Method not allowed for non-GET requests
 export const action = async () => {
   return json(
-    { 
-      error: "method_not_allowed", 
-      error_description: "Only GET requests are allowed" 
+    {
+      error: "method_not_allowed",
+      error_description: "Only GET requests are allowed",
     },
-    { status: 405 }
+    { status: 405 },
   );
-}; 
+};

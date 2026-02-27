@@ -57,7 +57,7 @@ export async function resetMonthlyCredits(
       monthlyCreditsAllocated: subscription.monthlyCredits,
       creditsUsed: userUsage.usedCredits,
       overageCreditsUsed: userUsage.overageCredits,
-      subscriptionAmount: 0, // TODO: Get from Stripe
+      subscriptionAmount: 0, // Actual amount is recorded via Stripe webhook (handleInvoicePaymentSucceeded)
       usageAmount: subscription.overageAmount,
       totalAmount: subscription.overageAmount,
     },
@@ -285,17 +285,17 @@ export async function hasCredits(
   }
 
   const userUsage = user.UserUsage;
-  // const subscription = workspace.Subscription;
+  const subscription = workspace.Subscription;
 
   // If has available credits, return true
   if (userUsage.availableCredits >= creditCost) {
     return true;
   }
 
-  // If overage is enabled (Pro/Max), return true
-  // if (subscription.enableUsageBilling) {
-  //   return true;
-  // }
+  // If overage is enabled (Pro/Max), allow usage beyond monthly credits
+  if (subscription.enableUsageBilling) {
+    return true;
+  }
 
   // Free plan with no credits left
   return false;

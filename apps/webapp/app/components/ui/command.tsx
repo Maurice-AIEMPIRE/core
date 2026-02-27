@@ -84,7 +84,7 @@ const CommandList = React.forwardRef<
   <CommandPrimitive.List
     ref={ref}
     className={cn(
-      "command-list max-h-[500px] overflow-x-hidden overflow-y-auto",
+      "command-list max-h-[500px] overflow-y-auto overflow-x-hidden",
       className,
     )}
     {...props}
@@ -141,7 +141,7 @@ const CommandItem = React.forwardRef<
   <CommandPrimitive.Item
     ref={ref}
     className={cn(
-      "command-item aria-selected:bg-accent aria-selected:text-accent-foreground relative flex cursor-default items-center rounded px-2 py-1 outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "command-item aria-selected:bg-accent aria-selected:text-accent-foreground relative flex cursor-default select-none items-center rounded px-2 py-1 outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className,
     )}
     {...props}

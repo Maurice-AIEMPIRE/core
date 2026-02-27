@@ -12,13 +12,16 @@ const loader = createHybridLoaderApiRoute(
   },
   async ({ authentication }) => {
     try {
-
       const labelService = new LabelService();
       const graphProvider = ProviderFactory.getGraphProvider();
 
       // Get clustered graph data and cluster metadata in parallel
       const [graphData, clusters] = await Promise.all([
-        graphProvider.getClusteredGraphData(authentication.userId, undefined, authentication.workspaceId),
+        graphProvider.getClusteredGraphData(
+          authentication.userId,
+          undefined,
+          authentication.workspaceId,
+        ),
         labelService.getWorkspaceLabels(authentication.workspaceId as string),
       ]);
 

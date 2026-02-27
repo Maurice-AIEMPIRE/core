@@ -22,8 +22,7 @@ type CreatePersonalAccessTokenOptions = {
   userId: string;
 };
 
-// TODO remove from here
-// Helper functions for token management
+// Helper functions for token management (duplicated from personalAccessToken.server.ts for trigger context)
 function createToken() {
   return `${tokenPrefix}${tokenGenerator()}`;
 }
@@ -41,11 +40,7 @@ function encryptToken(value: string) {
   }
 
   const nonce = nodeCrypto.randomBytes(12);
-  const cipher = nodeCrypto.createCipheriv(
-    "aes-256-gcm",
-    encryptionKey,
-    nonce as any,
-  );
+  const cipher = nodeCrypto.createCipheriv("aes-256-gcm", encryptionKey, nonce);
 
   let encrypted = cipher.update(value, "utf8", "hex");
   encrypted += cipher.final("hex");
@@ -491,7 +486,7 @@ export async function resetMonthlyCredits(
       monthlyCreditsAllocated: subscription.monthlyCredits,
       creditsUsed: userUsage.usedCredits,
       overageCreditsUsed: userUsage.overageCredits,
-      subscriptionAmount: 0, // TODO: Get from Stripe
+      subscriptionAmount: 0, // Actual amount is recorded via Stripe webhook (handleInvoicePaymentSucceeded)
       usageAmount: subscription.overageAmount,
       totalAmount: subscription.overageAmount,
     },

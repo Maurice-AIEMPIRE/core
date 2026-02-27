@@ -1,7 +1,4 @@
-import {
-  type CompactedSessionNode,
-  type EpisodicNode,
-} from "@core/types";
+import { type CompactedSessionNode, type EpisodicNode } from "@core/types";
 import { ProviderFactory } from "@core/providers";
 
 // Get the graph provider instance
@@ -35,7 +32,11 @@ export async function getCompactedSessionBySessionId(
   userId: string,
   workspaceId?: string,
 ): Promise<CompactedSessionNode | null> {
-  return graphProvider().getCompactedSessionBySessionId(sessionId, userId, workspaceId);
+  return graphProvider().getCompactedSessionBySessionId(
+    sessionId,
+    userId,
+    workspaceId,
+  );
 }
 
 /**
@@ -46,8 +47,12 @@ export async function getCompactedSessionEpisodes(
   userId: string,
   workspaceId?: string,
 ): Promise<string[]> {
-  const episodes = await graphProvider().getEpisodesForCompact(compactUuid, userId, workspaceId);
-  return episodes.map(e => e.uuid);
+  const episodes = await graphProvider().getEpisodesForCompact(
+    compactUuid,
+    userId,
+    workspaceId,
+  );
+  return episodes.map((e) => e.uuid);
 }
 
 /**
@@ -59,20 +64,32 @@ export async function linkEpisodesToCompact(
   userId: string,
   workspaceId?: string,
 ): Promise<void> {
-  return graphProvider().linkEpisodesToCompact(compactUuid, episodeUuids, userId, workspaceId);
+  return graphProvider().linkEpisodesToCompact(
+    compactUuid,
+    episodeUuids,
+    userId,
+    workspaceId,
+  );
 }
 
 /**
  * Delete a compacted session
  */
-export async function deleteCompactedSession(uuid: string, userId: string, workspaceId?: string): Promise<void> {
+export async function deleteCompactedSession(
+  uuid: string,
+  userId: string,
+  workspaceId?: string,
+): Promise<void> {
   return graphProvider().deleteCompactedSession(uuid, userId, workspaceId);
 }
 
 /**
  * Get compaction statistics for a user
  */
-export async function getCompactionStats(userId: string, workspaceId?: string): Promise<{
+export async function getCompactionStats(
+  userId: string,
+  workspaceId?: string,
+): Promise<{
   totalCompacts: number;
   totalEpisodes: number;
   averageCompressionRatio: number;
@@ -97,7 +114,12 @@ export async function getSessionEpisodes(
   afterTime?: Date,
   workspaceId?: string,
 ): Promise<EpisodicNode[]> {
-  return graphProvider().getSessionEpisodes(sessionId, userId, afterTime, workspaceId);
+  return graphProvider().getSessionEpisodes(
+    sessionId,
+    userId,
+    afterTime,
+    workspaceId,
+  );
 }
 
 /**
@@ -109,6 +131,11 @@ export async function getSessionEpisodeCount(
   afterTime?: Date,
   workspaceId?: string,
 ): Promise<number> {
-  const episodes = await getSessionEpisodes(sessionId, userId, afterTime, workspaceId);
+  const episodes = await getSessionEpisodes(
+    sessionId,
+    userId,
+    afterTime,
+    workspaceId,
+  );
   return episodes.length;
 }

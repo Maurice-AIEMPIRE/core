@@ -36,8 +36,6 @@ const loader = createHybridLoaderApiRoute(
     allowJWT: true,
   },
   async ({ params, authentication }) => {
-
-
     const document = await getDocument(
       params.documentId,
       authentication.workspaceId as string,
@@ -165,7 +163,10 @@ const { action } = createHybridActionApiRoute(
           authentication.userId,
         );
 
-        await deleteDocument(document.id as string, authentication.workspaceId as string);
+        await deleteDocument(
+          document.id as string,
+          authentication.workspaceId as string,
+        );
         return json({
           success: true,
           message: "Session deleted successfully",

@@ -40,8 +40,10 @@ export function Header1({
       className={cn(
         headerVariants.header1.text,
         spacing === true && headerVariants.header1.spacing,
-        textColor === "bright" ? textColorVariants.bright : textColorVariants.dimmed,
-        className
+        textColor === "bright"
+          ? textColorVariants.bright
+          : textColorVariants.dimmed,
+        className,
       )}
     >
       {children}
@@ -60,8 +62,10 @@ export function Header2({
       className={cn(
         headerVariants.header2.text,
         spacing === true && headerVariants.header2.spacing,
-        textColor === "bright" ? textColorVariants.bright : textColorVariants.dimmed,
-        className
+        textColor === "bright"
+          ? textColorVariants.bright
+          : textColorVariants.dimmed,
+        className,
       )}
     >
       {children}
@@ -80,8 +84,10 @@ export function Header3({
       className={cn(
         headerVariants.header3.text,
         spacing === true && headerVariants.header3.spacing,
-        textColor === "bright" ? textColorVariants.bright : textColorVariants.dimmed,
-        className
+        textColor === "bright"
+          ? textColorVariants.bright
+          : textColorVariants.dimmed,
+        className,
       )}
     >
       {children}

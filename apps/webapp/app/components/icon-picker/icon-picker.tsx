@@ -93,7 +93,7 @@ export function IconPicker({
               ))}
             </div>
             <div className="relative mb-4">
-              <LucideIcons.Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
+              <LucideIcons.Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform" />
               <Input
                 placeholder="Search Icons..."
                 className="pl-9"
@@ -136,7 +136,7 @@ export function IconPicker({
         <TabsContent value="emojis" className="p-0">
           <div className="p-1">
             <div className="relative mb-4">
-              <LucideIcons.Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
+              <LucideIcons.Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform" />
               <Input
                 placeholder="Search Icons..."
                 className="pl-9"

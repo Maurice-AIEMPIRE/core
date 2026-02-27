@@ -15,7 +15,7 @@ export type AuthenticatedUser = {
   updatedAt: Date;
   confirmedBasicDetails: boolean;
   onboardingComplete: boolean;
-  authMethod: 'session' | 'pat' | 'oauth2';
+  authMethod: "session" | "pat" | "oauth2";
   oauth2?: {
     clientId: string;
     scope: string | null;
@@ -27,15 +27,18 @@ export type AuthenticatedUser = {
  * Authenticates a request using session, PAT, or OAuth2 access token
  * Returns the authenticated user or throws an error response
  */
-export async function requireAuth(request: Request): Promise<AuthenticatedUser> {
+export async function requireAuth(
+  request: Request,
+): Promise<AuthenticatedUser> {
   const authHeader = request.headers.get("authorization");
-  
+
   // Try OAuth2 access token authentication
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.substring(7);
-    
+
     // Check if it's a PAT token first
-    const patAuth = await authenticateApiRequestWithPersonalAccessToken(request);
+    const patAuth =
+      await authenticateApiRequestWithPersonalAccessToken(request);
     if (patAuth) {
       const user = await getUserById(patAuth.userId);
       if (user) {
@@ -50,12 +53,12 @@ export async function requireAuth(request: Request): Promise<AuthenticatedUser> 
           updatedAt: user.updatedAt,
           confirmedBasicDetails: user.confirmedBasicDetails,
           onboardingComplete: user.onboardingComplete,
-          authMethod: 'pat',
-          workspaceId: patAuth.workspaceId
+          authMethod: "pat",
+          workspaceId: patAuth.workspaceId,
         };
       }
     }
-    
+
     // Try OAuth2 access token
     try {
       const accessToken = await oauth2Service.validateAccessToken(token);
@@ -70,13 +73,12 @@ export async function requireAuth(request: Request): Promise<AuthenticatedUser> 
         updatedAt: accessToken.user.updatedAt,
         confirmedBasicDetails: accessToken.user.confirmedBasicDetails,
         onboardingComplete: accessToken.user.onboardingComplete,
-        authMethod: 'oauth2',
+        authMethod: "oauth2",
         oauth2: {
           clientId: accessToken.client.clientId,
           scope: accessToken.scope,
         },
-        workspaceId: accessToken.workspaceId
-
+        workspaceId: accessToken.workspaceId,
       };
     } catch (error) {
       // OAuth2 token validation failed, continue to session auth
@@ -97,7 +99,7 @@ export async function requireAuth(request: Request): Promise<AuthenticatedUser> 
       updatedAt: sessionUser.updatedAt,
       confirmedBasicDetails: sessionUser.confirmedBasicDetails,
       onboardingComplete: sessionUser.onboardingComplete,
-      authMethod: 'session',
+      authMethod: "session",
     };
   }
 
@@ -108,7 +110,9 @@ export async function requireAuth(request: Request): Promise<AuthenticatedUser> 
 /**
  * Optional authentication - returns user if authenticated, null otherwise
  */
-export async function getAuthenticatedUser(request: Request): Promise<AuthenticatedUser | null> {
+export async function getAuthenticatedUser(
+  request: Request,
+): Promise<AuthenticatedUser | null> {
   try {
     return await requireAuth(request);
   } catch (error) {

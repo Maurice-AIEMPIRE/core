@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 export function useChanged<T extends { id: string }>(
   getItem: () => T | undefined,
   action: (item: T | undefined) => void,
-  sendInitialUndefined = true
+  sendInitialUndefined = true,
 ) {
   const previousItemId = useRef<string | undefined>();
   const item = getItem();

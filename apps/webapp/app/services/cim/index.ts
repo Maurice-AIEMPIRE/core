@@ -99,7 +99,12 @@ export { DEFAULT_RETRY_CONFIG } from "./types";
 export { perceive, observeState, gatherContext } from "./perception";
 
 // Decision
-export { decide, classifyIntent, createPlan, selectModelTier } from "./decision";
+export {
+  decide,
+  classifyIntent,
+  createPlan,
+  selectModelTier,
+} from "./decision";
 
 // Action
 export { executeAction, executeWithRetry, createAuditEntry } from "./action";

@@ -112,7 +112,9 @@ export function VirtualLogsList({
     return cache.getHeight(index, 0);
   };
 
-  const itemCount = hasMore ? (documents?.length ?? 0) + 1 : (documents?.length ?? 0);
+  const itemCount = hasMore
+    ? (documents?.length ?? 0) + 1
+    : (documents?.length ?? 0);
 
   return (
     <div className="h-full grow overflow-hidden rounded-lg">

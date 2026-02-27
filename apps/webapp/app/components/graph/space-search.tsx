@@ -82,20 +82,20 @@ export function SpaceSearch({
   return (
     <div className="flex w-full max-w-md items-center gap-2">
       <div className="relative flex-1">
-        <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+        <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
         <Input
           type="text"
           value={inputValue}
           onChange={handleInputChange}
           placeholder={placeholder}
-          className="pr-8 pl-10"
+          className="pl-10 pr-8"
         />
         {hasSearchQuery && (
           <Button
             variant="ghost"
             size="xs"
             onClick={handleClear}
-            className="absolute top-1/2 right-1 -translate-y-1/2"
+            className="absolute right-1 top-1/2 -translate-y-1/2"
           >
             <X className="h-3 w-3" />
           </Button>

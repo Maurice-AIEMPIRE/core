@@ -318,8 +318,6 @@ export function createEscalation(
   };
 
   sendMessage(message);
-  logger.warn(
-    `[CIM:MultiAgent] Escalation from ${fromAgentId}: ${reason}`,
-  );
+  logger.warn(`[CIM:MultiAgent] Escalation from ${fromAgentId}: ${reason}`);
   return message;
 }

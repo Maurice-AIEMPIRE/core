@@ -138,7 +138,7 @@ export default function SingleConversation() {
           <div className="flex w-full flex-col items-center">
             <div className="w-full max-w-[90ch] px-1 pr-2">
               <ConversationTextarea
-                className="bg-background-3 w-full border-1 border-gray-300"
+                className="bg-background-3 border-1 w-full border-gray-300"
                 isLoading={status === "streaming" || status === "submitted"}
                 disabled={needsApproval}
                 onConversationCreated={(message) => {

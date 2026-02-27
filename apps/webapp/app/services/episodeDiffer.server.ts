@@ -1,4 +1,4 @@
-import DiffMatchPatch from 'diff-match-patch';
+import DiffMatchPatch from "diff-match-patch";
 
 export interface DiffStats {
   additions: number;
@@ -38,14 +38,15 @@ export class EpisodeDiffer {
       const prevOp = i > 0 ? diffs[i - 1] : null;
       const nextOp = i < diffs.length - 1 ? diffs[i + 1] : null;
 
-      if (op === 1) { // INSERT
+      if (op === 1) {
+        // INSERT
         // Always include additions
         changedParts.push(text);
-      } else if (op === 0) { // EQUAL
+      } else if (op === 0) {
+        // EQUAL
         // Only include context if adjacent to a change
         const isNearChange =
-          (prevOp && prevOp[0] !== 0) ||
-          (nextOp && nextOp[0] !== 0);
+          (prevOp && prevOp[0] !== 0) || (nextOp && nextOp[0] !== 0);
 
         if (isNearChange) {
           // Include minimal context (50 chars before/after changes)
@@ -67,7 +68,7 @@ export class EpisodeDiffer {
       // Skip DELETE operations (op === -1) - LLM can infer from comparing with previous version
     }
 
-    return changedParts.join('');
+    return changedParts.join("");
   }
 
   /**
@@ -88,12 +89,13 @@ export class EpisodeDiffer {
     const changedParts: string[] = [];
 
     for (const [op, text] of diffs) {
-      if (op === 1) { // INSERT
+      if (op === 1) {
+        // INSERT
         changedParts.push(text);
       }
     }
 
-    return changedParts.join('');
+    return changedParts.join("");
   }
 
   /**
@@ -113,19 +115,21 @@ export class EpisodeDiffer {
 
     for (const [op, text] of diffs) {
       const length = text.length;
-      if (op === 1) { // INSERT
+      if (op === 1) {
+        // INSERT
         additions += length;
-      } else if (op === -1) { // DELETE
+      } else if (op === -1) {
+        // DELETE
         deletions += length;
-      } else { // EQUAL (op === 0)
+      } else {
+        // EQUAL (op === 0)
         unchanged += length;
       }
     }
 
     const total = additions + deletions + unchanged;
-    const changePercentage = total > 0
-      ? ((additions + deletions) / total) * 100
-      : 0;
+    const changePercentage =
+      total > 0 ? ((additions + deletions) / total) * 100 : 0;
 
     return {
       additions,
@@ -145,7 +149,7 @@ export class EpisodeDiffer {
   hasMeaningfulChanges(oldContent: string, newContent: string): boolean {
     // Normalize whitespace for comparison
     const normalizeWhitespace = (text: string) =>
-      text.replace(/\s+/g, ' ').trim();
+      text.replace(/\s+/g, " ").trim();
 
     return normalizeWhitespace(oldContent) !== normalizeWhitespace(newContent);
   }
@@ -172,17 +176,19 @@ export class EpisodeDiffer {
       // DiffMatchPatch operations: -1 = DELETE, 0 = EQUAL, 1 = INSERT
       if (op === 1) {
         // INSERT - additions
-        const lines = text.split('\n');
+        const lines = text.split("\n");
         for (const line of lines) {
-          if (line.trim() || lines.length === 1) { // Include line if it has content or is the only line
+          if (line.trim() || lines.length === 1) {
+            // Include line if it has content or is the only line
             diffLines.push(`[+] ${line}`);
           }
         }
       } else if (op === -1) {
         // DELETE - deletions
-        const lines = text.split('\n');
+        const lines = text.split("\n");
         for (const line of lines) {
-          if (line.trim() || lines.length === 1) { // Include line if it has content or is the only line
+          if (line.trim() || lines.length === 1) {
+            // Include line if it has content or is the only line
             diffLines.push(`[-] ${line}`);
           }
         }
@@ -192,9 +198,9 @@ export class EpisodeDiffer {
 
     // If diff is empty, it means only whitespace changed
     if (diffLines.length === 0) {
-      return '(No significant changes detected)';
+      return "(No significant changes detected)";
     }
 
-    return diffLines.join('\n');
+    return diffLines.join("\n");
   }
 }

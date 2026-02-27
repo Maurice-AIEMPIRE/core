@@ -29,7 +29,6 @@ const { action, loader } = createActionApiRoute(
     try {
       logger.log("Creating activity", { body, userId: authentication.userId });
 
-   
       // Create the activity record
       const activity = await prisma.activity.create({
         data: {
@@ -46,7 +45,7 @@ const { action, loader } = createActionApiRoute(
         referenceTime: new Date().toISOString(),
         source: body.source,
         type: EpisodeTypeEnum.CONVERSATION,
-        sessionId: activity.id
+        sessionId: activity.id,
       };
 
       const queueResponse = await addToQueue(

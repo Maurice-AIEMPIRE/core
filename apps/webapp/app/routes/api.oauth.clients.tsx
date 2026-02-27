@@ -12,7 +12,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const user = await requireAuth(request);
 
   try {
-  
     if (!user?.workspaceId) {
       return json({ error: "No workspace found" }, { status: 404 });
     }

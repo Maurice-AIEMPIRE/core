@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
  */
 export function usePersistentState<T>(
   key: string,
-  defaultValue: T
+  defaultValue: T,
 ): [T, (value: T | ((prevValue: T) => T)) => void] {
   const [state, setState] = useState<T>(() => {
     // Only access localStorage on the client side

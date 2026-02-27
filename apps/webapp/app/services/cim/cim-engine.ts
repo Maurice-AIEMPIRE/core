@@ -38,8 +38,7 @@ import type {
 
 import { perceive } from "./perception";
 import { decide } from "./decision";
-import { executeWithRetry } from "./action";
-import { createAuditEntry } from "./action";
+import { executeWithRetry, createAuditEntry } from "./action";
 import { checkStepGuardrails } from "./guardrails";
 import {
   createContextWindow,
@@ -156,8 +155,7 @@ export async function runCIMLoop(
     } catch (error) {
       const cimError: CIMError = {
         phase: "perception",
-        message:
-          error instanceof Error ? error.message : String(error),
+        message: error instanceof Error ? error.message : String(error),
         recoverable: true,
         timestamp: new Date(),
       };
@@ -181,10 +179,15 @@ export async function runCIMLoop(
       plan = decision.plan;
       state.plan = plan;
 
-      logDecision(agentId, `Plan created: ${plan.steps.length} steps`, decision.reasoning, {
-        intent: decision.intent,
-        modelTier: decision.selectedModel,
-      });
+      logDecision(
+        agentId,
+        `Plan created: ${plan.steps.length} steps`,
+        decision.reasoning,
+        {
+          intent: decision.intent,
+          modelTier: decision.selectedModel,
+        },
+      );
 
       logger.info(
         `[CIM:Engine] Plan: ${plan.steps.length} steps, ` +
@@ -194,8 +197,7 @@ export async function runCIMLoop(
     } catch (error) {
       const cimError: CIMError = {
         phase: "planning",
-        message:
-          error instanceof Error ? error.message : String(error),
+        message: error instanceof Error ? error.message : String(error),
         recoverable: true,
         timestamp: new Date(),
       };
@@ -284,17 +286,13 @@ export async function runCIMLoop(
           logged: true,
           reversible: true,
         };
-        logger.warn(
-          `[CIM:Engine] Step ${step.id} blocked by guardrails`,
-        );
+        logger.warn(`[CIM:Engine] Step ${step.id} blocked by guardrails`);
         continue;
       }
 
       if (guardrailCheck.needsApproval) {
         state.status = "waiting_human";
-        logger.info(
-          `[CIM:Engine] Step ${step.id} requires approval, pausing`,
-        );
+        logger.info(`[CIM:Engine] Step ${step.id} requires approval, pausing`);
         break;
       }
 
@@ -348,19 +346,12 @@ export async function runCIMLoop(
     // -----------------------------------------------------------------------
     logger.info(`[CIM:Engine] Phase 4: OBSERVE results`);
 
-    const completedSteps = plan.steps.filter(
-      (s) => s.status === "completed",
-    );
+    const completedSteps = plan.steps.filter((s) => s.status === "completed");
     const failedSteps = plan.steps.filter((s) => s.status === "failed");
     const goalMet = completedSteps.length > 0 && failedSteps.length === 0;
 
     // Create task summary for external memory
-    createTaskSummary(
-      agentId,
-      query,
-      plan.steps,
-      state.actionHistory,
-    );
+    createTaskSummary(agentId, query, plan.steps, state.actionHistory);
 
     state.status = goalMet ? "completed" : "failed";
     state.completedAt = new Date();
@@ -414,8 +405,7 @@ export async function runCIMLoop(
     state.status = "failed";
     state.completedAt = new Date();
 
-    const errorMessage =
-      error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     logError(agentId, `Catastrophic failure: ${errorMessage}`, {
       phase: "engine",
     });

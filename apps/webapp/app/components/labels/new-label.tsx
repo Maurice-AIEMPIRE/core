@@ -38,7 +38,7 @@ export function NewLabel({ onCancel, onSuccess }: NewLabelProps) {
   };
 
   return (
-    <div className="group bg-background-3 mb-2 flex flex-col gap-3 rounded p-4">
+    <div className="bg-background-3 group mb-2 flex flex-col gap-3 rounded p-4">
       <div className="flex items-center gap-3">
         <div
           className="h-3 w-3 flex-shrink-0 rounded-full"

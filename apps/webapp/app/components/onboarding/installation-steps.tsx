@@ -43,7 +43,7 @@ export function InstallationSteps({
 
             {/* Step content */}
             <div className="mt-1 flex-1 space-y-1 pb-8">
-              <h4 className="leading-relaxed font-medium">{step.title}</h4>
+              <h4 className="font-medium leading-relaxed">{step.title}</h4>
               <div>{step.component}</div>
             </div>
           </div>

@@ -17,9 +17,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const labelService = new LabelService();
 
   try {
-    const labels = await labelService.getWorkspaceLabels(
-      workspaceId as string,
-    );
+    const labels = await labelService.getWorkspaceLabels(workspaceId as string);
     return json({ labels });
   } catch (e) {
     return json({ labels: [] });

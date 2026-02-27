@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { type Workspace } from "@core/database";
 import { prisma } from "~/db.server";
 import { ensureBillingInitialized } from "~/services/billing.server";
@@ -17,9 +18,10 @@ export async function createWorkspace(
   // Generate slug: remove spaces, lowercase, add 5 random letters
   const generateRandomSuffix = () => {
     const chars = "abcdefghijklmnopqrstuvwxyz";
+    const randomBytes = crypto.randomBytes(5);
     return Array.from(
       { length: 5 },
-      () => chars[Math.floor(Math.random() * chars.length)],
+      (_, i) => chars[randomBytes[i] % chars.length],
     ).join("");
   };
 

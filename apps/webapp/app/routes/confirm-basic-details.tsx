@@ -37,7 +37,7 @@ export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
   const submission = parseWithZod(formData, { schema });
 
-  if (submission.status !== 'success') {
+  if (submission.status !== "success") {
     return json(submission.reply());
   }
 
@@ -78,14 +78,14 @@ export default function ConfirmBasicDetails() {
   const navigation = useNavigation();
 
   const [form, fields] = useForm({
-    lastResult: navigation.state === 'idle' ? (lastSubmission as any) : null,
+    lastResult: navigation.state === "idle" ? (lastSubmission as any) : null,
     constraint: getZodConstraint(schema),
     onValidate({ formData }) {
       return parseWithZod(formData, { schema });
     },
     // Validate the form on blur event triggered
-    shouldValidate: 'onBlur',
-    shouldRevalidate: 'onInput',
+    shouldValidate: "onBlur",
+    shouldRevalidate: "onInput",
   });
 
   return (

@@ -36,7 +36,7 @@ export function Label({ label, setEditLabelState, onDelete }: LabelProps) {
   };
 
   return (
-    <div className="group bg-background-3 mb-2 flex justify-between rounded-lg p-2 px-4">
+    <div className="bg-background-3 group mb-2 flex justify-between rounded-lg p-2 px-4">
       <div className="flex items-center justify-center gap-3">
         <div
           className="h-3 w-3 rounded-full"
