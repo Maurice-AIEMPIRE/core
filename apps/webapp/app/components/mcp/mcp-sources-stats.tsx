@@ -60,8 +60,8 @@ export function McpSourcesStats({
                     <div className="flex items-center gap-2">
                       <div className="h-2 w-16 overflow-hidden rounded-full bg-gray-200">
                         <div
-                          className="bg-primary h-full transition-all duration-500"
-                          style={{ width: `${percentage}%` }}
+                          className="bg-primary h-full origin-left transition-transform duration-500"
+                          style={{ transform: `scaleX(${percentage / 100})` }}
                         />
                       </div>
                       <span className="text-muted-foreground w-10 text-right text-sm">

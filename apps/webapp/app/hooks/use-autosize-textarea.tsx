@@ -11,12 +11,9 @@ export const useAutoSizeTextArea = (
     const textArea = textAreaRef ?? document.getElementById(id);
 
     if (textArea && textArea.style && value) {
-      // We need to reset the height momentarily to get the correct scrollHeight for the textarea
-      textArea.style.height = "auto";
+      // Batch DOM read/write to avoid layout thrashing on Mac
+      textArea.style.height = "0";
       const scrollHeight = textArea.scrollHeight;
-
-      // We then set the height directly, outside of the render loop
-      // Trying to set this with state or a ref will product an incorrect value.
       textArea.style.height = `${10 + scrollHeight}px`;
     }
   }, [textAreaRef, value, id]);

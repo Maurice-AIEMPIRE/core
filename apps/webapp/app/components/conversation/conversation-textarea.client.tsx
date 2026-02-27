@@ -5,7 +5,7 @@ import { Paragraph } from "@tiptap/extension-paragraph";
 import { Text } from "@tiptap/extension-text";
 import { type Editor } from "@tiptap/react";
 import { EditorContent, Placeholder, EditorRoot } from "novel";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { cn } from "~/lib/utils";
 import { Button } from "../ui";
 import { LoaderCircle } from "lucide-react";
@@ -62,7 +62,7 @@ export function ConversationTextarea({
         <EditorContent
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           initialContent={defaultValue as any}
-          extensions={[
+          extensions={useMemo(() => [
             Document,
             Paragraph,
             Text,
@@ -78,7 +78,7 @@ export function ConversationTextarea({
               includeChildren: true,
             }),
             History,
-          ]}
+          ], [disabled, placeholder])}
           onCreate={async ({ editor }) => {
             setEditor(editor);
             await new Promise((resolve) => setTimeout(resolve, 100));
@@ -134,7 +134,7 @@ export function ConversationTextarea({
       <div className="mb-1 flex justify-end px-3">
         <Button
           variant="secondary"
-          className="gap-1 shadow-none transition-all duration-500 ease-in-out"
+          className="gap-1 shadow-none transition-opacity duration-500 ease-in-out"
           onClick={() => {
             if (!isLoading && !disabled) {
               handleSend();

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Search, X } from "lucide-react";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
@@ -24,7 +24,7 @@ export function SpaceSearch({
   const debouncedSearchQuery = useDebounce(inputValue, 300);
 
   // Update parent component when debounced value changes
-  useMemo(() => {
+  useEffect(() => {
     if (debouncedSearchQuery !== searchQuery) {
       onSearchChange(debouncedSearchQuery);
     }

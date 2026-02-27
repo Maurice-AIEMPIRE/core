@@ -15,12 +15,16 @@ function useScrollRestoration(
 ) {
   React.useEffect(() => {
     const element = ref.current as any;
+    let rafId = 0;
 
     const handleScroll = () => {
-      (window as any).__scrollPositions[id as string] = {
-        scrollTop: element.scrollTop,
-        scrollLeft: element.scrollLeft,
-      };
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        (window as any).__scrollPositions[id as string] = {
+          scrollTop: element.scrollTop,
+          scrollLeft: element.scrollLeft,
+        };
+      });
     };
 
     if (id && ref.current) {
@@ -38,13 +42,13 @@ function useScrollRestoration(
       }
 
       // Add scroll event listener to save position while scrolling
-
-      element.addEventListener("scroll", handleScroll);
+      element.addEventListener("scroll", handleScroll, { passive: true });
     }
 
-    // Cleanup: remove event listener and save final position
+    // Cleanup: remove event listener and cancel pending RAF
     return () => {
       element.removeEventListener("scroll", handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, [id, ref]);
 }

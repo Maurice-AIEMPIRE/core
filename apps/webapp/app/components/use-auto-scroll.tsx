@@ -19,6 +19,7 @@ export function useAutoScroll(options: UseAutoScrollOptions = {}) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastContentHeight = useRef(0);
   const userHasScrolled = useRef(false);
+  const scrollRafId = useRef<number>(0);
 
   const [scrollState, setScrollState] = useState<ScrollState>({
     isAtBottom: false,
@@ -62,15 +63,20 @@ export function useAutoScroll(options: UseAutoScrollOptions = {}) {
   );
 
   const handleScroll = useCallback(() => {
-    if (scrollRef.current) {
-      const atBottom = checkIsAtBottom(scrollRef.current);
-
-      setScrollState((prev) => ({
-        isAtBottom: atBottom,
-        // Re-enable auto-scroll if at the bottom
-        autoScrollEnabled: atBottom ? true : prev.autoScrollEnabled,
-      }));
+    if (scrollRafId.current) {
+      cancelAnimationFrame(scrollRafId.current);
     }
+    scrollRafId.current = requestAnimationFrame(() => {
+      if (scrollRef.current) {
+        const atBottom = checkIsAtBottom(scrollRef.current);
+
+        setScrollState((prev) => ({
+          isAtBottom: atBottom,
+          // Re-enable auto-scroll if at the bottom
+          autoScrollEnabled: atBottom ? true : prev.autoScrollEnabled,
+        }));
+      }
+    });
   }, [checkIsAtBottom]);
 
   useEffect(() => {
@@ -79,8 +85,10 @@ export function useAutoScroll(options: UseAutoScrollOptions = {}) {
       element.addEventListener("scroll", handleScroll, { passive: true });
     }
 
-    return () =>
-      element ? element.removeEventListener("scroll", handleScroll) : undefined;
+    return () => {
+      if (element) element.removeEventListener("scroll", handleScroll);
+      if (scrollRafId.current) cancelAnimationFrame(scrollRafId.current);
+    };
   }, [handleScroll]);
 
   useEffect(() => {

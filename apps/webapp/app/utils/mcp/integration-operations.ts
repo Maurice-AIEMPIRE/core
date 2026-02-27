@@ -16,18 +16,18 @@ const integrationQueue = new PQueue({
   timeout: 35000, // 35 second total timeout (slightly more than execFile timeout)
 });
 
-// Log queue stats periodically for monitoring
-setInterval(() => {
+// Log queue stats on activity instead of polling with setInterval (prevents memory leak)
+integrationQueue.on("active", () => {
   const stats = {
-    size: integrationQueue.size, // Pending tasks
-    pending: integrationQueue.pending, // Running tasks
+    size: integrationQueue.size,
+    pending: integrationQueue.pending,
   };
   if (stats.size > 0 || stats.pending > 0) {
     logger.log(
       `Integration queue stats: ${stats.pending} running, ${stats.size} queued`,
     );
   }
-}, 10000); // Log every 10 seconds if there's activity
+});
 
 /**
  * Handler for get_integrations

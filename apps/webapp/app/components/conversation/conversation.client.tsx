@@ -1,5 +1,5 @@
 import { EditorRoot, EditorContent, Placeholder } from "novel";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { Form, useSubmit } from "@remix-run/react";
 import { cn } from "~/lib/utils";
 import { Document } from "@tiptap/extension-document";
@@ -77,7 +77,7 @@ export const ConversationNew = ({
                   <EditorContent
                     ref={editorRef}
                     autofocus
-                    extensions={[
+                    extensions={useMemo(() => [
                       Placeholder.configure({
                         placeholder: () => {
                           return "Ask CORE ...";
@@ -91,7 +91,7 @@ export const ConversationNew = ({
                         keepMarks: true,
                       }),
                       History,
-                    ]}
+                    ], [])}
                     onCreate={async ({ editor }) => {
                       setEditor(editor);
                       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -138,7 +138,7 @@ export const ConversationNew = ({
                 <div className="mb-1 flex justify-end px-3">
                   <Button
                     variant="secondary"
-                    className="gap-1 shadow-none transition-all duration-500 ease-in-out"
+                    className="gap-1 shadow-none transition-opacity duration-500 ease-in-out"
                     type="submit"
                     size="lg"
                   >
