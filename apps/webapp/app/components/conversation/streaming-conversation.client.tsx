@@ -50,20 +50,25 @@ export const StreamingConversation = ({
 
   React.useEffect(() => {
     let currentIndex = 0;
-    let delay = 5000; // Start with 2 seconds for more thinking time
+    let delay = 5000;
+    let timerId: ReturnType<typeof setTimeout>;
+    let cancelled = false;
 
     const updateLoadingText = () => {
-      if (!message) {
+      if (!message && !cancelled) {
         setLoadingText(loadingMessages[currentIndex]);
         currentIndex = (currentIndex + 1) % loadingMessages.length;
-        delay = Math.min(delay * 1.3, 8000); // Increase delay more gradually
-        setTimeout(updateLoadingText, delay);
+        delay = Math.min(delay * 1.3, 8000);
+        timerId = setTimeout(updateLoadingText, delay);
       }
     };
 
-    const timer = setTimeout(updateLoadingText, delay);
+    timerId = setTimeout(updateLoadingText, delay);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timerId);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [message]);
 

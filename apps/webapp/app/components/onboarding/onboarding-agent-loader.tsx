@@ -75,9 +75,10 @@ export function OnboardingAgentLoader({
   // When streaming is done, call onComplete with the summary
   useEffect(() => {
     if (status === "ready" && summary) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         onComplete(summary);
-      }, 2000)
+      }, 2000);
+      return () => clearTimeout(timer);
     }
   }, [status, summary, onComplete]);
 

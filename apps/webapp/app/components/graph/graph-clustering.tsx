@@ -103,6 +103,8 @@ export const GraphClustering = forwardRef<
     const isInitializedRef = useRef(false);
     const selectedNodeRef = useRef<string | null>(null);
     const selectedEdgeRef = useRef<string | null>(null);
+    const layoutTimerRef = useRef<ReturnType<typeof setTimeout>>();
+    const cameraTimerRef = useRef<ReturnType<typeof setTimeout>>();
     const selectedClusterRef = useRef<string | null>(null);
     const size = forOnboarding ? 16 : 4;
 
@@ -659,11 +661,11 @@ export const GraphClustering = forwardRef<
         });
 
         layout.start();
-        if (!forOnboarding) {
-          setTimeout(() => layout.stop(), (optimalParams.duration ?? 2) * 1000);
-        } else {
-          setTimeout(() => layout.stop(), 500);
-        }
+        const layoutTimer = setTimeout(
+          () => layout.stop(),
+          forOnboarding ? 500 : (optimalParams.duration ?? 2) * 1000,
+        );
+        layoutTimerRef.current = layoutTimer;
       }
 
       // Create Sigma instance
@@ -690,11 +692,12 @@ export const GraphClustering = forwardRef<
 
       // Set up camera for zoom on mount
       if (zoomOnMount) {
-        setTimeout(() => {
+        const cameraTimer = setTimeout(() => {
           sigma
             .getCamera()
             .animate(sigma.getCamera().getState(), { duration: 750 });
         }, 100);
+        cameraTimerRef.current = cameraTimer;
       }
 
       // Drag and drop implementation (same as original)
@@ -857,6 +860,8 @@ export const GraphClustering = forwardRef<
 
       // Cleanup function
       return () => {
+        if (layoutTimerRef.current) clearTimeout(layoutTimerRef.current);
+        if (cameraTimerRef.current) clearTimeout(cameraTimerRef.current);
         if (sigmaRef.current) {
           sigmaRef.current.kill();
           sigmaRef.current = null;

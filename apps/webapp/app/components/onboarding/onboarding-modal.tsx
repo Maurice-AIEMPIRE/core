@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { type Provider, OnboardingStep } from "./types";
 import { ProviderSelectionStep } from "./provider-selection-step";
@@ -33,6 +33,16 @@ export function OnboardingModal({
   const [verificationResult, setVerificationResult] = useState<string>();
   const [isCheckingRecall, setIsCheckingRecall] = useState(false);
   const [error, setError] = useState<string>();
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const stepTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+      if (stepTimeoutRef.current) clearTimeout(stepTimeoutRef.current);
+    };
+  }, []);
 
   // Calculate progress
   const getProgress = () => {
@@ -50,51 +60,54 @@ export function OnboardingModal({
 
   // Poll for ingestion status
   const pollIngestion = async () => {
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     setIngestionStatus("waiting");
 
     try {
-      const maxAttempts = 30; // 60 seconds (30 * 2s)
+      const maxAttempts = 30;
       let attempts = 0;
-
-      // Store the timestamp when polling starts
       const startTime = Date.now();
 
       const poll = async (): Promise<boolean> => {
+        if (controller.signal.aborted) return false;
         if (attempts >= maxAttempts) {
           throw new Error("Ingestion timeout - please try again");
         }
 
-        // Check for new ingestion logs from the last 5 minutes
-        const response = await fetch("/api/v1/documents?limit=1");
+        const response = await fetch("/api/v1/documents?limit=1", {
+          signal: controller.signal,
+        });
         const data = await response.json();
 
-        // Check if there's a recent ingestion (created after we started polling)
         if (data.logs && data.logs.length > 0) {
           const latestLog = data.logs[0];
           const logTime = new Date(latestLog.time).getTime();
-
-          // If the log was created after we started polling, we found a new ingestion
-          if (logTime >= startTime) {
-            return true;
-          }
+          if (logTime >= startTime) return true;
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise((resolve, reject) => {
+          const timer = setTimeout(resolve, 2000);
+          controller.signal.addEventListener("abort", () => {
+            clearTimeout(timer);
+            reject(new DOMException("Aborted", "AbortError"));
+          });
+        });
         attempts++;
-
         return poll();
       };
 
       const success = await poll();
 
-      if (success) {
+      if (success && !controller.signal.aborted) {
         setIngestionStatus("complete");
-        // Auto-advance to verification step after 2 seconds
-        setTimeout(() => {
+        stepTimeoutRef.current = setTimeout(() => {
           setCurrentStep(OnboardingStep.VERIFICATION);
         }, 2000);
       }
     } catch (err) {
+      if ((err as Error).name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Unknown error occurred");
       setIngestionStatus("error");
     }
@@ -133,47 +146,54 @@ export function OnboardingModal({
 
   // Poll for recall logs to detect verification
   const pollRecallLogs = async () => {
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     setIsCheckingRecall(true);
 
     try {
-      const maxAttempts = 30; // 60 seconds
+      const maxAttempts = 30;
       let attempts = 0;
       const startTime = Date.now();
 
       const poll = async (): Promise<string | null> => {
+        if (controller.signal.aborted) return null;
         if (attempts >= maxAttempts) {
           throw new Error("Verification timeout - please try again");
         }
 
-        // Check for new recall logs
-        const response = await fetch("/api/v1/recall-logs?limit=1");
+        const response = await fetch("/api/v1/recall-logs?limit=1", {
+          signal: controller.signal,
+        });
         const data = await response.json();
 
-        // Check if there's a recent recall (created after we started polling)
         if (data.recallLogs && data.recallLogs.length > 0) {
           const latestRecall = data.recallLogs[0];
           const recallTime = new Date(latestRecall.createdAt).getTime();
-
-          // If the recall was created after we started polling
           if (recallTime >= startTime) {
-            // Return the query as verification result
             return latestRecall.query || "Recall detected successfully";
           }
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise((resolve, reject) => {
+          const timer = setTimeout(resolve, 2000);
+          controller.signal.addEventListener("abort", () => {
+            clearTimeout(timer);
+            reject(new DOMException("Aborted", "AbortError"));
+          });
+        });
         attempts++;
-
         return poll();
       };
 
       const result = await poll();
 
-      if (result) {
+      if (result && !controller.signal.aborted) {
         setVerificationResult(result);
         setIsCheckingRecall(false);
       }
     } catch (err) {
+      if ((err as Error).name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Unknown error occurred");
       setIsCheckingRecall(false);
     }

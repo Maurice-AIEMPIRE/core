@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "@remix-run/react";
 
 export interface IngestionQueueItem {
@@ -17,7 +17,7 @@ export interface IngestionStatusResponse {
 export function useIngestionStatus() {
   const fetcher = useFetcher<IngestionStatusResponse>();
   const [isPolling, setIsPolling] = useState(false);
-  const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const hasActiveRecords = (data: IngestionStatusResponse | undefined) => {
     if (!data || !data.queue) return false;
@@ -25,23 +25,24 @@ export function useIngestionStatus() {
   };
 
   const startPolling = () => {
-    if (intervalId) return; // Already polling
-    
+    if (intervalRef.current) return; // Already polling
+
     const pollIngestionStatus = () => {
+      // Pause polling when tab is hidden to save resources
+      if (document.visibilityState === "hidden") return;
       if (fetcher.state === "idle") {
         fetcher.load("/api/v1/ingestion-queue/status");
       }
     };
 
-    const interval = setInterval(pollIngestionStatus, 3000); // Poll every 3 seconds
-    setIntervalId(interval);
+    intervalRef.current = setInterval(pollIngestionStatus, 3000);
     setIsPolling(true);
   };
 
   const stopPolling = () => {
-    if (intervalId) {
-      clearInterval(intervalId);
-      setIntervalId(null);
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
       setIsPolling(false);
     }
   };
@@ -51,26 +52,27 @@ export function useIngestionStatus() {
     if (fetcher.state === "idle" && !fetcher.data) {
       fetcher.load("/api/v1/ingestion-queue/status");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (fetcher.data) {
       const activeRecords = hasActiveRecords(fetcher.data);
-      
+
       if (activeRecords && !isPolling) {
-        // Start polling if we have active records and aren't already polling
         startPolling();
       } else if (!activeRecords && isPolling) {
-        // Stop polling if no active records and we're currently polling
         stopPolling();
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.data, isPolling]);
 
   useEffect(() => {
     return () => {
       stopPolling();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {

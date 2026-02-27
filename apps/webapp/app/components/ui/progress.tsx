@@ -16,7 +16,10 @@ const Progress = React.forwardRef<
   React.ElementRef<typeof ProgressPrimitive.Root>,
   Props
 >(({ className, segments, color, ...props }, ref) => {
-  const sortedSegments = segments.sort((a, b) => b.value - a.value);
+  const sortedSegments = React.useMemo(
+    () => [...segments].sort((a, b) => b.value - a.value),
+    [segments],
+  );
 
   return (
     <ProgressPrimitive.Root

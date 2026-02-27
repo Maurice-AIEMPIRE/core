@@ -18,11 +18,15 @@ export function EpisodeSidebar({ sessionId, onClose }: EpisodeSidebarProps) {
       return;
     }
 
+    const controller = new AbortController();
+
     const fetchLog = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/v1/documents/${sessionId}`);
+        const response = await fetch(`/api/v1/documents/${sessionId}`, {
+          signal: controller.signal,
+        });
         if (response.ok) {
           const data = await response.json();
           setLogContent(data.log);
@@ -30,14 +34,19 @@ export function EpisodeSidebar({ sessionId, onClose }: EpisodeSidebarProps) {
           setError("Failed to load episode details");
         }
       } catch (err) {
+        if ((err as Error).name === "AbortError") return;
         console.error("Error fetching log:", err);
         setError("Error loading episode details");
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchLog();
+
+    return () => controller.abort();
   }, [sessionId]);
 
   if (!sessionId) return null;
