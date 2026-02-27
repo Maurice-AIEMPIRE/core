@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: -apple-system, 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
+    color: #1a1a2e;
+    background: #ffffff;
+    line-height: 1.5;
+    font-size: 11pt;
+  }
+
+  /* ===== PAGE 1: HERO COVER ===== */
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 0;
+    page-break-after: always;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cover {
+    background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 30%, #0d1b2a 60%, #1b2838 100%);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 50mm 25mm;
+    position: relative;
+  }
+
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    right: -100px;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: -150px;
+    left: -150px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .cover-badge {
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    color: white;
+    padding: 6px 24px;
+    border-radius: 50px;
+    font-size: 10pt;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 30px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .cover-shield {
+    font-size: 72pt;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 2;
+    text-shadow: 0 0 60px rgba(59,130,246,0.5);
+  }
+
+  .cover h1 {
+    font-size: 36pt;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 2;
+    background: linear-gradient(135deg, #ffffff 0%, #93c5fd 50%, #c4b5fd 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .cover-sub {
+    font-size: 14pt;
+    color: rgba(255,255,255,0.7);
+    font-weight: 300;
+    margin-bottom: 40px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .cover-features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    max-width: 400px;
+    position: relative;
+    z-index: 2;
+    margin-bottom: 50px;
+  }
+
+  .cover-feat {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 9.5pt;
+    text-align: left;
+    backdrop-filter: blur(10px);
+  }
+
+  .cover-feat-icon {
+    font-size: 16pt;
+    margin-bottom: 4px;
+  }
+
+  .cover-feat-label {
+    color: rgba(255,255,255,0.9);
+    font-weight: 600;
+    font-size: 9pt;
+  }
+
+  .cover-bottom {
+    position: absolute;
+    bottom: 25mm;
+    left: 0;
+    right: 0;
+    text-align: center;
+    z-index: 2;
+  }
+
+  .cover-version {
+    font-size: 9pt;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 1px;
+  }
+
+  .cover-by {
+    font-size: 10pt;
+    color: rgba(255,255,255,0.5);
+    margin-top: 6px;
+  }
+
+  .cover-by strong {
+    color: #93c5fd;
+  }
+
+  /* ===== PAGE 2+: CONTENT ===== */
+  .content-page {
+    padding: 20mm 22mm;
+    position: relative;
+  }
+
+  .content-page::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+  }
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .page-header-logo {
+    font-size: 10pt;
+    font-weight: 700;
+    color: #3b82f6;
+  }
+
+  .page-header-section {
+    font-size: 8pt;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+
+  h2 {
+    font-size: 22pt;
+    font-weight: 800;
+    color: #1a1a2e;
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
+  }
+
+  h2 .accent {
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .section-subtitle {
+    font-size: 11pt;
+    color: #6b7280;
+    margin-bottom: 24px;
+  }
+
+  h3 {
+    font-size: 13pt;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-top: 20px;
+    margin-bottom: 8px;
+  }
+
+  p {
+    color: #374151;
+    margin-bottom: 10px;
+    font-size: 10.5pt;
+  }
+
+  /* Module Cards */
+  .module-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 16px 0;
+  }
+
+  .module-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 18px;
+    background: linear-gradient(135deg, #fafbff 0%, #f8fafc 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .module-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+  }
+
+  .module-card.brain::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+  .module-card.thermal::before { background: linear-gradient(90deg, #ef4444, #f97316); }
+  .module-card.memory::before { background: linear-gradient(90deg, #3b82f6, #06b6d4); }
+  .module-card.disk::before { background: linear-gradient(90deg, #10b981, #34d399); }
+  .module-card.network::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+  .module-card.process::before { background: linear-gradient(90deg, #ec4899, #f472b6); }
+  .module-card.audit::before { background: linear-gradient(90deg, #6366f1, #818cf8); }
+  .module-card.orchestrator::before { background: linear-gradient(90deg, #0ea5e9, #38bdf8); }
+
+  .module-icon {
+    font-size: 22pt;
+    margin-bottom: 6px;
+  }
+
+  .module-name {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 4px;
+  }
+
+  .module-desc {
+    font-size: 8.5pt;
+    color: #6b7280;
+    line-height: 1.45;
+  }
+
+  .module-tags {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .tag {
+    font-size: 7pt;
+    padding: 2px 8px;
+    border-radius: 50px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  .tag-purple { background: #ede9fe; color: #7c3aed; }
+  .tag-blue { background: #dbeafe; color: #2563eb; }
+  .tag-green { background: #d1fae5; color: #059669; }
+  .tag-red { background: #fee2e2; color: #dc2626; }
+  .tag-amber { background: #fef3c7; color: #d97706; }
+  .tag-pink { background: #fce7f3; color: #db2777; }
+
+  /* Stats Row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 12px;
+    margin: 20px 0;
+  }
+
+  .stat-box {
+    text-align: center;
+    padding: 16px 10px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f0f4ff 0%, #faf5ff 100%);
+    border: 1px solid #e5e7eb;
+  }
+
+  .stat-number {
+    font-size: 26pt;
+    font-weight: 800;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+  }
+
+  .stat-label {
+    font-size: 8pt;
+    color: #6b7280;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+  }
+
+  /* Code Block */
+  .code-block {
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: 12px;
+    padding: 18px 20px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 9pt;
+    line-height: 1.7;
+    margin: 14px 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .code-block::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+  }
+
+  .code-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 6px;
+  }
+
+  .code-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .code-dot-red { background: #ef4444; }
+  .code-dot-yellow { background: #fbbf24; }
+  .code-dot-green { background: #22c55e; }
+
+  .code-label {
+    font-size: 8pt;
+    color: #64748b;
+    margin-left: 8px;
+    font-family: -apple-system, sans-serif;
+  }
+
+  .code-line { display: block; }
+  .code-comment { color: #64748b; }
+  .code-cmd { color: #38bdf8; }
+  .code-string { color: #a78bfa; }
+  .code-flag { color: #fbbf24; }
+
+  /* Feature List */
+  .feature-list {
+    list-style: none;
+    padding: 0;
+  }
+
+  .feature-list li {
+    padding: 8px 0 8px 28px;
+    position: relative;
+    font-size: 10pt;
+    color: #374151;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .feature-list li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    top: 8px;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    color: white;
+    border-radius: 50%;
+    font-size: 8pt;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 20px;
+    padding-left: 1px;
+  }
+
+  /* Architecture Diagram */
+  .arch-box {
+    border: 2px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 24px;
+    margin: 16px 0;
+    background: #fafbff;
+  }
+
+  .arch-row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 8px 0;
+    flex-wrap: wrap;
+  }
+
+  .arch-node {
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 8.5pt;
+    font-weight: 700;
+    text-align: center;
+    min-width: 100px;
+    color: white;
+  }
+
+  .arch-brain { background: linear-gradient(135deg, #7c3aed, #a78bfa); }
+  .arch-orch { background: linear-gradient(135deg, #0ea5e9, #38bdf8); }
+  .arch-thermal { background: linear-gradient(135deg, #ef4444, #f97316); }
+  .arch-memory { background: linear-gradient(135deg, #3b82f6, #60a5fa); }
+  .arch-disk { background: linear-gradient(135deg, #10b981, #34d399); }
+  .arch-net { background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #1a1a2e; }
+  .arch-proc { background: linear-gradient(135deg, #ec4899, #f472b6); }
+  .arch-audit { background: linear-gradient(135deg, #6366f1, #818cf8); }
+
+  .arch-arrow {
+    text-align: center;
+    font-size: 16pt;
+    color: #9ca3af;
+    margin: 4px 0;
+  }
+
+  .arch-label {
+    text-align: center;
+    font-size: 8pt;
+    color: #9ca3af;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 8px 0 4px;
+  }
+
+  /* Prompt Box */
+  .prompt-box {
+    background: linear-gradient(135deg, #faf5ff 0%, #eff6ff 100%);
+    border: 2px solid #c4b5fd;
+    border-radius: 16px;
+    padding: 22px;
+    margin: 16px 0;
+  }
+
+  .prompt-label {
+    font-size: 8pt;
+    font-weight: 700;
+    color: #7c3aed;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+  }
+
+  .prompt-text {
+    font-size: 9pt;
+    color: #1a1a2e;
+    line-height: 1.7;
+    font-style: italic;
+  }
+
+  /* CTA Box */
+  .cta-box {
+    background: linear-gradient(135deg, #1a1a3e 0%, #0d1b2a 100%);
+    color: white;
+    border-radius: 16px;
+    padding: 30px;
+    text-align: center;
+    margin: 20px 0;
+  }
+
+  .cta-title {
+    font-size: 18pt;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+
+  .cta-sub {
+    font-size: 10pt;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 16px;
+  }
+
+  .cta-code {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 10px;
+    padding: 14px 20px;
+    font-family: 'SF Mono', monospace;
+    font-size: 8.5pt;
+    color: #93c5fd;
+    word-break: break-all;
+  }
+
+  /* Table */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 9pt;
+  }
+
+  .data-table th {
+    background: linear-gradient(135deg, #f0f4ff, #faf5ff);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 700;
+    color: #1a1a2e;
+    border-bottom: 2px solid #e5e7eb;
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .data-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f3f4f6;
+    color: #374151;
+  }
+
+  .data-table tr:last-child td { border-bottom: none; }
+
+  .severity-critical {
+    background: #fee2e2;
+    color: #dc2626;
+    padding: 2px 10px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 7.5pt;
+  }
+
+  .severity-medium {
+    background: #fef3c7;
+    color: #d97706;
+    padding: 2px 10px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 7.5pt;
+  }
+
+  .severity-low {
+    background: #d1fae5;
+    color: #059669;
+    padding: 2px 10px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 7.5pt;
+  }
+
+  /* Footer */
+  .page-footer {
+    position: absolute;
+    bottom: 15mm;
+    left: 22mm;
+    right: 22mm;
+    display: flex;
+    justify-content: space-between;
+    font-size: 7.5pt;
+    color: #9ca3af;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 8px;
+  }
+
+  /* Process Flow */
+  .flow-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 14px 0;
+    flex-wrap: wrap;
+  }
+
+  .flow-step {
+    background: linear-gradient(135deg, #f0f4ff, #faf5ff);
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 8.5pt;
+    font-weight: 600;
+    text-align: center;
+    min-width: 80px;
+  }
+
+  .flow-arrow {
+    color: #3b82f6;
+    font-size: 14pt;
+    font-weight: 700;
+  }
+
+  /* Comparison */
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+
+  .comp-col {
+    border-radius: 14px;
+    padding: 20px;
+  }
+
+  .comp-before {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+  }
+
+  .comp-after {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+  }
+
+  .comp-title {
+    font-size: 11pt;
+    font-weight: 800;
+    margin-bottom: 10px;
+  }
+
+  .comp-before .comp-title { color: #dc2626; }
+  .comp-after .comp-title { color: #16a34a; }
+
+  .comp-item {
+    font-size: 9pt;
+    padding: 4px 0;
+    color: #374151;
+  }
+
+  /* Timeline */
+  .timeline {
+    position: relative;
+    padding-left: 30px;
+    margin: 16px 0;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, #3b82f6, #8b5cf6, #ec4899);
+  }
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 16px;
+  }
+
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -24px;
+    top: 4px;
+    width: 10px;
+    height: 10px;
+    background: #3b82f6;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 0 2px #3b82f6;
+  }
+
+  .timeline-time {
+    font-size: 8pt;
+    font-weight: 700;
+    color: #3b82f6;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .timeline-text {
+    font-size: 9.5pt;
+    color: #374151;
+    margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ========== PAGE 1: COVER ========== -->
+<div class="page cover">
+  <div class="cover-badge">AI-POWERED PERFORMANCE SYSTEM</div>
+  <div class="cover-shield">&#x1F6E1;</div>
+  <h1>MAC GUARDIAN AI</h1>
+  <div class="cover-sub">Dein Mac. Immer schnell. Immer stabil. Immer geschuetzt.</div>
+
+  <div class="cover-features">
+    <div class="cover-feat">
+      <div class="cover-feat-icon">&#x1F9E0;</div>
+      <div class="cover-feat-label">KI-Entscheidungen<br>mit Lernfaehigkeit</div>
+    </div>
+    <div class="cover-feat">
+      <div class="cover-feat-icon">&#x1F321;</div>
+      <div class="cover-feat-label">Ueberhitzungs-<br>schutz</div>
+    </div>
+    <div class="cover-feat">
+      <div class="cover-feat-icon">&#x26A1;</div>
+      <div class="cover-feat-label">Automatische<br>Speicherfreigabe</div>
+    </div>
+    <div class="cover-feat">
+      <div class="cover-feat-icon">&#x1F310;</div>
+      <div class="cover-feat-label">Netzwerk-<br>Optimierung</div>
+    </div>
+  </div>
+
+  <div class="cover-bottom">
+    <div class="cover-version">VERSION 2.0 &nbsp;|&nbsp; 4.654 LINES OF CODE &nbsp;|&nbsp; 8 MODULES &nbsp;|&nbsp; ZERO DEPENDENCIES</div>
+    <div class="cover-by">Created by <strong>@Maurice_AIEMPIRE</strong> &nbsp;&middot;&nbsp; Built with Claude Code</div>
+  </div>
+</div>
+
+<!-- ========== PAGE 2: THE PROBLEM ========== -->
+<div class="page content-page">
+  <div class="page-header">
+    <div class="page-header-logo">&#x1F6E1; Mac Guardian AI</div>
+    <div class="page-header-section">Das Problem</div>
+  </div>
+
+  <h2>Warum dein Mac <span class="accent">einfriert</span></h2>
+  <p class="section-subtitle">Die 6 haeufigsten Performance-Killer auf jedem Mac &mdash; und wie Guardian sie eliminiert.</p>
+
+  <div class="comparison">
+    <div class="comp-col comp-before">
+      <div class="comp-title">&#x274C; Ohne Guardian</div>
+      <div class="comp-item">&#x2022; Mac friert ploetzlich ein</div>
+      <div class="comp-item">&#x2022; Luefter dreht auf Maximum</div>
+      <div class="comp-item">&#x2022; Apps reagieren nicht mehr</div>
+      <div class="comp-item">&#x2022; RAM voll, System laggt</div>
+      <div class="comp-item">&#x2022; Festplatte voll, kein Platz</div>
+      <div class="comp-item">&#x2022; Internet langsam trotz guter Leitung</div>
+      <div class="comp-item">&#x2022; Neustart als einzige Loesung</div>
+      <div class="comp-item">&#x2022; Probleme kommen ploetzlich</div>
+    </div>
+    <div class="comp-col comp-after">
+      <div class="comp-title">&#x2705; Mit Guardian</div>
+      <div class="comp-item">&#x2022; KI erkennt Probleme BEVOR sie auftreten</div>
+      <div class="comp-item">&#x2022; Temperatur wird praeventiv gesenkt</div>
+      <div class="comp-item">&#x2022; Haengende Apps werden auto-beendet</div>
+      <div class="comp-item">&#x2022; 4-Stufen Memory Management</div>
+      <div class="comp-item">&#x2022; Auto-Cleanup bei 85% Belegung</div>
+      <div class="comp-item">&#x2022; Schnellster DNS wird auto-gewaehlt</div>
+      <div class="comp-item">&#x2022; Selbstheilung ohne Neustart</div>
+      <div class="comp-item">&#x2022; Vorhersage per linearer Regression</div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-number">50+</div>
+      <div class="stat-label">System-Checks</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number">8</div>
+      <div class="stat-label">AI Module</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number">10s</div>
+      <div class="stat-label">Check-Intervall</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number">0</div>
+      <div class="stat-label">Dependencies</div>
+    </div>
+  </div>
+
+  <h3>Wie es funktioniert</h3>
+  <div class="flow-box">
+    <div class="flow-step">&#x1F4CA; Metriken<br>sammeln</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">&#x1F9E0; KI<br>analysiert</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">&#x26A1; Aktion<br>ausfuehren</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">&#x1F504; Ergebnis<br>bewerten</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">&#x1F4D6; Daraus<br>lernen</div>
+  </div>
+
+  <div class="page-footer">
+    <span>Mac Guardian AI v2.0</span>
+    <span>@Maurice_AIEMPIRE</span>
+    <span>Seite 2</span>
+  </div>
+</div>
+
+<!-- ========== PAGE 3: MODULE OVERVIEW ========== -->
+<div class="page content-page">
+  <div class="page-header">
+    <div class="page-header-logo">&#x1F6E1; Mac Guardian AI</div>
+    <div class="page-header-section">Module</div>
+  </div>
+
+  <h2>8 Module. <span class="accent">Ein System.</span></h2>
+  <p class="section-subtitle">Jedes Modul ist ein Spezialist. Zusammen sind sie unschlagbar.</p>
+
+  <div class="module-grid">
+    <div class="module-card brain">
+      <div class="module-icon">&#x1F9E0;</div>
+      <div class="module-name">AI Brain</div>
+      <div class="module-desc">Intelligente Entscheidungs-Engine. Lernt aus vergangenen Aktionen, erkennt Anomalien per Z-Score, sagt Probleme per linearer Regression vorher.</div>
+      <div class="module-tags">
+        <span class="tag tag-purple">Pattern Learning</span>
+        <span class="tag tag-purple">Vorhersage</span>
+        <span class="tag tag-purple">Anomalie-Erkennung</span>
+      </div>
+    </div>
+
+    <div class="module-card thermal">
+      <div class="module-icon">&#x1F321;</div>
+      <div class="module-name">Thermal Guardian</div>
+      <div class="module-desc">Verhindert Ueberhitzung bevor macOS drosselt. 3 Stufen CPU-Reduktion mit automatischer Wiederherstellung.</div>
+      <div class="module-tags">
+        <span class="tag tag-red">3 Kuehlstufen</span>
+        <span class="tag tag-red">Auto-Resume</span>
+      </div>
+    </div>
+
+    <div class="module-card memory">
+      <div class="module-icon">&#x1F4BE;</div>
+      <div class="module-name">Memory Guardian</div>
+      <div class="module-desc">Erkennt Speicherlecks durch Trend-Analyse. 4-stufige Speicherfreigabe von sanft bis Notfall-Kill.</div>
+      <div class="module-tags">
+        <span class="tag tag-blue">Leak Detection</span>
+        <span class="tag tag-blue">4 Stufen</span>
+        <span class="tag tag-blue">Auto-Free</span>
+      </div>
+    </div>
+
+    <div class="module-card disk">
+      <div class="module-icon">&#x1F4BF;</div>
+      <div class="module-name">Disk Guardian</div>
+      <div class="module-desc">Automatische Bereinigung von Caches, Logs und Temp-Dateien. SSD-Gesundheitsueberwachung via SMART.</div>
+      <div class="module-tags">
+        <span class="tag tag-green">Auto-Cleanup</span>
+        <span class="tag tag-green">SMART Check</span>
+      </div>
+    </div>
+
+    <div class="module-card network">
+      <div class="module-icon">&#x1F310;</div>
+      <div class="module-name">Network Optimizer</div>
+      <div class="module-desc">Testet DNS-Server automatisch und waehlt den schnellsten. Wi-Fi Monitoring, TCP-Tuning, Latenz-Check.</div>
+      <div class="module-tags">
+        <span class="tag tag-amber">Auto-DNS</span>
+        <span class="tag tag-amber">TCP Tuning</span>
+        <span class="tag tag-amber">Wi-Fi Monitor</span>
+      </div>
+    </div>
+
+    <div class="module-card process">
+      <div class="module-icon">&#x2699;</div>
+      <div class="module-name">Process Manager</div>
+      <div class="module-desc">Gibt der aktiven App CPU-Prioritaet. Erkennt haengende Apps, Runaway-Prozesse und Zombies automatisch.</div>
+      <div class="module-tags">
+        <span class="tag tag-pink">Prioritaeten</span>
+        <span class="tag tag-pink">Hung Detection</span>
+        <span class="tag tag-pink">Auto-Kill</span>
+      </div>
+    </div>
+
+    <div class="module-card audit">
+      <div class="module-icon">&#x1F50D;</div>
+      <div class="module-name">Audit Engine</div>
+      <div class="module-desc">50+ System-Checks in 12 Kategorien. Erstellt detaillierten Bericht mit Severity-Bewertung und Fix-Empfehlungen.</div>
+      <div class="module-tags">
+        <span class="tag tag-purple">50+ Checks</span>
+        <span class="tag tag-blue">12 Kategorien</span>
+      </div>
+    </div>
+
+    <div class="module-card orchestrator">
+      <div class="module-icon">&#x1F3AF;</div>
+      <div class="module-name">Orchestrator</div>
+      <div class="module-desc">Master-Controller. Koordiniert alle Module, nutzt AI Brain fuer Entscheidungen, erstellt Tagesberichte.</div>
+      <div class="module-tags">
+        <span class="tag tag-blue">Koordination</span>
+        <span class="tag tag-green">Tagesberichte</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Mac Guardian AI v2.0</span>
+    <span>@Maurice_AIEMPIRE</span>
+    <span>Seite 3</span>
+  </div>
+</div>
+
+<!-- ========== PAGE 4: AI BRAIN DEEP DIVE ========== -->
+<div class="page content-page">
+  <div class="page-header">
+    <div class="page-header-logo">&#x1F6E1; Mac Guardian AI</div>
+    <div class="page-header-section">AI Engine</div>
+  </div>
+
+  <h2>Das <span class="accent">KI-Gehirn</span> im Detail</h2>
+  <p class="section-subtitle">Vier KI-Algorithmen arbeiten zusammen fuer autonome Entscheidungen.</p>
+
+  <h3>&#x1F4C8; 1. Adaptive Schwellwerte</h3>
+  <p>Statt fester Grenzwerte berechnet das System dynamische Schwellwerte basierend auf deinem individuellen Nutzungsmuster: <strong>Mean + 1.5 &times; Standardabweichung</strong> der letzten Stunde. Was bei dir normal ist, loest keinen Alarm aus.</p>
+
+  <h3>&#x1F52E; 2. Vorhersage-Engine</h3>
+  <p>Lineare Regression ueber die letzten 30 Datenpunkte (5 Minuten). Berechnet ob ein kritischer Schwellwert in den naechsten 5&ndash;10 Minuten ueberschritten wird &mdash; und greift PRAEVENTIV ein.</p>
+
+  <h3>&#x1F6A8; 3. Anomalie-Erkennung</h3>
+  <p>Z-Score-basiert: Jeder aktuelle Wert wird gegen die statistische Verteilung der letzten Stunde verglichen. Ein Z-Score &gt; 2.5 bedeutet: dieser Wert ist statistisch hochgradig ungewoehnlich.</p>
+
+  <h3>&#x1F517; 4. Korrelations-Analyse</h3>
+  <p>Erkennt zusammenhaengende Probleme und findet die Ursache:</p>
+
+  <table class="data-table">
+    <tr>
+      <th>CPU hoch</th>
+      <th>RAM hoch</th>
+      <th>Temp hoch</th>
+      <th>Diagnose</th>
+      <th>Aktion</th>
+    </tr>
+    <tr>
+      <td>&#x2705;</td>
+      <td>&#x2705;</td>
+      <td>&mdash;</td>
+      <td><strong>App Overload</strong></td>
+      <td>App identifizieren &amp; beenden</td>
+    </tr>
+    <tr>
+      <td>&#x2705;</td>
+      <td>&mdash;</td>
+      <td>&#x2705;</td>
+      <td><strong>Thermal Throttle</strong></td>
+      <td>CPU-Last reduzieren</td>
+    </tr>
+    <tr>
+      <td>&mdash;</td>
+      <td>&#x2705;</td>
+      <td>&mdash;</td>
+      <td><strong>Memory Pressure</strong></td>
+      <td>Speicher freigeben</td>
+    </tr>
+    <tr>
+      <td>&#x2705;</td>
+      <td>&#x2705;</td>
+      <td>&#x2705;</td>
+      <td><span class="severity-critical">NOTFALL</span></td>
+      <td>Emergency-Kill + Kuehlung</td>
+    </tr>
+  </table>
+
+  <h3>&#x1F504; 5. Feedback-Loop &amp; Lernen</h3>
+  <p>Nach jeder Aktion wartet das System 30 Sekunden und misst dann, ob die Metriken sich verbessert haben. Erfolgreiche Aktionen werden hoeher gewichtet, wirkungslose werden beim naechsten Mal uebersprungen. <strong>Das System wird mit der Zeit besser.</strong></p>
+
+  <div class="arch-box">
+    <div class="arch-label">System-Architektur</div>
+    <div class="arch-row">
+      <div class="arch-node arch-brain">&#x1F9E0; AI Brain</div>
+    </div>
+    <div class="arch-arrow">&darr; Entscheidung</div>
+    <div class="arch-row">
+      <div class="arch-node arch-orch">&#x1F3AF; Orchestrator</div>
+    </div>
+    <div class="arch-arrow">&darr; Koordination</div>
+    <div class="arch-row">
+      <div class="arch-node arch-thermal">&#x1F321; Thermal</div>
+      <div class="arch-node arch-memory">&#x1F4BE; Memory</div>
+      <div class="arch-node arch-disk">&#x1F4BF; Disk</div>
+    </div>
+    <div class="arch-row" style="margin-top:6px;">
+      <div class="arch-node arch-net">&#x1F310; Network</div>
+      <div class="arch-node arch-proc">&#x2699; Process</div>
+      <div class="arch-node arch-audit">&#x1F50D; Audit</div>
+    </div>
+    <div class="arch-arrow">&darr; Metriken</div>
+    <div class="arch-row">
+      <div class="arch-node" style="background:linear-gradient(135deg,#1a1a3e,#0d1b2a);min-width:250px;">&#x1F4CA; Datenbank &middot; Trends &middot; History</div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Mac Guardian AI v2.0</span>
+    <span>@Maurice_AIEMPIRE</span>
+    <span>Seite 4</span>
+  </div>
+</div>
+
+<!-- ========== PAGE 5: ESKALATIONS-STUFEN ========== -->
+<div class="page content-page">
+  <div class="page-header">
+    <div class="page-header-logo">&#x1F6E1; Mac Guardian AI</div>
+    <div class="page-header-section">Eskalation</div>
+  </div>
+
+  <h2>Intelligente <span class="accent">Eskalation</span></h2>
+  <p class="section-subtitle">Guardian reagiert proportional zum Problem. Nie zu viel. Nie zu wenig.</p>
+
+  <h3>Memory Guardian &mdash; 4 Stufen</h3>
+  <table class="data-table">
+    <tr>
+      <th>Stufe</th>
+      <th>Trigger</th>
+      <th>Aktion</th>
+      <th>Risiko</th>
+    </tr>
+    <tr>
+      <td><strong>Soft</strong></td>
+      <td>RAM &gt; 80%</td>
+      <td>System-Cache leeren, Browser-Cache</td>
+      <td><span class="severity-low">Kein Risiko</span></td>
+    </tr>
+    <tr>
+      <td><strong>Medium</strong></td>
+      <td>RAM &gt; 85%</td>
+      <td>+ Erweiterte Caches + Memory Pressure Warning an Apps</td>
+      <td><span class="severity-low">Kein Risiko</span></td>
+    </tr>
+    <tr>
+      <td><strong>Aggressiv</strong></td>
+      <td>RAM &gt; 90%</td>
+      <td>+ Low-Priority Apps beenden (Slack, Spotify...)</td>
+      <td><span class="severity-medium">Apps neu oeffnen</span></td>
+    </tr>
+    <tr>
+      <td><strong>Notfall</strong></td>
+      <td>RAM &gt; 95%</td>
+      <td>+ Top 3 RAM-Verbraucher beenden</td>
+      <td><span class="severity-critical">Datenverlust moeglich</span></td>
+    </tr>
+  </table>
+
+  <h3>Thermal Guardian &mdash; 3 Stufen</h3>
+  <table class="data-table">
+    <tr>
+      <th>Stufe</th>
+      <th>Trigger</th>
+      <th>Aktion</th>
+    </tr>
+    <tr>
+      <td><strong>Light</strong></td>
+      <td>&gt; 80&deg;C + steigend</td>
+      <td>Spotlight pausieren, Time Machine drosseln</td>
+    </tr>
+    <tr>
+      <td><strong>Medium</strong></td>
+      <td>&gt; 90&deg;C</td>
+      <td>+ CPU-intensive Hintergrundprozesse drosseln (renice)</td>
+    </tr>
+    <tr>
+      <td><strong>Heavy</strong></td>
+      <td>&gt; 95&deg;C</td>
+      <td>+ Prozesse temporaer pausieren (SIGSTOP) mit Auto-Resume nach 30s</td>
+    </tr>
+  </table>
+
+  <h3>Process Manager &mdash; Schutz-Hierarchie</h3>
+  <table class="data-table">
+    <tr>
+      <th>Prioritaet</th>
+      <th>Apps</th>
+      <th>Behandlung</th>
+    </tr>
+    <tr>
+      <td><strong>0 &mdash; Gesperrt</strong></td>
+      <td>WindowServer, kernel_task, Finder, Dock</td>
+      <td>Werden NIEMALS angefasst</td>
+    </tr>
+    <tr>
+      <td><strong>1 &mdash; Kritisch</strong></td>
+      <td>Terminal, Xcode, aktiver Browser</td>
+      <td>Hoechste CPU-Prioritaet</td>
+    </tr>
+    <tr>
+      <td><strong>2-3 &mdash; Normal</strong></td>
+      <td>Mail, Messages, Dev-Tools</td>
+      <td>Standard-Prioritaet</td>
+    </tr>
+    <tr>
+      <td><strong>4-5 &mdash; Niedrig</strong></td>
+      <td>Slack, Spotify, Docker, Steam</td>
+      <td>Werden zuerst gedrosselt/beendet</td>
+    </tr>
+  </table>
+
+  <h3>Globale Sicherheitsregeln</h3>
+  <ul class="feature-list">
+    <li>Max. 5 automatische App-Beendigungen pro Stunde (Schutz vor Endlos-Kill)</li>
+    <li>Geschuetzte Apps werden NIEMALS beendet (konfigurierbar)</li>
+    <li>Vordergrund-App bekommt immer Prioritaet (wird erkannt via AppleScript)</li>
+    <li>Nach jeder Aktion: 30s Evaluation ob sie gewirkt hat</li>
+    <li>Alle Aktionen werden geloggt mit Zeitstempel und Ergebnis</li>
+  </ul>
+
+  <div class="page-footer">
+    <span>Mac Guardian AI v2.0</span>
+    <span>@Maurice_AIEMPIRE</span>
+    <span>Seite 5</span>
+  </div>
+</div>
+
+<!-- ========== PAGE 6: INSTALLATION + PROMPT ========== -->
+<div class="page content-page">
+  <div class="page-header">
+    <div class="page-header-logo">&#x1F6E1; Mac Guardian AI</div>
+    <div class="page-header-section">Installation &amp; Prompt</div>
+  </div>
+
+  <h2>In <span class="accent">60 Sekunden</span> installiert</h2>
+  <p class="section-subtitle">Ein Befehl. Keine Dependencies. Keine Konfiguration noetig.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <div class="code-dot code-dot-red"></div>
+      <div class="code-dot code-dot-yellow"></div>
+      <div class="code-dot code-dot-green"></div>
+      <div class="code-label">Terminal</div>
+    </div>
+    <span class="code-line"><span class="code-comment"># One-Liner Installation</span></span>
+    <span class="code-line"><span class="code-cmd">bash</span> <span class="code-flag">&lt;(</span><span class="code-cmd">curl</span> <span class="code-flag">-sL</span> <span class="code-string">https://raw.githubusercontent.com/Maurice-AIEMPIRE/</span></span>
+    <span class="code-line"><span class="code-string">core/claude/fix-pc-performance-epsd4/scripts/</span></span>
+    <span class="code-line"><span class="code-string">mac-performance/mac-guardian-quickstart.sh</span><span class="code-flag">)</span></span>
+    <span class="code-line">&nbsp;</span>
+    <span class="code-line"><span class="code-comment"># Danach verfuegbar:</span></span>
+    <span class="code-line"><span class="code-cmd">guardian</span> status &nbsp;&nbsp;&nbsp;<span class="code-comment"># Status pruefen</span></span>
+    <span class="code-line"><span class="code-cmd">guardian</span> audit &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-comment"># System-Audit</span></span>
+    <span class="code-line"><span class="code-cmd">guardian</span> log &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-comment"># Live-Log</span></span>
+    <span class="code-line"><span class="code-cmd">guardian</span> config &nbsp;&nbsp;&nbsp;<span class="code-comment"># Einstellungen</span></span>
+    <span class="code-line"><span class="code-cmd">guardian</span> uninstall <span class="code-comment"># Deinstallieren</span></span>
+  </div>
+
+  <h3 style="margin-top: 24px;">Der Prompt &mdash; Selbst bauen mit jeder KI</h3>
+  <p>Kopiere diesen Prompt in <strong>Claude Code</strong>, <strong>ChatGPT</strong>, <strong>Cursor</strong> oder jede andere Coding-KI:</p>
+
+  <div class="prompt-box">
+    <div class="prompt-label">&#x1F4CB; Claude Code Prompt &mdash; Copy &amp; Paste</div>
+    <div class="prompt-text">
+      &ldquo;Baue ein macOS Performance-Daemon in Bash mit 8 Modulen: (1) AI Brain mit adaptiven Schwellwerten (Mean+1.5*StdDev), Vorhersage per linearer Regression, Z-Score Anomalie-Erkennung und Pattern Learning. (2) Thermal Guardian mit 3-Stufen CPU-Schutz. (3) Memory Guardian mit Leak-Detection und 4-Stufen Freigabe. (4) Disk Guardian mit Auto-Cleanup und SMART-Check. (5) Network Optimizer mit Auto-DNS und TCP-Tuning. (6) Process Manager mit Prioritaeten und Hung-Detection. (7) Audit Engine mit 50+ Checks. (8) Orchestrator der alles koordiniert. Plus LaunchAgent Autostart und CLI-Tool. Nur Bash, keine Dependencies.&rdquo;
+    </div>
+  </div>
+
+  <div class="cta-box">
+    <div class="cta-title">&#x1F6E1; Jetzt installieren</div>
+    <div class="cta-sub">Dein Mac wird sich bei dir bedanken.</div>
+    <div class="cta-code">bash &lt;(curl -sL https://raw.githubusercontent.com/Maurice-AIEMPIRE/core/claude/fix-pc-performance-epsd4/scripts/mac-performance/mac-guardian-quickstart.sh)</div>
+  </div>
+
+  <div style="text-align:center; margin-top:20px;">
+    <p style="font-size:10pt; color:#6b7280;"><strong>Open Source</strong> &middot; MIT License &middot; github.com/Maurice-AIEMPIRE/core</p>
+    <p style="font-size:10pt; color:#6b7280;">Gebaut mit &#x2764; von <strong>@Maurice_AIEMPIRE</strong> &amp; Claude Code</p>
+    <p style="font-size:9pt; color:#9ca3af; margin-top:10px;">4.654 Zeilen Code &middot; 8 Module &middot; 50+ Checks &middot; 0 Dependencies &middot; 10s Check-Intervall</p>
+  </div>
+
+  <div class="page-footer">
+    <span>Mac Guardian AI v2.0</span>
+    <span>@Maurice_AIEMPIRE</span>
+    <span>Seite 6</span>
+  </div>
+</div>
+
+</body>
+</html>
