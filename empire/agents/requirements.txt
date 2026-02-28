@@ -1,4 +1,4 @@
-anthropic==0.42.0
+ollama==0.4.7
 redis[hiredis]==5.2.1
 chromadb==0.5.23
 pydantic==2.10.4

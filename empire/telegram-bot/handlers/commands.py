@@ -117,6 +117,20 @@ def register_command_handlers(dp: Dispatcher):
         except Exception:
             checks.append("🔴 Redis: FEHLER")
 
+        # Check Ollama LLM
+        try:
+            import aiohttp
+            async with aiohttp.ClientSession() as session:
+                async with session.get("http://ollama:11434/api/tags", timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        models = [m["name"] for m in data.get("models", [])]
+                        checks.append(f"🟢 Ollama LLM: OK ({', '.join(models[:3]) or 'kein Modell'})")
+                    else:
+                        checks.append("🟡 Ollama LLM: Läuft, aber Status unklar")
+        except Exception:
+            checks.append("🔴 Ollama LLM: NICHT ERREICHBAR")
+
         # Check results dir
         if os.path.isdir(RESULTS_DIR):
             file_count = sum(len(files) for _, _, files in os.walk(RESULTS_DIR))

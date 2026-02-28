@@ -3,6 +3,8 @@ Base Agent class for all AI Empire agents.
 
 Every agent follows the loop:
   Observe → Entrepreneurial Think → Propose → Execute or Reject → Report
+
+LLM Backend: Ollama (free, local) by default. Anthropic API optional upgrade.
 """
 
 import asyncio
@@ -13,8 +15,8 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional
 
-import anthropic
 import redis.asyncio as redis
+from ollama import AsyncClient as OllamaClient
 
 
 class BaseAgent(ABC):
@@ -33,16 +35,27 @@ class BaseAgent(ABC):
         self.logger = logging.getLogger(f"agent.{name}")
         self.redis_url = redis_url
         self.redis: Optional[redis.Redis] = None
-        self.claude: Optional[anthropic.AsyncAnthropic] = None
+        self._ollama: Optional[OllamaClient] = None
+        self._anthropic = None
         self._running = False
 
     async def setup(self):
         """Initialize connections."""
         self.redis = redis.from_url(self.redis_url, decode_responses=True)
 
+        # Primary: Ollama (free, local)
+        ollama_host = os.environ.get("OLLAMA_HOST", "http://ollama:11434")
+        self._ollama = OllamaClient(host=ollama_host)
+
+        # Optional: Anthropic (if API key provided)
         api_key = os.environ.get("ANTHROPIC_API_KEY")
         if api_key:
-            self.claude = anthropic.AsyncAnthropic(api_key=api_key)
+            try:
+                import anthropic
+                self._anthropic = anthropic.AsyncAnthropic(api_key=api_key)
+                self.logger.info("Anthropic API available as upgrade backend")
+            except ImportError:
+                pass
 
         # Register in Redis
         await self.redis.hset("empire:agents:status", self.name, "running")
@@ -51,9 +64,11 @@ class BaseAgent(ABC):
             "kpis": json.dumps(self.kpis),
             "started_at": datetime.now().isoformat(),
             "last_action": "initialized",
+            "llm_backend": "anthropic" if self._anthropic else "ollama",
         })
 
-        self.logger.info(f"Agent '{self.name}' initialized. Mission: {self.mission}")
+        backend = "Anthropic + Ollama" if self._anthropic else "Ollama (free)"
+        self.logger.info(f"Agent '{self.name}' initialized. LLM: {backend}")
 
     async def teardown(self):
         """Cleanup connections."""
@@ -62,22 +77,42 @@ class BaseAgent(ABC):
             await self.redis.aclose()
 
     async def think(self, context: str) -> str:
-        """Use Claude to think about a problem/opportunity."""
-        if not self.claude:
-            return "No Claude API key configured. Cannot think autonomously."
-
-        response = await self.claude.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=2048,
-            system=f"""Du bist der {self.name}-Agent im AI Empire.
-Deine Mission: {self.mission}
-Deine KPIs: {', '.join(self.kpis)}
-
-Du denkst unternehmerisch, bist proaktiv und findest Chancen.
-Antworte immer in strukturierter Form: Analyse, Vorschlag, nächste Schritte.""",
-            messages=[{"role": "user", "content": context}],
+        """Think about a problem using the best available LLM."""
+        system_prompt = (
+            f"Du bist der {self.name}-Agent im AI Empire.\n"
+            f"Deine Mission: {self.mission}\n"
+            f"Deine KPIs: {', '.join(self.kpis)}\n\n"
+            "Du denkst unternehmerisch, bist proaktiv und findest Chancen.\n"
+            "Antworte immer in strukturierter Form: Analyse, Vorschlag, nächste Schritte."
         )
-        return response.content[0].text
+
+        # Try Anthropic first if available
+        if self._anthropic:
+            try:
+                response = await self._anthropic.messages.create(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=2048,
+                    system=system_prompt,
+                    messages=[{"role": "user", "content": context}],
+                )
+                return response.content[0].text
+            except Exception as e:
+                self.logger.warning(f"Anthropic failed, falling back to Ollama: {e}")
+
+        # Ollama (free, always available)
+        try:
+            model = os.environ.get("OLLAMA_MODEL", "llama3.1:8b")
+            response = await self._ollama.chat(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": context},
+                ],
+            )
+            return response["message"]["content"]
+        except Exception as e:
+            self.logger.error(f"Ollama error: {e}")
+            return f"[LLM nicht erreichbar: {e}]"
 
     async def report(self, message: str, priority: str = "normal"):
         """Send a report via Redis (Telegram bot picks it up)."""

@@ -62,13 +62,17 @@ else
     log "rclone bereits installiert."
 fi
 
-# ---- Step 5: Create Empire directories ----
+# ---- Step 5: Install curl (needed for Ollama health checks) ----
+log "curl installieren..."
+apt-get install -y curl
+
+# ---- Step 6: Create Empire directories ----
 log "Empire-Verzeichnisse erstellen..."
 mkdir -p /empire/{results,tasks,shared-kb,logs}
 mkdir -p /empire/results/{ideas,research,engineering,marketing,x-analyses,queue,standups}
 chmod -R 755 /empire
 
-# ---- Step 6: Setup .env file ----
+# ---- Step 7: Setup .env file ----
 EMPIRE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 log "Empire-Verzeichnis: $EMPIRE_DIR"
 
@@ -77,10 +81,14 @@ if [ ! -f "$EMPIRE_DIR/.env" ]; then
     warn ".env Datei erstellt. Bitte Werte ausfüllen:"
     warn "  nano $EMPIRE_DIR/.env"
     echo ""
-    echo "Benötigte Werte:"
-    echo "  - TELEGRAM_BOT_TOKEN (von @BotFather)"
-    echo "  - TELEGRAM_ADMIN_CHAT_ID (deine Chat-ID)"
-    echo "  - ANTHROPIC_API_KEY (von console.anthropic.com)"
+    echo "Benötigte Werte (ALLES KOSTENLOS):"
+    echo "  - TELEGRAM_BOT_TOKEN (gratis von @BotFather in Telegram)"
+    echo "  - TELEGRAM_ADMIN_CHAT_ID (deine Chat-ID von @userinfobot)"
+    echo ""
+    echo "OPTIONAL (für bessere KI-Qualität):"
+    echo "  - ANTHROPIC_API_KEY (kostenpflichtig, console.anthropic.com)"
+    echo ""
+    echo "LLM läuft KOSTENLOS via Ollama (llama3.1:8b) - kein API Key nötig!"
     echo ""
     read -p "Möchtest du die .env jetzt bearbeiten? [Y/n] " edit_env
     if [[ "$edit_env" != "n" ]]; then
@@ -90,13 +98,20 @@ else
     log ".env existiert bereits."
 fi
 
-# ---- Step 7: Build & Start ----
+# ---- Step 8: Build & Start ----
 log "Docker Container bauen und starten..."
+log "HINWEIS: Ollama wird beim ersten Start das LLM-Modell herunterladen (~4.7GB für llama3.1:8b)"
+log "Das kann einige Minuten dauern. Danach startet alles automatisch."
 cd "$EMPIRE_DIR"
 docker compose build
 docker compose up -d
 
-# ---- Step 8: Create systemd service for auto-start ----
+# Wait for Ollama model to be pulled
+log "Warte auf Ollama Model Download..."
+sleep 10
+docker compose logs ollama-init --tail 5 2>/dev/null || true
+
+# ---- Step 9: Create systemd service for auto-start ----
 log "Systemd Service erstellen..."
 cat > /etc/systemd/system/ai-empire.service << SVCEOF
 [Unit]
@@ -120,7 +135,7 @@ systemctl daemon-reload
 systemctl enable ai-empire.service
 log "Systemd Service aktiviert (startet bei Reboot automatisch)."
 
-# ---- Step 9: Verify ----
+# ---- Step 10: Verify ----
 echo ""
 echo "================================================"
 echo "  Installation abgeschlossen!"

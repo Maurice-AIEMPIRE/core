@@ -24,6 +24,45 @@ services:
       - ANONYMIZED_TELEMETRY=false
 
   # ============================================
+  # OLLAMA (Free Local LLM - das Gehirn)
+  # ============================================
+  ollama:
+    image: ollama/ollama:latest
+    restart: always
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:11434/api/tags || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    # GPU support: uncomment if NVIDIA GPU available
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  # Pull the default model on startup (runs once)
+  ollama-init:
+    image: curlimages/curl:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        echo "Pulling LLM model: ${OLLAMA_MODEL:-llama3.1:8b}..."
+        curl -s http://ollama:11434/api/pull -d "{\"name\": \"${OLLAMA_MODEL:-llama3.1:8b}\"}"
+        echo ""
+        echo "Model ready!"
+
+  # ============================================
   # TELEGRAM CONTROL BOT (Hauptschnittstelle)
   # ============================================
   telegram-bot:
@@ -32,11 +71,14 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      ollama:
+        condition: service_healthy
     env_file: .env
     environment:
       - REDIS_URL=redis://redis:6379/0
       - CHROMADB_HOST=chromadb
       - CHROMADB_PORT=8000
+      - OLLAMA_HOST=http://ollama:11434
     volumes:
       - empire-data:/empire
       - ./shared-kb:/app/shared-kb
@@ -51,12 +93,15 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      ollama:
+        condition: service_healthy
     env_file: .env
     environment:
       - REDIS_URL=redis://redis:6379/0
       - CHROMADB_HOST=chromadb
       - CHROMADB_PORT=8000
       - AGENT_ROLE=orchestrator
+      - OLLAMA_HOST=http://ollama:11434
     volumes:
       - empire-data:/empire
       - ./shared-kb:/app/shared-kb
@@ -71,11 +116,14 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      ollama:
+        condition: service_healthy
     env_file: .env
     environment:
       - REDIS_URL=redis://redis:6379/0
       - CHROMADB_HOST=chromadb
       - CHROMADB_PORT=8000
+      - OLLAMA_HOST=http://ollama:11434
     volumes:
       - empire-data:/empire
       - ./shared-kb:/app/shared-kb
@@ -159,6 +207,7 @@ services:
 volumes:
   redis-data:
   chroma-data:
+  ollama-data:
   empire-data:
     driver: local
     driver_opts:

@@ -30,7 +30,8 @@ logger = logging.getLogger("x-analyzer")
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://redis:6379/0")
 RESULTS_DIR = "/empire/results/x-analyses"
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://ollama:11434")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.1:8b")
 
 
 async def analyze_post(redis_client: redis.Redis, job: dict) -> dict:

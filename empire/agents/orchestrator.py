@@ -189,10 +189,7 @@ Verfügbare Abteilungen:
 
 Wähle die beste Abteilung und begründe kurz."""
 
-        if self.claude:
-            decision = await self.think(context)
-        else:
-            decision = "Engineering"  # Default
+        decision = await self.think(context)
 
         task["assigned_to"] = decision.split("\n")[0] if decision else "Engineering"
 
