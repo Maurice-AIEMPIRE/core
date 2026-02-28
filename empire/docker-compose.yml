@@ -1,0 +1,174 @@
+version: "3.9"
+
+services:
+  # ============================================
+  # CORE INFRASTRUCTURE
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    restart: always
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  chromadb:
+    image: chromadb/chroma:latest
+    restart: always
+    volumes:
+      - chroma-data:/chroma/chroma
+    environment:
+      - ANONYMIZED_TELEMETRY=false
+
+  # ============================================
+  # TELEGRAM CONTROL BOT (Hauptschnittstelle)
+  # ============================================
+  telegram-bot:
+    build: ./telegram-bot
+    restart: always
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+    volumes:
+      - empire-data:/empire
+      - ./shared-kb:/app/shared-kb
+      - ./tasks:/app/tasks
+
+  # ============================================
+  # AGENT ORCHESTRATOR (CEO Agent)
+  # ============================================
+  agent-orchestrator:
+    build: ./agents
+    restart: always
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+      - AGENT_ROLE=orchestrator
+    volumes:
+      - empire-data:/empire
+      - ./shared-kb:/app/shared-kb
+      - ./tasks:/app/tasks
+
+  # ============================================
+  # X/TWITTER ANALYSIS ENGINE
+  # ============================================
+  x-analyzer:
+    build: ./x-analyzer
+    restart: always
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+    volumes:
+      - empire-data:/empire
+      - ./shared-kb:/app/shared-kb
+
+  # ============================================
+  # BULK QUEUE WORKER (10k Posts)
+  # ============================================
+  queue-worker:
+    build: ./queue
+    restart: always
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+    volumes:
+      - empire-data:/empire
+      - ./shared-kb:/app/shared-kb
+
+  # ============================================
+  # CLOUD SYNC (rclone)
+  # ============================================
+  cloud-sync:
+    image: rclone/rclone:latest
+    restart: always
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        echo "Cloud sync starting..."
+        while true; do
+          if [ "$$ICLOUD_ENABLED" = "true" ]; then
+            rclone sync /empire/results/ $$ICLOUD_REMOTE_NAME:AIEmpire/ --verbose 2>&1 || echo "iCloud sync failed, retrying next cycle"
+          fi
+          if [ "$$DROPBOX_ENABLED" = "true" ]; then
+            rclone sync /empire/results/ $$DROPBOX_REMOTE_NAME:AIEmpire/ --verbose 2>&1 || echo "Dropbox sync failed, retrying next cycle"
+          fi
+          echo "[$(date)] Sync cycle complete. Next in 5 minutes."
+          sleep 300
+        done
+    env_file: .env
+    volumes:
+      - empire-data:/empire
+      - rclone-config:/config/rclone
+
+  # ============================================
+  # TRAEFIK (Reverse Proxy)
+  # ============================================
+  traefik:
+    image: traefik:v3.0
+    restart: always
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  # ============================================
+  # PORTAINER (Docker Management UI)
+  # ============================================
+  portainer:
+    image: portainer/portainer-ce:latest
+    restart: always
+    ports:
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer-data:/data
+
+volumes:
+  redis-data:
+  chroma-data:
+  empire-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /empire
+  portainer-data:
+  rclone-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /root/.config/rclone
