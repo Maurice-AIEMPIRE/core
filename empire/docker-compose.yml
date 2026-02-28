@@ -1,0 +1,154 @@
+version: "3.9"
+
+x-common: &common
+  restart: unless-stopped
+  env_file: .env
+  networks:
+    - empire-net
+  volumes:
+    - empire-data:/empire
+    - ./shared-kb:/app/shared-kb
+    - ./tasks:/empire/tasks
+    - ./results:/empire/results
+
+services:
+  # === CORE INFRASTRUCTURE ===
+
+  redis:
+    image: redis:7-alpine
+    container_name: empire-redis
+    restart: unless-stopped
+    networks:
+      - empire-net
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  chromadb:
+    image: chromadb/chroma:0.5.23
+    container_name: empire-chromadb
+    restart: unless-stopped
+    networks:
+      - empire-net
+    volumes:
+      - chroma-data:/chroma/chroma
+    environment:
+      - ANONYMIZED_TELEMETRY=false
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # === TELEGRAM CONTROL BOT (Main Interface) ===
+
+  telegram-bot:
+    build: ./telegram-bot
+    container_name: empire-telegram
+    <<: *common
+    depends_on:
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  # === AGENT ORCHESTRATOR (CEO Brain) ===
+
+  orchestrator:
+    build: ./orchestrator
+    container_name: empire-orchestrator
+    <<: *common
+    depends_on:
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+      telegram-bot:
+        condition: service_started
+
+  # === X/TWITTER ANALYSIS ENGINE ===
+
+  x-analysis:
+    build: ./x-analysis
+    container_name: empire-x-analysis
+    <<: *common
+    depends_on:
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+
+  # === BULK QUEUE PROCESSOR (10k posts) ===
+
+  bulk-queue:
+    build: ./bulk-queue
+    container_name: empire-bulk-queue
+    <<: *common
+    depends_on:
+      redis:
+        condition: service_healthy
+      x-analysis:
+        condition: service_started
+
+  # === CLOUD SYNC SERVICE ===
+
+  cloud-sync:
+    build: ./cloud-sync
+    container_name: empire-cloud-sync
+    <<: *common
+    volumes:
+      - empire-data:/empire
+      - ./results:/empire/results
+      - rclone-config:/root/.config/rclone
+
+  # === TRAEFIK REVERSE PROXY ===
+
+  traefik:
+    image: traefik:v3.2
+    container_name: empire-traefik
+    restart: unless-stopped
+    networks:
+      - empire-net
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./configs/traefik.yml:/etc/traefik/traefik.yml:ro
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+
+  # === PORTAINER (Container Management UI) ===
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: empire-portainer
+    restart: unless-stopped
+    networks:
+      - empire-net
+    ports:
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer-data:/data
+
+networks:
+  empire-net:
+    driver: bridge
+
+volumes:
+  empire-data:
+  redis-data:
+  chroma-data:
+  portainer-data:
+  rclone-config:
