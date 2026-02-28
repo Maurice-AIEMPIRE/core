@@ -53,10 +53,14 @@ async def main():
     # Startup notification
     if ADMIN_CHAT_ID:
         try:
+            me = await bot.get_me()
             await bot.send_message(
                 ADMIN_CHAT_ID,
                 "🏢 <b>AI Empire Control Bot ist ONLINE</b>\n\n"
+                f"🤖 Bot: @{me.username}\n"
                 f"⏰ {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+                f"🧠 LLM: Ollama ({os.environ.get('OLLAMA_MODEL', 'llama3.1:8b')})\n"
+                "💰 Kosten: $0 (alles Open Source)\n\n"
                 "Alle Systeme bereit. Sende /help für alle Befehle.",
             )
         except Exception as e:
