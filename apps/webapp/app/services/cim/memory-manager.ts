@@ -22,7 +22,10 @@ import type {
   AnchorRule,
   ActionResult,
   PlanStep,
+  AgentMemoryEntry,
 } from "./types";
+import { addMemory, addHardLesson } from "./agent-memory";
+import { logAction as logDailyAction, logObservation } from "./daily-log";
 
 // ---------------------------------------------------------------------------
 // Context Window Manager
@@ -286,4 +289,80 @@ export function logError(
 
   writeToExternalMemory(entry);
   return entry;
+}
+
+// ---------------------------------------------------------------------------
+// Persistence Bridge: In-Memory → Database
+// ---------------------------------------------------------------------------
+
+/**
+ * Persist an external memory entry to the database-backed long-term memory.
+ * This bridges the in-memory ExternalMemoryEntry store with the persistent
+ * AgentMemory system (OpenClaw MEMORY.md equivalent).
+ */
+export async function persistToLongTermMemory(
+  entry: ExternalMemoryEntry,
+  userId: string,
+  workspaceId: string,
+): Promise<AgentMemoryEntry> {
+  const categoryMap: Record<
+    ExternalMemoryEntry["type"],
+    "patterns" | "hard_lessons" | "rules"
+  > = {
+    task_summary: "patterns",
+    decision_log: "patterns",
+    error_log: "hard_lessons",
+    audit_trail: "rules",
+  };
+
+  return addMemory(entry.agentId, userId, workspaceId, {
+    category: categoryMap[entry.type],
+    content: entry.content,
+    priority: entry.type === "error_log" ? 9 : 5,
+    permanent: entry.type === "error_log",
+    source: "observation",
+  });
+}
+
+/**
+ * Persist a task summary and its errors as daily log entries.
+ * Called after CIM loop completion to record the session activity.
+ */
+export async function persistSessionActivity(
+  agentId: string,
+  workspaceId: string,
+  taskDescription: string,
+  steps: PlanStep[],
+  results: ActionResult[],
+): Promise<void> {
+  try {
+    // Log the task as a daily action
+    const completedSteps = steps.filter((s) => s.status === "completed");
+    const failedSteps = steps.filter((s) => s.status === "failed");
+
+    await logDailyAction(
+      agentId,
+      workspaceId,
+      `Task: ${taskDescription} — ${completedSteps.length}/${steps.length} steps completed`,
+      {
+        totalSteps: steps.length,
+        completedSteps: completedSteps.length,
+        failedSteps: failedSteps.length,
+        totalTimeMs: results.reduce((sum, r) => sum + r.executionTimeMs, 0),
+      },
+    );
+
+    // Log failures as observations for future reference
+    for (const step of failedSteps) {
+      if (step.result?.error) {
+        await logObservation(
+          agentId,
+          workspaceId,
+          `Failed step "${step.description}": ${step.result.error}`,
+        );
+      }
+    }
+  } catch (err) {
+    logger.warn(`[CIM:Memory] Failed to persist session activity: ${err}`);
+  }
 }

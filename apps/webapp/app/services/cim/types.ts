@@ -401,3 +401,128 @@ export interface CIMResult {
   summary: string;
   auditTrail: ExternalMemoryEntry[];
 }
+
+// ---------------------------------------------------------------------------
+// OpenClaw-Inspired Memory Layers
+// ---------------------------------------------------------------------------
+
+/**
+ * Agent long-term memory entry (MEMORY.md equivalent).
+ * Curated, evolving knowledge that persists across sessions.
+ */
+export interface AgentMemoryEntry {
+  id: string;
+  category: AgentMemoryCategory;
+  content: string;
+  priority: number;
+  permanent: boolean;
+  active: boolean;
+  source: AgentMemorySource;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type AgentMemoryCategory =
+  | "preferences"
+  | "hard_lessons"
+  | "rules"
+  | "patterns"
+  | "bad_patterns";
+
+export type AgentMemorySource =
+  | "user_feedback"
+  | "self_correction"
+  | "observation"
+  | "cross_agent";
+
+/**
+ * Daily session log entry (memory/YYYY-MM-DD.md equivalent).
+ */
+export interface DailyLogEntry {
+  timestamp: Date;
+  type: "action" | "feedback" | "observation" | "draft" | "decision" | "error";
+  content: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface AgentDailyLogData {
+  id: string;
+  agentId: string;
+  date: Date;
+  entries: DailyLogEntry[];
+  tokenCount: number;
+  archived: boolean;
+}
+
+/**
+ * Shared context entry (shared-context/ equivalent).
+ * Cross-agent knowledge that all agents can read.
+ */
+export interface SharedContextEntry {
+  id: string;
+  contextType: SharedContextType;
+  title?: string;
+  content: string;
+  writerId?: string;
+  updatedAt: Date;
+}
+
+export type SharedContextType = "thesis" | "feedback" | "signals" | "custom";
+
+/**
+ * Agent feedback entry (FEEDBACK-LOG.md equivalent).
+ */
+export interface AgentFeedbackEntry {
+  id: string;
+  correction: string;
+  category: FeedbackCategory;
+  appliesTo: string[];
+  global: boolean;
+  absorbed: boolean;
+  agentId?: string;
+  createdAt: Date;
+}
+
+export type FeedbackCategory =
+  | "style"
+  | "content"
+  | "behavior"
+  | "accuracy"
+  | "safety";
+
+/**
+ * User profile for agent context (USER.md equivalent).
+ */
+export interface UserProfile {
+  name?: string;
+  timezone?: string;
+  preferences: Record<string, string>;
+  context: string[];
+  constraints: string[];
+}
+
+/**
+ * Full agent session context loaded at boot (all layers combined).
+ */
+export interface AgentSessionContext {
+  soulConfig: SoulConfig;
+  userProfile: UserProfile;
+  longTermMemory: AgentMemoryEntry[];
+  recentDailyLogs: AgentDailyLogData[];
+  sharedContext: SharedContextEntry[];
+  pendingFeedback: AgentFeedbackEntry[];
+  specialistKnowledge: Record<string, string>;
+}
+
+/**
+ * Configuration for agent session startup boot sequence.
+ */
+export interface SessionBootConfig {
+  agentId: string;
+  userId: string;
+  workspaceId: string;
+  timezone?: string;
+  loadDailyLogDays?: number;
+  maxMemoryEntries?: number;
+  maxTokenBudget?: number;
+}

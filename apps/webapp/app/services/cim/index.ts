@@ -91,6 +91,19 @@ export type {
   CIMLoopState,
   CIMError,
   CIMResult,
+  // OpenClaw Memory Layers
+  AgentMemoryEntry,
+  AgentMemoryCategory,
+  AgentMemorySource,
+  DailyLogEntry,
+  AgentDailyLogData,
+  SharedContextEntry,
+  SharedContextType,
+  AgentFeedbackEntry,
+  FeedbackCategory,
+  UserProfile,
+  AgentSessionContext,
+  SessionBootConfig,
 } from "./types";
 
 export { DEFAULT_RETRY_CONFIG } from "./types";
@@ -134,6 +147,8 @@ export {
   getSoulPrompt,
   logDecision,
   logError,
+  persistToLongTermMemory,
+  persistSessionActivity,
 } from "./memory-manager";
 
 // Heartbeat
@@ -160,4 +175,60 @@ export {
   getMessages,
   createHandoff,
   createEscalation,
+  loadTeamSharedContext,
+  publishToTeamContext,
+  broadcastCorrection,
+  createEnrichedContextBundle,
 } from "./multi-agent";
+
+// Agent Long-Term Memory (MEMORY.md)
+export {
+  addMemory,
+  addHardLesson,
+  addRule,
+  addBadPattern,
+  getMemories,
+  getMemoriesWithinBudget,
+  deactivateMemory,
+  updateMemoryPriority,
+  formatMemoriesAsPrompt,
+} from "./agent-memory";
+
+// Daily Logs (memory/YYYY-MM-DD.md)
+export {
+  appendDailyLog,
+  logAction,
+  logFeedback,
+  logObservation,
+  getRecentDailyLogs,
+  getDailyLog,
+  archiveOldLogs,
+  getTotalTokenCount,
+  formatDailyLogsAsPrompt,
+} from "./daily-log";
+
+// Shared Context (shared-context/)
+export {
+  getSharedContext,
+  getSharedContextWithinBudget,
+  upsertSharedContext,
+  deleteSharedContext,
+  formatSharedContextAsPrompt,
+} from "./shared-context";
+
+// Feedback Manager (FEEDBACK-LOG.md)
+export {
+  recordFeedback,
+  getPendingFeedback,
+  getAllFeedback,
+  absorbFeedback,
+  absorbAllPendingFeedback,
+  formatFeedbackAsPrompt,
+} from "./feedback-manager";
+
+// Session Loader (AGENTS.md boot sequence)
+export {
+  bootAgentSession,
+  buildSessionPrompt,
+  finalizeSession,
+} from "./session-loader";

@@ -27,8 +27,15 @@ import type {
   PermissionPolicy,
   ModelTier,
   ExternalMemoryEntry,
+  SharedContextEntry,
 } from "./types";
 import { createDefaultSoulConfig } from "./memory-manager";
+import {
+  getSharedContext,
+  upsertSharedContext,
+  formatSharedContextAsPrompt,
+} from "./shared-context";
+import { recordFeedback } from "./feedback-manager";
 
 // ---------------------------------------------------------------------------
 // Agent Registry
@@ -320,4 +327,114 @@ export function createEscalation(
   sendMessage(message);
   logger.warn(`[CIM:MultiAgent] Escalation from ${fromAgentId}: ${reason}`);
   return message;
+}
+
+// ---------------------------------------------------------------------------
+// Shared Context Coordination (OpenClaw shared-context/ layer)
+// ---------------------------------------------------------------------------
+
+/**
+ * Load all shared context for a workspace into a team's context bundle.
+ * Every agent on the team reads the same shared knowledge at boot time.
+ */
+export async function loadTeamSharedContext(
+  workspaceId: string,
+): Promise<SharedContextEntry[]> {
+  const contexts = await getSharedContext(workspaceId);
+
+  logger.info(
+    `[CIM:MultiAgent] Loaded ${contexts.length} shared context entries for workspace ${workspaceId}`,
+  );
+
+  return contexts;
+}
+
+/**
+ * Allow an agent to publish to shared context (respects one-writer rule).
+ * Used by the coordinator to share decisions or by specialists to share findings.
+ */
+export async function publishToTeamContext(
+  agentId: string,
+  userId: string,
+  workspaceId: string,
+  content: string,
+  options: {
+    contextType?: "thesis" | "feedback" | "signals" | "custom";
+    title?: string;
+  } = {},
+): Promise<SharedContextEntry> {
+  const entry = await upsertSharedContext(
+    userId,
+    workspaceId,
+    options.contextType ?? "custom",
+    content,
+    {
+      title: options.title,
+      writerId: agentId,
+    },
+  );
+
+  logger.info(
+    `[CIM:MultiAgent] Agent ${agentId} published to shared context: type=${entry.contextType}`,
+  );
+
+  return entry;
+}
+
+/**
+ * Broadcast a cross-agent correction. When one agent learns something,
+ * the feedback propagates to all agents in the workspace.
+ */
+export async function broadcastCorrection(
+  userId: string,
+  workspaceId: string,
+  correction: string,
+  options: {
+    category?: "style" | "content" | "behavior" | "accuracy" | "safety";
+    fromAgentId?: string;
+    targetAgentIds?: string[];
+  } = {},
+): Promise<void> {
+  await recordFeedback(userId, workspaceId, correction, {
+    category: options.category ?? "behavior",
+    agentId: options.fromAgentId,
+    appliesTo: options.targetAgentIds,
+    global: !options.targetAgentIds || options.targetAgentIds.length === 0,
+  });
+
+  logger.info(
+    `[CIM:MultiAgent] Broadcast correction: "${correction.slice(0, 50)}..." ` +
+      `to ${options.targetAgentIds?.join(", ") || "all agents"}`,
+  );
+}
+
+/**
+ * Build an enriched context bundle that includes shared context from the DB.
+ * This replaces the plain in-memory sharedContext on AgentTeam with
+ * the persistent SharedContext layer.
+ */
+export async function createEnrichedContextBundle(
+  userId: string,
+  workspaceId: string,
+  goal: string,
+  options: {
+    userContext?: string;
+    constraints?: string[];
+    parentAgentId?: string;
+    verificationRequired?: boolean;
+  } = {},
+): Promise<ContextBundle> {
+  // Load shared context from DB
+  const sharedContextEntries = await loadTeamSharedContext(workspaceId);
+  const sharedContextPrompt = formatSharedContextAsPrompt(sharedContextEntries);
+
+  // Build context with shared knowledge injected
+  const enrichedUserContext = [options.userContext || "", sharedContextPrompt]
+    .filter(Boolean)
+    .join("\n\n");
+
+  return createContextBundle(userId, workspaceId, goal, {
+    ...options,
+    userContext: enrichedUserContext,
+  });
 }

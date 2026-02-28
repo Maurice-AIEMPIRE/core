@@ -53,6 +53,166 @@ model Agents {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // OpenClaw-inspired agent identity and memory
+  soul          AgentSoul?
+  memories      AgentMemory[]
+  dailyLogs     AgentDailyLog[]
+  feedbackGiven AgentFeedback[]
+}
+
+// ---------------------------------------------------------------------------
+// Agent Soul - Persistent evolving identity (SOUL.md + IDENTITY.md + USER.md)
+// ---------------------------------------------------------------------------
+
+model AgentSoul {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Identity (IDENTITY.md)
+  role        String // e.g. "researcher", "writer", "orchestrator"
+  description String? // One-liner
+  personality String? // Character reference / vibe
+
+  // Full soul config as JSON (SOUL.md) - directives, constraints, expertise, anchors
+  soulConfig Json
+
+  // Specialist knowledge files (role-specific guides like X-CONTENT-GUIDE.md)
+  specialistKnowledge Json? // Record<filename, content>
+
+  // User preferences loaded per session (USER.md)
+  userPreferences Json? // timezone, style prefs, dietary, etc.
+
+  // Relations
+  agent   Agents @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentId String @unique
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+}
+
+// ---------------------------------------------------------------------------
+// Agent Long-term Memory - Curated, evolving (MEMORY.md)
+// ---------------------------------------------------------------------------
+
+model AgentMemory {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Memory classification
+  category String // "preferences", "hard_lessons", "rules", "patterns", "bad_patterns"
+  content  String // The actual memory entry
+  priority Int    @default(0) // Higher = more important, loaded first
+
+  // Persistence control
+  permanent Boolean @default(false) // If true, never auto-pruned
+  active    Boolean @default(true) // Soft delete
+
+  // Origin tracking
+  source String? // "user_feedback", "self_correction", "observation", "cross_agent"
+
+  // Relations
+  agent   Agents @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentId String
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@index([agentId, category])
+  @@index([agentId, active, priority(sort: Desc)])
+}
+
+// ---------------------------------------------------------------------------
+// Agent Daily Log - Session logs (memory/YYYY-MM-DD.md)
+// ---------------------------------------------------------------------------
+
+model AgentDailyLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  date       DateTime @db.Date // Just the date part
+  entries    Json // Array of { timestamp, type, content }
+  tokenCount Int      @default(0) // For context budget tracking
+  archived   Boolean  @default(false) // Archived logs don't load by default
+
+  // Relations
+  agent   Agents @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentId String
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+
+  @@unique([agentId, date, workspaceId])
+  @@index([agentId, date(sort: Desc)])
+}
+
+// ---------------------------------------------------------------------------
+// Shared Context - Cross-agent knowledge layer (shared-context/)
+// ---------------------------------------------------------------------------
+
+model SharedContext {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Context classification
+  contextType String // "thesis", "feedback", "signals", "custom"
+  title       String? // Optional title for display
+  content     String // The actual content
+
+  // One-writer rule: only this agent can update this entry
+  writerId String? // Agent ID that owns this context (null = user-owned)
+
+  // Relations
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@index([workspaceId, contextType])
+}
+
+// ---------------------------------------------------------------------------
+// Agent Feedback - Cross-agent corrections (FEEDBACK-LOG.md)
+// ---------------------------------------------------------------------------
+
+model AgentFeedback {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // The correction
+  correction String // What the user corrected
+  category   String // "style", "content", "behavior", "accuracy", "safety"
+
+  // Scope: which agents this applies to
+  appliesTo String[] // Agent IDs (empty = applies to ALL agents)
+  global    Boolean  @default(false) // If true, applies to all agents
+
+  // Whether this feedback has been absorbed into agent long-term memory
+  absorbed Boolean @default(false)
+
+  // Relations
+  agent   Agents? @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentId String? // Source agent that received the original feedback
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@index([workspaceId, global])
+  @@index([workspaceId, absorbed])
 }
 
 model BillingHistory {
@@ -765,6 +925,10 @@ model User {
   EpisodeEmbedding          EpisodeEmbedding[]
   EntityEmbedding           EntityEmbedding[]
   CompactedSessionEmbedding CompactedSessionEmbedding[]
+  AgentSoul                 AgentSoul[]
+  AgentMemory               AgentMemory[]
+  SharedContext             SharedContext[]
+  AgentFeedback             AgentFeedback[]
 }
 
 model UserUsage {
@@ -895,6 +1059,11 @@ model Workspace {
   statementEmbeddings     StatementEmbedding[]
   episodeEmbeddings       EpisodeEmbedding[]
   entityEmbeddings        EntityEmbedding[]
+  AgentSoul               AgentSoul[]
+  AgentMemory             AgentMemory[]
+  AgentDailyLog           AgentDailyLog[]
+  SharedContext           SharedContext[]
+  AgentFeedback           AgentFeedback[]
 }
 
 enum PlanType {

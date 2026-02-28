@@ -34,6 +34,7 @@ import type {
   ActionResult,
   ExternalMemoryEntry,
   PerceptionResult,
+  AgentSessionContext,
 } from "./types";
 
 import { perceive } from "./perception";
@@ -48,7 +49,13 @@ import {
   logDecision,
   logError,
   estimateTokens,
+  persistSessionActivity,
 } from "./memory-manager";
+import {
+  bootAgentSession,
+  buildSessionPrompt,
+  finalizeSession,
+} from "./session-loader";
 
 // ---------------------------------------------------------------------------
 // Goal Construction
@@ -119,6 +126,37 @@ export async function runCIMLoop(
   };
 
   try {
+    // -----------------------------------------------------------------------
+    // Phase 0: BOOT SESSION (OpenClaw memory layers)
+    // -----------------------------------------------------------------------
+    let sessionContext: AgentSessionContext | undefined;
+    try {
+      sessionContext = await bootAgentSession({
+        agentId,
+        userId: config.userId,
+        workspaceId: config.workspaceId,
+        timezone: config.timezone,
+      });
+
+      // Inject session context into the context window
+      const sessionPrompt = buildSessionPrompt(sessionContext);
+      const sessionTokens = estimateTokens(sessionPrompt);
+      addToContext(contextWindow, {
+        content: sessionPrompt,
+        tokenCount: sessionTokens,
+        priority: 10, // Highest priority — identity + memory
+        source: "session_boot",
+      });
+
+      logger.info(
+        `[CIM:Engine] Phase 0: SESSION BOOT complete (${sessionTokens} tokens)`,
+      );
+    } catch (bootError) {
+      logger.warn(
+        `[CIM:Engine] Session boot failed, continuing without memory layers: ${bootError}`,
+      );
+    }
+
     // -----------------------------------------------------------------------
     // Phase 1: PERCEIVE
     // -----------------------------------------------------------------------
@@ -352,6 +390,22 @@ export async function runCIMLoop(
 
     // Create task summary for external memory
     createTaskSummary(agentId, query, plan.steps, state.actionHistory);
+
+    // Persist session activity to daily logs (fire-and-forget)
+    persistSessionActivity(
+      agentId,
+      config.workspaceId,
+      query,
+      plan.steps,
+      state.actionHistory,
+    ).catch((err) => {
+      logger.warn(`[CIM:Engine] Failed to persist session activity: ${err}`);
+    });
+
+    // Finalize session: absorb pending feedback into long-term memory
+    finalizeSession(agentId, config.userId, config.workspaceId).catch((err) => {
+      logger.warn(`[CIM:Engine] Failed to finalize session: ${err}`);
+    });
 
     state.status = goalMet ? "completed" : "failed";
     state.completedAt = new Date();
