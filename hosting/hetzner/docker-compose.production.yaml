@@ -1,0 +1,241 @@
+# =============================================================================
+# CORE - Production Docker Compose for Hetzner
+# =============================================================================
+# Usage:
+#   docker compose -f docker-compose.production.yaml --env-file .env.production up -d
+# =============================================================================
+
+x-logging: &logging-config
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+services:
+  # ===========================================================================
+  # Nginx Reverse Proxy + SSL Termination
+  # ===========================================================================
+  nginx:
+    container_name: core-nginx
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot_webroot:/var/www/certbot:ro
+      - certbot_certs:/etc/letsencrypt:ro
+    depends_on:
+      core:
+        condition: service_started
+    networks:
+      - core
+    logging: *logging-config
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ===========================================================================
+  # Certbot (Let's Encrypt SSL)
+  # ===========================================================================
+  certbot:
+    container_name: core-certbot
+    image: certbot/certbot:latest
+    volumes:
+      - certbot_webroot:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done'"
+    networks:
+      - core
+    logging: *logging-config
+
+  # ===========================================================================
+  # CORE Application
+  # ===========================================================================
+  core:
+    container_name: core-app
+    image: redplanethq/core:${VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - DIRECT_URL=${DIRECT_URL}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - MAGIC_LINK_SECRET=${MAGIC_LINK_SECRET}
+      - LOGIN_ORIGIN=${CORE_LOGIN_ORIGIN}
+      - APP_ORIGIN=${CORE_APP_ORIGIN}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_TLS_DISABLED=true
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USERNAME=${NEO4J_USERNAME}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - AUTH_GOOGLE_CLIENT_ID=${AUTH_GOOGLE_CLIENT_ID}
+      - AUTH_GOOGLE_CLIENT_SECRET=${AUTH_GOOGLE_CLIENT_SECRET}
+      - ENABLE_EMAIL_LOGIN=${ENABLE_EMAIL_LOGIN}
+      - OLLAMA_URL=${OLLAMA_URL}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL}
+      - EMBEDDING_MODEL_SIZE=${EMBEDDING_MODEL_SIZE}
+      - MODEL=${MODEL}
+      - TRIGGER_PROJECT_ID=${TRIGGER_PROJECT_ID}
+      - TRIGGER_SECRET_KEY=${TRIGGER_SECRET_KEY}
+      - TRIGGER_API_URL=${CORE_APP_ORIGIN}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - EMAIL_TRANSPORT=${EMAIL_TRANSPORT}
+      - REPLY_TO_EMAIL=${REPLY_TO_EMAIL}
+      - FROM_EMAIL=${FROM_EMAIL}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - COHERE_API_KEY=${COHERE_API_KEY}
+      - QUEUE_PROVIDER=bullmq
+      - TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-false}
+      - TELEMETRY_ANONYMOUS=true
+      - GRAPH_PROVIDER=neo4j
+      - VECTOR_PROVIDER=pgvector
+      - MODEL_PROVIDER=${MODEL_PROVIDER:-vercel-ai}
+    expose:
+      - "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+    networks:
+      - core
+    logging: *logging-config
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1G
+
+  # ===========================================================================
+  # PostgreSQL with pgvector
+  # ===========================================================================
+  postgres:
+    container_name: core-postgres
+    image: pgvector/pgvector:pg18-trixie
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    expose:
+      - "5432"
+    volumes:
+      - ${DATA_PATH:-/mnt/data}/postgres:/var/lib/postgresql/data
+    networks:
+      - core
+    logging: *logging-config
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  # ===========================================================================
+  # Redis
+  # ===========================================================================
+  redis:
+    container_name: core-redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --appendfsync everysec
+    expose:
+      - "6379"
+    volumes:
+      - ${DATA_PATH:-/mnt/data}/redis:/data
+    networks:
+      - core
+    logging: *logging-config
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================================================
+  # Neo4j (Knowledge Graph)
+  # ===========================================================================
+  neo4j:
+    container_name: core-neo4j
+    image: redplanethq/neo4j:0.1.0
+    restart: unless-stopped
+    environment:
+      - NEO4J_AUTH=${NEO4J_USERNAME}/${NEO4J_PASSWORD}
+      - NEO4J_dbms_security_procedures_unrestricted=gds.*,apoc.*
+      - NEO4J_dbms_security_procedures_allowlist=gds.*,apoc.*
+      - NEO4J_apoc_export_file_enabled=true
+      - NEO4J_apoc_import_file_enabled=true
+      - NEO4J_apoc_import_file_use_neo4j_config=true
+      - NEO4J_server_memory_heap_initial__size=2G
+      - NEO4J_server_memory_heap_max__size=4G
+    expose:
+      - "7474"
+      - "7687"
+    volumes:
+      - ${DATA_PATH:-/mnt/data}/neo4j:/data
+    networks:
+      - core
+    logging: *logging-config
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u ${NEO4J_USERNAME} -p ${NEO4J_PASSWORD} 'RETURN 1'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+        reservations:
+          memory: 2G
+
+  # ===========================================================================
+  # Watchtower (Auto-update containers)
+  # ===========================================================================
+  watchtower:
+    container_name: core-watchtower
+    image: containrrr/watchtower:latest
+    restart: unless-stopped
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=86400
+      - WATCHTOWER_INCLUDE_STOPPED=false
+      - WATCHTOWER_MONITOR_ONLY=${WATCHTOWER_MONITOR_ONLY:-true}
+      - WATCHTOWER_NOTIFICATIONS=${WATCHTOWER_NOTIFICATIONS:-}
+      - WATCHTOWER_NOTIFICATION_URL=${WATCHTOWER_NOTIFICATION_URL:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - core
+    logging: *logging-config
+
+networks:
+  core:
+    name: core
+    driver: bridge
+
+volumes:
+  certbot_webroot:
+  certbot_certs:

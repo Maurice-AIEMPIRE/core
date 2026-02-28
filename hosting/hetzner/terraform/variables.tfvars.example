@@ -1,0 +1,23 @@
+# =============================================================================
+# Hetzner Cloud Terraform Variables
+# =============================================================================
+# Copy this file to terraform.tfvars and fill in your values:
+#   cp variables.tfvars.example terraform.tfvars
+# =============================================================================
+
+# Your Hetzner Cloud API token (from https://console.hetzner.cloud)
+hcloud_token = ""
+
+# Your domain (point DNS A record to the server IP after creation)
+domain = "core.yourdomain.com"
+
+# Server configuration
+server_name = "core-empire"
+server_type = "cx42"       # 8 vCPU, 16 GB RAM, 160 GB disk (~€28/mo)
+location    = "nbg1"       # nbg1=Nuremberg, fsn1=Falkenstein, hel1=Helsinki
+
+# SSH key path
+ssh_public_key_path = "~/.ssh/id_ed25519.pub"
+
+# Persistent volume size in GB
+volume_size = 50

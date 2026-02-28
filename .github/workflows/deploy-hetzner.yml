@@ -1,0 +1,144 @@
+name: Deploy to Hetzner
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to deploy (e.g. 0.4.0 or latest)"
+        required: true
+        default: "latest"
+      environment:
+        description: "Deployment environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - staging
+
+  # Auto-deploy on new tags (after Docker image is built)
+  workflow_run:
+    workflows: ["Build Docker Images"]
+    types:
+      - completed
+    branches: [main]
+
+env:
+  REMOTE_DIR: /opt/core
+  COMPOSE_FILE: docker-compose.yaml
+
+jobs:
+  deploy:
+    name: Deploy to Hetzner
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    environment:
+      name: ${{ github.event.inputs.environment || 'production' }}
+      url: https://${{ secrets.DOMAIN }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.HETZNER_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.HETZNER_SERVER_IP }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Upload configuration files
+        run: |
+          SSH_OPTS="-i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new"
+          SSH_TARGET="${{ secrets.HETZNER_SSH_USER }}@${{ secrets.HETZNER_SERVER_IP }}"
+
+          # Create remote directories
+          ssh $SSH_OPTS $SSH_TARGET "mkdir -p ${REMOTE_DIR}/{nginx/conf.d,scripts}"
+
+          # Upload files
+          scp $SSH_OPTS hosting/hetzner/docker-compose.production.yaml $SSH_TARGET:${REMOTE_DIR}/docker-compose.yaml
+          scp $SSH_OPTS hosting/hetzner/nginx/nginx.conf $SSH_TARGET:${REMOTE_DIR}/nginx/nginx.conf
+          scp $SSH_OPTS hosting/hetzner/nginx/conf.d/core.conf $SSH_TARGET:${REMOTE_DIR}/nginx/conf.d/core.conf
+          scp $SSH_OPTS hosting/hetzner/scripts/backup.sh $SSH_TARGET:${REMOTE_DIR}/scripts/backup.sh
+          scp $SSH_OPTS hosting/hetzner/scripts/monitor.sh $SSH_TARGET:${REMOTE_DIR}/scripts/monitor.sh
+
+          # Configure domain
+          ssh $SSH_OPTS $SSH_TARGET "sed -i 's/DOMAIN_PLACEHOLDER/${{ secrets.DOMAIN }}/g' ${REMOTE_DIR}/nginx/conf.d/core.conf"
+          ssh $SSH_OPTS $SSH_TARGET "chmod +x ${REMOTE_DIR}/scripts/*.sh"
+
+      - name: Pull new images
+        run: |
+          SSH_OPTS="-i ~/.ssh/deploy_key"
+          SSH_TARGET="${{ secrets.HETZNER_SSH_USER }}@${{ secrets.HETZNER_SERVER_IP }}"
+          VERSION="${{ steps.version.outputs.version }}"
+
+          ssh $SSH_OPTS $SSH_TARGET "cd ${REMOTE_DIR} && VERSION=${VERSION} docker compose --env-file .env.production pull core"
+
+      - name: Deploy services
+        run: |
+          SSH_OPTS="-i ~/.ssh/deploy_key"
+          SSH_TARGET="${{ secrets.HETZNER_SSH_USER }}@${{ secrets.HETZNER_SERVER_IP }}"
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Update databases first
+          ssh $SSH_OPTS $SSH_TARGET "cd ${REMOTE_DIR} && VERSION=${VERSION} docker compose --env-file .env.production up -d postgres redis neo4j"
+
+          # Wait for databases
+          sleep 10
+
+          # Deploy app
+          ssh $SSH_OPTS $SSH_TARGET "cd ${REMOTE_DIR} && VERSION=${VERSION} docker compose --env-file .env.production up -d core"
+
+          # Wait for app to start
+          sleep 15
+
+          # Reload nginx
+          ssh $SSH_OPTS $SSH_TARGET "cd ${REMOTE_DIR} && VERSION=${VERSION} docker compose --env-file .env.production up -d nginx certbot watchtower"
+
+      - name: Verify deployment
+        run: |
+          SSH_OPTS="-i ~/.ssh/deploy_key"
+          SSH_TARGET="${{ secrets.HETZNER_SSH_USER }}@${{ secrets.HETZNER_SERVER_IP }}"
+
+          echo "Checking service status..."
+          for svc in core-nginx core-app core-postgres core-redis core-neo4j; do
+            STATUS=$(ssh $SSH_OPTS $SSH_TARGET "docker inspect --format='{{.State.Status}}' $svc 2>/dev/null" || echo "not_found")
+            echo "  $svc: $STATUS"
+            if [ "$STATUS" != "running" ]; then
+              echo "::warning::Service $svc is not running (status: $STATUS)"
+            fi
+          done
+
+          # HTTP health check
+          sleep 5
+          HTTP_CODE=$(ssh $SSH_OPTS $SSH_TARGET "curl -s -o /dev/null -w '%{http_code}' --max-time 10 http://localhost/health" || echo "000")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "Health check passed!"
+          else
+            echo "::warning::Health check returned HTTP $HTTP_CODE"
+          fi
+
+      - name: Cleanup old images
+        run: |
+          SSH_OPTS="-i ~/.ssh/deploy_key"
+          SSH_TARGET="${{ secrets.HETZNER_SSH_USER }}@${{ secrets.HETZNER_SERVER_IP }}"
+          ssh $SSH_OPTS $SSH_TARGET "docker image prune -f" || true
+
+      - name: Deployment summary
+        run: |
+          echo "## Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Server**: ${{ secrets.HETZNER_SERVER_IP }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Domain**: https://${{ secrets.DOMAIN }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Time**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
