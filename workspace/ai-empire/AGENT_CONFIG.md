@@ -91,7 +91,8 @@ Dann erneut laden.
 
 ### Telegram (Bot-Steuerung)
 
-- **Status:** Einrichtung — siehe `00_SYSTEM/TELEGRAM_CONTROL_SOP.md`
+- **Bot:** @M0Claw92bot
+- **Status:** Token vorhanden — `openclaw channels login --channel telegram` ausfuehren
 - **Config:** `channels.telegram.enabled: true`
 - **DM Policy:** `owner` (nur du kannst den Bot steuern)
 - **Group Policy:** `allowlist`

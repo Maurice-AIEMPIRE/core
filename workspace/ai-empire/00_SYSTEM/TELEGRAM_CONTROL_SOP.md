@@ -19,26 +19,25 @@
 
 1. Oeffne Telegram und suche `@BotFather`
 2. Sende `/newbot`
-3. Name: z.B. `AI Empire Bot`
-4. Username: z.B. `ai_empire_maurice_bot` (muss auf `_bot` enden)
-5. **Speichere den Bot-Token** (Format: `123456789:ABCdefGHIjklMNOpqrSTUvwxYZ`)
+3. Bot erstellt: **@M0Claw92bot**
+4. Token lokal gespeichert (NIEMALS in Git committen)
 
 ### 1.2 Bot-Rechte bei BotFather setzen
 
 Sende diese Kommandos an @BotFather:
 
 ```
-/setprivacy → ai_empire_maurice_bot → Disable
+/setprivacy → M0Claw92bot → Disable
 ```
 
 (Damit der Bot alle Nachrichten in Gruppen lesen kann, nicht nur /commands)
 
 ```
-/setjoingroups → ai_empire_maurice_bot → Enable
+/setjoingroups → M0Claw92bot → Enable
 ```
 
 ```
-/setcommands → ai_empire_maurice_bot
+/setcommands → M0Claw92bot
 ```
 
 Dann sende die Kommandoliste:
@@ -119,7 +118,7 @@ openclaw pairing approve --channel telegram
 ### 3.2 Ersten DM an Bot senden
 
 1. Oeffne Telegram
-2. Suche deinen Bot (@ai_empire_maurice_bot)
+2. Suche deinen Bot (@M0Claw92bot)
 3. Sende eine Nachricht (z.B. "Hello")
 4. OpenClaw sollte ueber den Agent antworten
 
