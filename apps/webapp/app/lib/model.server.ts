@@ -109,11 +109,122 @@ export const getModel = (takeModel?: string) => {
   return modelInstance;
 };
 
+/**
+ * Returns the ordered list of models to try: [primary, ...fallbacks].
+ * Primary comes from getModelForTask(complexity), fallbacks from MODEL_FALLBACKS env var.
+ */
+export function getModelList(complexity: ModelComplexity = "high"): string[] {
+  const primary = getModelForTask(complexity);
+  const fallbacksRaw = process.env.MODEL_FALLBACKS ?? "";
+  const fallbacks = fallbacksRaw
+    .split(",")
+    .map((m) => m.trim())
+    .filter(Boolean);
+  const seen = new Set<string>();
+  return [primary, ...fallbacks].filter((m) => {
+    if (seen.has(m)) return false;
+    seen.add(m);
+    return true;
+  });
+}
+
+/**
+ * Safely instantiate a model. Returns null if provider is not configured
+ * (missing API key etc.) instead of throwing.
+ */
+function tryGetModel(modelName: string): ReturnType<typeof getModel> | null {
+  try {
+    return getModel(modelName);
+  } catch (err) {
+    logger.warn(`[model-rotation] cannot init "${modelName}": ${err}`);
+    return null;
+  }
+}
+
+/**
+ * Quick reachability check for Ollama: returns true if the Ollama server
+ * responds within 3 seconds. Does NOT check for a specific model name
+ * because cloud-proxy models (e.g. glm-4.7:cloud) are always listed
+ * even when they require an outbound connection.
+ */
+async function isOllamaReachable(baseURL: string): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch(`${baseURL}/api/tags`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Resolves the first model from `models` that can actually be used right now:
+ * - provider config present (API key / Ollama URL)
+ * - for Ollama models: server is reachable (3s timeout)
+ * Returns `{ modelName, modelInstance }` or throws if all models are exhausted.
+ */
+async function resolveWorkingModel(
+  models: string[],
+  label: string,
+): Promise<{ modelName: string; modelInstance: NonNullable<ReturnType<typeof getModel>> }> {
+  let ollamaReachable: boolean | null = null; // cache the ping result
+
+  for (const modelName of models) {
+    const instance = tryGetModel(modelName);
+    if (!instance) continue;
+
+    if (modelName.startsWith("ollama/")) {
+      const baseURL = process.env.OLLAMA_URL || "http://localhost:11434";
+      if (ollamaReachable === null) {
+        ollamaReachable = await isOllamaReachable(baseURL);
+      }
+      if (!ollamaReachable) {
+        logger.warn(`[model-rotation] Ollama unreachable, skipping "${modelName}"`);
+        continue;
+      }
+    }
+
+    logger.info(`[model-rotation] "${modelName}" selected for ${label}`);
+    return { modelName, modelInstance: instance };
+  }
+
+  throw new Error(
+    `[model-rotation] all models exhausted for ${label}: ${models.join(", ")}`,
+  );
+}
+
 export interface TokenUsage {
   promptTokens?: number;
   completionTokens?: number;
   totalTokens?: number;
   cachedInputTokens?: number;
+}
+
+function buildOpenAIProviderOptions(
+  model: string,
+  cacheKey?: string,
+  reasoningEffort?: "low" | "medium" | "high",
+): Record<string, any> {
+  if (!model.includes("gpt")) return {};
+
+  const openaiOptions: OpenAIResponsesProviderOptions = {
+    promptCacheKey: cacheKey || `ingestion-high`,
+  };
+
+  if (model.startsWith("gpt-5")) {
+    if (model.includes("mini")) {
+      openaiOptions.reasoningEffort = "low";
+    } else {
+      openaiOptions.promptCacheRetention = "24h";
+      openaiOptions.reasoningEffort = reasoningEffort ?? "none";
+    }
+  }
+
+  return { providerOptions: { openai: openaiOptions } };
 }
 
 export async function makeModelCall(
@@ -125,46 +236,23 @@ export async function makeModelCall(
   cacheKey?: string,
   reasoningEffort?: "low" | "medium" | "high",
 ) {
-  let model = getModelForTask(complexity);
-  logger.info(`complexity: ${complexity}, model: ${model}`);
+  const models = getModelList(complexity);
 
-  const modelInstance = getModel(model);
-  const generateTextOptions: any = {};
-
-  // Add OpenAI provider options for prompt caching and disable web search
-  if (model.includes("gpt")) {
-    const openaiOptions: OpenAIResponsesProviderOptions = {
-      promptCacheKey: cacheKey || `ingestion-${complexity}`,
-    };
-
-    // 24h retention and reasoning options only available for non-mini gpt-5 models
-    if (model.startsWith("gpt-5")) {
-      if (model.includes("mini")) {
-        openaiOptions.reasoningEffort = "low";
-      } else {
-        openaiOptions.promptCacheRetention = "24h";
-        openaiOptions.reasoningEffort = "none";
-        if (reasoningEffort) {
-          openaiOptions.reasoningEffort = reasoningEffort;
-        }
-      }
-    }
-
-    generateTextOptions.providerOptions = {
-      openai: openaiOptions,
-    };
-  }
-
-  if (!modelInstance) {
-    throw new Error(`Unsupported model type: ${model}`);
-  }
-
+  // ── Streaming path ────────────────────────────────────────────────────────
+  // Resolve the first usable model upfront (Ollama ping included), then
+  // hand the stream back. Mid-stream failures cannot be recovered from, but
+  // at least config/connectivity errors are caught before the stream starts.
   if (stream) {
+    const { modelName, modelInstance } = await resolveWorkingModel(
+      models,
+      `stream/${complexity}`,
+    );
+    const extraOptions = buildOpenAIProviderOptions(modelName, cacheKey, reasoningEffort);
     return streamText({
       model: modelInstance,
       messages,
       ...options,
-      ...generateTextOptions,
+      ...extraOptions,
       onFinish: async ({ text, usage }) => {
         const tokenUsage = usage
           ? {
@@ -173,42 +261,57 @@ export async function makeModelCall(
               totalTokens: usage.totalTokens,
             }
           : undefined;
-
         if (tokenUsage) {
           logger.log(
-            `[${complexity.toUpperCase()}] ${model} - Tokens: ${tokenUsage.totalTokens} (prompt: ${tokenUsage.promptTokens}, completion: ${tokenUsage.completionTokens})`,
+            `[${complexity.toUpperCase()}] ${modelName} - Tokens: ${tokenUsage.totalTokens} (prompt: ${tokenUsage.promptTokens}, completion: ${tokenUsage.completionTokens})`,
           );
         }
-
-        onFinish(text, model, tokenUsage);
+        onFinish(text, modelName, tokenUsage);
       },
     });
   }
 
-  const { text, usage } = await generateText({
-    model: modelInstance,
-    messages,
-    ...generateTextOptions,
-  });
+  // ── Non-streaming path — full try/catch rotation ──────────────────────────
+  let lastError: unknown;
 
-  const tokenUsage = usage
-    ? {
-        promptTokens: usage.inputTokens,
-        completionTokens: usage.outputTokens,
-        totalTokens: usage.totalTokens,
-        cachedInputTokens: usage.cachedInputTokens,
+  for (const modelName of models) {
+    const modelInstance = tryGetModel(modelName);
+    if (!modelInstance) continue;
+
+    const extraOptions = buildOpenAIProviderOptions(modelName, cacheKey, reasoningEffort);
+
+    try {
+      logger.info(`[model-rotation] trying "${modelName}" (${complexity})`);
+      const { text, usage } = await generateText({
+        model: modelInstance,
+        messages,
+        ...extraOptions,
+      });
+
+      const tokenUsage = usage
+        ? {
+            promptTokens: usage.inputTokens,
+            completionTokens: usage.outputTokens,
+            totalTokens: usage.totalTokens,
+            cachedInputTokens: usage.cachedInputTokens,
+          }
+        : undefined;
+
+      if (tokenUsage) {
+        logger.log(
+          `[${complexity.toUpperCase()}] ${modelName} - Tokens: ${tokenUsage.totalTokens} (prompt: ${tokenUsage.promptTokens}, completion: ${tokenUsage.completionTokens}, cached: ${tokenUsage.cachedInputTokens})`,
+        );
       }
-    : undefined;
 
-  if (tokenUsage) {
-    logger.log(
-      `[${complexity.toUpperCase()}] ${model} - Tokens: ${tokenUsage.totalTokens} (prompt: ${tokenUsage.promptTokens}, completion: ${tokenUsage.completionTokens}, cached: ${tokenUsage.cachedInputTokens})`,
-    );
+      onFinish(text, modelName, tokenUsage);
+      return text;
+    } catch (err) {
+      lastError = err;
+      logger.warn(`[model-rotation] "${modelName}" failed: ${err} — trying next`);
+    }
   }
 
-  onFinish(text, model, tokenUsage);
-
-  return text;
+  throw lastError ?? new Error(`All models failed: ${models.join(", ")}`);
 }
 
 /**
@@ -222,64 +325,66 @@ export async function makeStructuredModelCall<T extends z.ZodType>(
   cacheKey?: string,
   temperature?: number,
 ): Promise<{ object: z.infer<T>; usage: TokenUsage | undefined }> {
-  const model = getModelForTask(complexity);
-  logger.info(`[Structured] complexity: ${complexity}, model: ${model}`);
+  const models = getModelList(complexity);
+  let lastError: unknown;
 
-  const modelInstance = getModel(model);
-  const generateObjectOptions: any = {};
+  for (const modelName of models) {
+    const modelInstance = tryGetModel(modelName);
+    if (!modelInstance) continue;
 
-  if (temperature !== undefined) {
-    generateObjectOptions.temperature = temperature;
-  }
-
-  // Add OpenAI provider options for prompt caching
-  if (model.includes("gpt")) {
-    const openaiOptions: OpenAIResponsesProviderOptions = {
-      promptCacheKey: cacheKey || `structured-${complexity}`,
-      strictJsonSchema: false,
-    };
-
-    if (model.startsWith("gpt-5")) {
-      if (model.includes("mini")) {
-        openaiOptions.reasoningEffort = "low";
-      } else {
-        openaiOptions.promptCacheRetention = "24h";
-        openaiOptions.reasoningEffort = "none";
-      }
+    const generateObjectOptions: any = {};
+    if (temperature !== undefined) {
+      generateObjectOptions.temperature = temperature;
     }
 
-    generateObjectOptions.providerOptions = {
-      openai: openaiOptions,
-    };
-  }
-
-  if (!modelInstance) {
-    throw new Error(`Unsupported model type: ${model}`);
-  }
-
-  const { object, usage } = await generateObject({
-    model: modelInstance,
-    schema,
-    messages,
-    ...generateObjectOptions,
-  });
-
-  const tokenUsage = usage
-    ? {
-        promptTokens: usage.inputTokens,
-        completionTokens: usage.outputTokens,
-        totalTokens: usage.totalTokens,
-        cachedInputTokens: usage.cachedInputTokens,
+    if (modelName.includes("gpt")) {
+      const openaiOptions: OpenAIResponsesProviderOptions = {
+        promptCacheKey: cacheKey || `structured-${complexity}`,
+        strictJsonSchema: false,
+      };
+      if (modelName.startsWith("gpt-5")) {
+        if (modelName.includes("mini")) {
+          openaiOptions.reasoningEffort = "low";
+        } else {
+          openaiOptions.promptCacheRetention = "24h";
+          openaiOptions.reasoningEffort = "none";
+        }
       }
-    : undefined;
+      generateObjectOptions.providerOptions = { openai: openaiOptions };
+    }
 
-  if (tokenUsage) {
-    logger.log(
-      `[Structured/${complexity.toUpperCase()}] ${model} - Tokens: ${tokenUsage.totalTokens} (prompt: ${tokenUsage.promptTokens}, completion: ${tokenUsage.completionTokens}, cached: ${tokenUsage.cachedInputTokens})`,
-    );
+    try {
+      logger.info(`[model-rotation] [Structured] trying "${modelName}" (${complexity})`);
+      const { object, usage } = await generateObject({
+        model: modelInstance,
+        schema,
+        messages,
+        ...generateObjectOptions,
+      });
+
+      const tokenUsage = usage
+        ? {
+            promptTokens: usage.inputTokens,
+            completionTokens: usage.outputTokens,
+            totalTokens: usage.totalTokens,
+            cachedInputTokens: usage.cachedInputTokens,
+          }
+        : undefined;
+
+      if (tokenUsage) {
+        logger.log(
+          `[Structured/${complexity.toUpperCase()}] ${modelName} - Tokens: ${tokenUsage.totalTokens} (prompt: ${tokenUsage.promptTokens}, completion: ${tokenUsage.completionTokens}, cached: ${tokenUsage.cachedInputTokens})`,
+        );
+      }
+
+      return { object: object as any, usage: tokenUsage };
+    } catch (err) {
+      lastError = err;
+      logger.warn(`[model-rotation] [Structured] "${modelName}" failed: ${err} — trying next`);
+    }
   }
 
-  return { object: object as any, usage: tokenUsage };
+  throw lastError ?? new Error(`All models failed (structured): ${models.join(", ")}`);
 }
 
 /**

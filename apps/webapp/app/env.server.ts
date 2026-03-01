@@ -113,6 +113,7 @@ const EnvironmentSchema = z
 
     // Model envs
     MODEL: z.string().default(LLMModelEnum.GPT41),
+    MODEL_FALLBACKS: z.string().optional(), // comma-separated fallback models, e.g. "ollama/qwen3:4b,ollama/glm-4.7:cloud"
     EMBEDDING_MODEL: z.string().default("mxbai-embed-large"),
     EMBEDDING_MODEL_SIZE: z.string().default("1024"),
     OLLAMA_URL: z.string().optional(),
