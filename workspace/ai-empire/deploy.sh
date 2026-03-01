@@ -17,6 +17,33 @@ echo "Ziel: $DEST"
 echo ""
 
 # ──────────────────────────────────────────────
+# 0. Konkurrierende Dienste pruefen
+# ──────────────────────────────────────────────
+echo "[0] Dienst-Konflikte..."
+CONFLICTS=""
+if command -v launchctl &>/dev/null; then
+    for svc in $(launchctl list 2>/dev/null | grep -i 'telegram' | awk '{print $3}'); do
+        CONFLICTS="$CONFLICTS $svc"
+    done
+fi
+
+if [ -n "$CONFLICTS" ]; then
+    echo "  WARNUNG: Telegram-Dienste aktiv:"
+    for svc in $CONFLICTS; do
+        echo "    - $svc"
+    done
+    echo ""
+    echo "  Diese verursachen 409-Conflict mit OpenClaw."
+    echo "  Stoppe nach dem Deploy mit:"
+    for svc in $CONFLICTS; do
+        echo "    launchctl bootout gui/\$(id -u)/$svc"
+    done
+else
+    echo "  OK (keine Konflikte)"
+fi
+echo ""
+
+# ──────────────────────────────────────────────
 # 1. Verzeichnisstruktur
 # ──────────────────────────────────────────────
 echo "[1/6] Erstelle Verzeichnisse..."
@@ -46,7 +73,10 @@ copy_if_exists "$SCRIPT_DIR/00_SYSTEM/OPENCLAW_RESTART_SOP.md"     "$DEST/00_SYS
 copy_if_exists "$SCRIPT_DIR/00_SYSTEM/PERFORMANCE_PROFILE.md"      "$DEST/00_SYSTEM/PERFORMANCE_PROFILE.md"
 copy_if_exists "$SCRIPT_DIR/00_SYSTEM/CONTEXT_TEST_PROMPTS.md"     "$DEST/00_SYSTEM/CONTEXT_TEST_PROMPTS.md"
 copy_if_exists "$SCRIPT_DIR/automation/context_sync.py"            "$DEST/automation/context_sync.py"
+copy_if_exists "$SCRIPT_DIR/automation/telegram-setup.sh"          "$DEST/automation/telegram-setup.sh"
+[ -f "$DEST/automation/telegram-setup.sh" ] && chmod +x "$DEST/automation/telegram-setup.sh"
 copy_if_exists "$SCRIPT_DIR/00_SYSTEM/TELEGRAM_CONTROL_SOP.md"     "$DEST/00_SYSTEM/TELEGRAM_CONTROL_SOP.md"
+copy_if_exists "$SCRIPT_DIR/00_SYSTEM/TERMINUS_QUICKREF.md"        "$DEST/00_SYSTEM/TERMINUS_QUICKREF.md"
 copy_if_exists "$SCRIPT_DIR/AGENT_CONFIG.md"                       "$DEST/AGENT_CONFIG.md"
 copy_if_exists "$SCRIPT_DIR/USER.md"                               "$DEST/USER.md"
 
@@ -217,6 +247,9 @@ for f in \
     "$DEST/00_SYSTEM/OPENCLAW_RESTART_SOP.md" \
     "$DEST/00_SYSTEM/PERFORMANCE_PROFILE.md" \
     "$DEST/automation/context_sync.py" \
+    "$DEST/automation/telegram-setup.sh" \
+    "$DEST/00_SYSTEM/TELEGRAM_CONTROL_SOP.md" \
+    "$DEST/00_SYSTEM/TERMINUS_QUICKREF.md" \
     "$DEST/shared-context/CONTEXT_SNAPSHOT.md" \
 ; do
     if [ -f "$f" ]; then

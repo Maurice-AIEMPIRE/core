@@ -1,185 +1,155 @@
-# Telegram Bot-Steuerung fuer OpenClaw
+# Telegram Bot-Steuerung
 
-> Eigenen Telegram Bot mit vollen Rechten an OpenClaw anbinden.
-> Damit kannst du OpenClaw komplett ueber Telegram steuern.
+OpenClaw per Telegram steuern.
+Optimiert fuer Terminus (iOS Terminal).
 
 ---
 
 ## Voraussetzungen
 
-- OpenClaw v2026.2.26+ installiert
+- OpenClaw v2026.2.26+
 - Telegram Account
-- Gateway laeuft (`openclaw gateway --force`)
+- Gateway laeuft
 
 ---
 
-## Phase 1: Telegram Bot erstellen
+## Phase 1: Bot erstellen
 
-### 1.1 Bot bei BotFather anlegen
+### 1.1 Bei BotFather
 
-1. Oeffne Telegram und suche `@BotFather`
-2. Sende `/newbot`
-3. Bot erstellt: **@M0Claw92bot**
-4. Token lokal gespeichert (NIEMALS in Git committen)
+1. Telegram oeffnen, `@BotFather` suchen
+2. `/newbot` senden
+3. Bot-Name + Username waehlen
+4. Token kopieren (NICHT in Git!)
 
-### 1.2 Bot-Rechte bei BotFather setzen
+### 1.2 Bot-Rechte setzen
 
-Sende diese Kommandos an @BotFather:
-
-```
-/setprivacy → M0Claw92bot → Disable
-```
-
-(Damit der Bot alle Nachrichten in Gruppen lesen kann, nicht nur /commands)
+An @BotFather senden:
 
 ```
-/setjoingroups → M0Claw92bot → Enable
+/setprivacy
 ```
+-> Bot waehlen -> Disable
 
 ```
-/setcommands → M0Claw92bot
+/setjoingroups
 ```
-
-Dann sende die Kommandoliste:
+-> Bot waehlen -> Enable
 
 ```
-status - Zeige OpenClaw Status
-deepwork - Wechsle zu DeepWork Modell
-fast - Wechsle zu schnellem Modell
-sync - Fuehre Context Sync aus
-help - Zeige Hilfe
+/setcommands
+```
+-> Bot waehlen, dann senden:
+
+```
+status - OpenClaw Status
+sync - Context Sync
+help - Hilfe
 ```
 
 ---
 
-## Phase 2: OpenClaw mit Telegram verbinden
+## Phase 2: Token in OpenClaw setzen
 
-> `openclaw channels login --channel telegram` funktioniert NICHT fuer Telegram.
-> Der Bot-Token muss direkt in die Config geschrieben werden.
+> WICHTIG: `openclaw channels login --channel telegram`
+> funktioniert NICHT. Token muss direkt gesetzt werden.
 
-### 2.1 Setup-Script ausfuehren (empfohlen)
+### Option A: Setup-Script (empfohlen)
 
 ```bash
 bash ~/ai-empire-core/workspace/ai-empire/automation/telegram-setup.sh
 ```
 
-Das Script:
-- Fragt den Bot-Token ab (ohne Echo — Token wird nicht angezeigt)
-- Prueft das Token-Format
-- Setzt `channels.telegram.botToken` in der Config
-- Setzt `dmPolicy: owner` (nur du kannst den Bot steuern)
-- Erstellt ein Backup der Config
+Oder mit Token direkt (kein Prompt):
 
-### 2.2 Alternativ: Token manuell in Config setzen
+```bash
+bash ~/ai-empire-core/workspace/ai-empire/automation/telegram-setup.sh --token DEIN_TOKEN
+```
+
+### Option B: Manuell per Python
 
 ```bash
 python3 -c "
 import json
-cfg = json.load(open('$HOME/.openclaw/openclaw.json'))
-tg = cfg.setdefault('channels', {}).setdefault('telegram', {})
-tg['enabled'] = True
-tg['botToken'] = input('Bot-Token: ')
-tg['dmPolicy'] = 'owner'
-tg['groupPolicy'] = 'allowlist'
-tg['streaming'] = 'off'
-json.dump(cfg, open('$HOME/.openclaw/openclaw.json', 'w'), indent=2)
+p='$HOME/.openclaw/openclaw.json'
+c=json.load(open(p))
+t=c.setdefault('channels',{}).setdefault('telegram',{})
+t['enabled']=True
+t['botToken']=input('Token: ')
+t['dmPolicy']='owner'
+t['groupPolicy']='allowlist'
+t['streaming']='off'
+json.dump(c,open(p,'w'),indent=2)
 print('OK')
 "
 ```
 
-### 2.3 Validieren + Gateway neustarten
+### Validieren
 
 ```bash
 openclaw doctor --fix
+```
+
+```bash
 openclaw gateway --force
+```
+
+```bash
 openclaw status
 ```
 
-Erwartung: `Telegram: linked` (statt `not configured`)
+Erwartung: `Telegram: linked`
 
 ---
 
-## Phase 3: DM-Pairing (Bot mit deinem Account verbinden)
+## Phase 3: DM-Pairing
 
 ### 3.1 Pairing starten
-
-```bash
-openclaw channels --help
-```
-
-```bash
-openclaw pairing --help
-```
-
-Finde den richtigen Pairing-Befehl fuer Telegram. Typisch:
 
 ```bash
 openclaw pairing approve --channel telegram
 ```
 
-### 3.2 Ersten DM an Bot senden
+### 3.2 Ersten DM senden
 
-1. Oeffne Telegram
-2. Suche deinen Bot (@M0Claw92bot)
-3. Sende eine Nachricht (z.B. "Hello")
-4. OpenClaw sollte ueber den Agent antworten
+1. Telegram oeffnen
+2. Deinen Bot suchen
+3. "Hello" senden
+4. Agent sollte antworten
 
-### 3.3 Owner-Rechte verifizieren
+### 3.3 Owner verifizieren
 
 ```bash
 openclaw directory self --channel telegram
 ```
 
-Das zeigt deine Telegram User-ID. Notiere sie.
-
 ---
 
-## Phase 4: Volle Steuerung (alle Rechte)
+## Phase 4: Gruppen (optional)
 
-### 4.1 dmPolicy auf "owner" setzen
-
-Damit nur DU den Bot steuern kannst (kein open access):
-
-Die Config hat bereits `dmPolicy: "pairing"`. Fuer volle Kontrolle:
-
-```bash
-cat ~/.openclaw/openclaw.json | python3 -c "
-import json, sys
-cfg = json.load(sys.stdin)
-cfg['channels']['telegram']['dmPolicy'] = 'owner'
-json.dump(cfg, sys.stdout, indent=2)
-" > /tmp/oc_tmp.json && mv /tmp/oc_tmp.json ~/.openclaw/openclaw.json
-```
-
-### 4.2 Gruppen-Steuerung (optional)
-
-Falls du den Bot auch in Telegram-Gruppen nutzen willst:
+Gruppen auflisten:
 
 ```bash
 openclaw directory groups --channel telegram
 ```
 
-Dann die gewuenschte Gruppe zur Allowlist hinzufuegen.
+Dann Gruppe zur Allowlist hinzufuegen.
 
 ---
 
-## Phase 5: Kommandos ueber Telegram
+## Kommandos per Telegram
 
-Nachdem Pairing abgeschlossen ist, kannst du per Telegram-DM:
+| Nachricht | Ergebnis |
+|-----------|----------|
+| Text | Agent antwortet |
+| `/status` | OpenClaw Status |
+| Datei/Bild | Agent verarbeitet |
 
-| Nachricht | Was passiert |
-|-----------|-------------|
-| Jede Textnachricht | Agent antwortet (wie WhatsApp) |
-| `/status` | Bot zeigt OpenClaw Status |
-| Dateien/Bilder senden | Agent verarbeitet (falls Skill vorhanden) |
-
-### Custom Skills per Telegram triggern
+Skills auflisten:
 
 ```bash
 openclaw skills list
 ```
-
-Alle eligible Skills sind auch per Telegram nutzbar.
 
 ---
 
@@ -187,21 +157,56 @@ Alle eligible Skills sind auch per Telegram nutzbar.
 
 ### "Telegram: not configured"
 
-Der Bot-Token fehlt oder ist ungueltig:
+Token fehlt. Setup-Script erneut ausfuehren:
 
 ```bash
-openclaw channels login --channel telegram --verbose
+bash ~/ai-empire-core/workspace/ai-empire/automation/telegram-setup.sh
+```
+
+### 409 Conflict (getUpdates)
+
+Ein anderer Prozess pollt denselben Bot.
+Typisch: `com.ai-empire.telegram-router`
+
+Pruefen:
+
+```bash
+launchctl list | grep -i telegram
+```
+
+Stoppen:
+
+```bash
+launchctl bootout gui/$(id -u)/com.ai-empire.telegram-router
+```
+
+Dann Gateway neu starten:
+
+```bash
+openclaw gateway --force
 ```
 
 ### Bot antwortet nicht
 
-1. Gateway laeuft? `openclaw status`
-2. Pairing abgeschlossen? `openclaw pairing list --channel telegram`
-3. Logs pruefen: `openclaw logs --channel telegram`
+1. Gateway laeuft?
+
+```bash
+openclaw status
+```
+
+2. Pairing ok?
+
+```bash
+openclaw pairing list --channel telegram
+```
+
+3. Logs pruefen:
+
+```bash
+openclaw logs --channel telegram
+```
 
 ### Rate Limits
-
-Telegram hat eigene Rate Limits. Falls Nachrichten verloren gehen:
 
 ```bash
 openclaw config set channels.telegram.debounceMs 500
@@ -209,9 +214,10 @@ openclaw config set channels.telegram.debounceMs 500
 
 ---
 
-## Sicherheitshinweise
+## Sicherheit
 
-- **Bot-Token ist ein Secret** — niemals in Logs, Git oder Output zeigen
-- **dmPolicy: "owner"** — nur du kannst den Bot steuern
-- **groupPolicy: "allowlist"** — Bot reagiert nur in freigegebenen Gruppen
-- Regelmaessig pruefen: `openclaw security audit --deep`
+- Bot-Token ist ein Secret — nie in Git
+- dmPolicy: "owner" — nur du steuerst
+- groupPolicy: "allowlist" — nur freigegebene Gruppen
+- Token geleakt? -> @BotFather -> /revoke
+- Audit: `openclaw security audit --deep`
