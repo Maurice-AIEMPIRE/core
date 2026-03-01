@@ -15,8 +15,8 @@
 ### 1. OpenClaw Binary
 
 ```bash
-Mac: which -a openclaw
-Mac: openclaw --version
+which -a openclaw
+openclaw --version
 ```
 
 **Output:**
@@ -27,7 +27,7 @@ Mac: openclaw --version
 ### 2. OpenClaw Doctor
 
 ```bash
-Mac: openclaw doctor
+openclaw doctor
 ```
 
 **Output:**
@@ -38,7 +38,7 @@ Mac: openclaw doctor
 ### 3. Port 18789 Check
 
 ```bash
-Mac: lsof -nP -iTCP:18789 -sTCP:LISTEN
+lsof -nP -iTCP:18789 -sTCP:LISTEN
 ```
 
 **Output:**
@@ -49,7 +49,7 @@ Mac: lsof -nP -iTCP:18789 -sTCP:LISTEN
 ### 4. OpenClaw Status
 
 ```bash
-Mac: openclaw status
+openclaw status
 ```
 
 **Output:**
@@ -60,7 +60,7 @@ Mac: openclaw status
 ### 5. Ollama Modelle
 
 ```bash
-Mac: ollama list
+ollama list
 ```
 
 **Output:**
@@ -71,7 +71,7 @@ Mac: ollama list
 ### 6. Disk Space
 
 ```bash
-Mac: df -h /
+df -h /
 ```
 
 **Output:**
@@ -97,7 +97,7 @@ Mac: df -h /
 Einmal ausführen und Output oben einfügen:
 
 ```bash
-Mac: echo "=== OPENCLAW DIAG $(date) ===" && \
+echo "=== OPENCLAW DIAG $(date) ===" && \
   echo "--- which ---" && which -a openclaw 2>&1 && \
   echo "--- version ---" && openclaw --version 2>&1 && \
   echo "--- doctor ---" && openclaw doctor 2>&1 && \

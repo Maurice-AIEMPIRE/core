@@ -39,7 +39,7 @@ Refresh context now.
 **Mac-Kommando für manuellen Refresh:**
 
 ```bash
-Mac: python3 ~/.openclaw/workspace/ai-empire/automation/context_sync.py
+python3 ~/.openclaw/workspace/ai-empire/automation/context_sync.py
 ```
 
 ---
@@ -47,7 +47,7 @@ Mac: python3 ~/.openclaw/workspace/ai-empire/automation/context_sync.py
 ## Test 4: Snapshot Existenz
 
 ```bash
-Mac: cat ~/.openclaw/workspace/ai-empire/shared-context/CONTEXT_SNAPSHOT.md
+cat ~/.openclaw/workspace/ai-empire/shared-context/CONTEXT_SNAPSHOT.md
 ```
 
 **Erwartung:** Datei existiert, hat aktuellen Timestamp, enthält keine Secrets.
@@ -57,7 +57,7 @@ Mac: cat ~/.openclaw/workspace/ai-empire/shared-context/CONTEXT_SNAPSHOT.md
 ## Test 5: Scheduler aktiv
 
 ```bash
-Mac: launchctl list | grep ai.empire
+launchctl list | grep ai.empire
 ```
 
 **Erwartung:** `ai.empire.contextsync.hourly` ist gelistet mit PID oder Status 0.

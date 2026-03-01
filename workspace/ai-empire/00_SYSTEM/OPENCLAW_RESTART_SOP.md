@@ -14,14 +14,14 @@
 ## 1. Pre-Restart: Backup
 
 ```bash
-Mac: cp ~/.openclaw/openclaw.json ~/.openclaw/openclaw.json.bak.$(date +%Y%m%d_%H%M%S)
+cp ~/.openclaw/openclaw.json ~/.openclaw/openclaw.json.bak.$(date +%Y%m%d_%H%M%S)
 ```
 
 ## 2. Gesundheitscheck vor Restart
 
 ```bash
-Mac: openclaw doctor
-Mac: openclaw status
+openclaw doctor
+openclaw status
 ```
 
 Nur fortfahren wenn `doctor` keine kritischen Fehler zeigt.
@@ -29,8 +29,8 @@ Nur fortfahren wenn `doctor` keine kritischen Fehler zeigt.
 ## 3. Config validieren und fixen
 
 ```bash
-Mac: openclaw doctor --fix
-Mac: openclaw doctor
+openclaw doctor --fix
+openclaw doctor
 ```
 
 Prüfe Output: Alle Checks sollten PASS zeigen.
@@ -40,7 +40,7 @@ Prüfe Output: Alle Checks sollten PASS zeigen.
 Falls noch nicht gesetzt:
 
 ```bash
-Mac: cat ~/.openclaw/openclaw.json | python3 -c "
+cat ~/.openclaw/openclaw.json | python3 -c "
 import json, sys
 cfg = json.load(sys.stdin)
 cfg.setdefault('commands', {})['restart'] = True
@@ -51,27 +51,27 @@ json.dump(cfg, sys.stdout, indent=2)
 Verifizieren:
 
 ```bash
-Mac: python3 -c "import json; c=json.load(open('$HOME/.openclaw/openclaw.json')); print('restart:', c.get('commands',{}).get('restart','NOT SET'))"
+python3 -c "import json; c=json.load(open('$HOME/.openclaw/openclaw.json')); print('restart:', c.get('commands',{}).get('restart','NOT SET'))"
 ```
 
 ## 5. Sicherer Restart
 
 ```bash
-Mac: openclaw restart
+openclaw restart
 ```
 
 Falls `openclaw restart` nicht verfügbar:
 
 ```bash
-Mac: openclaw stop && sleep 2 && openclaw start
+openclaw stop && sleep 2 && openclaw start
 ```
 
 ## 6. Post-Restart Verifizierung
 
 ```bash
-Mac: openclaw doctor
-Mac: openclaw status
-Mac: lsof -nP -iTCP:18789 -sTCP:LISTEN
+openclaw doctor
+openclaw status
+lsof -nP -iTCP:18789 -sTCP:LISTEN
 ```
 
 Erwartung:
@@ -86,13 +86,13 @@ Erwartung:
 Ermittle verfügbare Agents:
 
 ```bash
-Mac: openclaw agents list
+openclaw agents list
 ```
 
 Setze Allowlist (ersetze AGENT_ID durch tatsächliche ID):
 
 ```bash
-Mac: cat ~/.openclaw/openclaw.json | python3 -c "
+cat ~/.openclaw/openclaw.json | python3 -c "
 import json, sys
 cfg = json.load(sys.stdin)
 cfg.setdefault('sessions', {})['spawn'] = {'allowed': ['AGENT_ID']}
@@ -115,25 +115,25 @@ Stattdessen Cron/Jobs für automatisierte Tasks nutzen (siehe Phase D).
 Falls Port 18789 belegt:
 
 ```bash
-Mac: lsof -nP -iTCP:18789 -sTCP:LISTEN
+lsof -nP -iTCP:18789 -sTCP:LISTEN
 ```
 
 ### Option A: Blockierenden Prozess beenden
 
 ```bash
-Mac: kill -TERM $(lsof -t -iTCP:18789 -sTCP:LISTEN)
+kill -TERM $(lsof -t -iTCP:18789 -sTCP:LISTEN)
 ```
 
 ### Option B: Alternativen Port nutzen
 
 ```bash
-Mac: cat ~/.openclaw/openclaw.json | python3 -c "
+cat ~/.openclaw/openclaw.json | python3 -c "
 import json, sys
 cfg = json.load(sys.stdin)
 cfg.setdefault('gateway', {})['port'] = 18790
 json.dump(cfg, sys.stdout, indent=2)
 " > /tmp/openclaw_tmp.json && mv /tmp/openclaw_tmp.json ~/.openclaw/openclaw.json
-Mac: openclaw restart
+openclaw restart
 ```
 
 ---
@@ -143,9 +143,9 @@ Mac: openclaw restart
 Falls etwas schiefgeht:
 
 ```bash
-Mac: ls -t ~/.openclaw/openclaw.json.bak.* | head -1
-Mac: cp $(ls -t ~/.openclaw/openclaw.json.bak.* | head -1) ~/.openclaw/openclaw.json
-Mac: openclaw restart
+ls -t ~/.openclaw/openclaw.json.bak.* | head -1
+cp $(ls -t ~/.openclaw/openclaw.json.bak.* | head -1) ~/.openclaw/openclaw.json
+openclaw restart
 ```
 
 ---

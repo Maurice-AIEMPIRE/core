@@ -16,7 +16,7 @@
 ### Setzen auf dem Mac
 
 ```bash
-Mac: cat ~/.openclaw/openclaw.json | python3 -c "
+cat ~/.openclaw/openclaw.json | python3 -c "
 import json, sys
 cfg = json.load(sys.stdin)
 cfg.setdefault('models', {})['default'] = 'ollama/qwen3:8b'
@@ -29,13 +29,13 @@ json.dump(cfg, sys.stdout, indent=2)
 ### Verfügbare Modelle prüfen
 
 ```bash
-Mac: ollama list
+ollama list
 ```
 
 Falls `qwen3:8b` nicht installiert:
 
 ```bash
-Mac: ollama pull qwen3:8b
+ollama pull qwen3:8b
 ```
 
 ---
@@ -47,7 +47,7 @@ Temporär auf ein größeres Modell umschalten für komplexe Aufgaben.
 ### Aktivieren
 
 ```bash
-Mac: cat ~/.openclaw/openclaw.json | python3 -c "
+cat ~/.openclaw/openclaw.json | python3 -c "
 import json, sys
 cfg = json.load(sys.stdin)
 cfg.setdefault('models', {})['default'] = 'ollama/qwen3:32b'
@@ -60,7 +60,7 @@ json.dump(cfg, sys.stdout, indent=2)
 ### Deaktivieren (zurück zu Standard)
 
 ```bash
-Mac: cat ~/.openclaw/openclaw.json | python3 -c "
+cat ~/.openclaw/openclaw.json | python3 -c "
 import json, sys
 cfg = json.load(sys.stdin)
 cfg.setdefault('models', {})['default'] = 'ollama/qwen3:8b'
@@ -75,7 +75,7 @@ json.dump(cfg, sys.stdout, indent=2)
 Erstelle zwei Aliases in `~/.zshrc`:
 
 ```bash
-Mac: cat >> ~/.zshrc << 'ALIASES'
+cat >> ~/.zshrc << 'ALIASES'
 
 # OpenClaw DeepWork Toggle
 alias deepwork-on='python3 -c "
@@ -98,7 +98,7 @@ json.dump(cfg,open(\"$HOME/.openclaw/openclaw.json\",\"w\"),indent=2)
 print(\"DeepWork OFF: qwen3:8b, thinking=minimal\")
 "'
 ALIASES
-Mac: source ~/.zshrc
+source ~/.zshrc
 ```
 
 ---
@@ -114,8 +114,8 @@ Mac: source ~/.zshrc
 ### Ollama Parallel konfigurieren
 
 ```bash
-Mac: launchctl setenv OLLAMA_NUM_PARALLEL 2
-Mac: launchctl setenv OLLAMA_MAX_LOADED_MODELS 2
+launchctl setenv OLLAMA_NUM_PARALLEL 2
+launchctl setenv OLLAMA_MAX_LOADED_MODELS 2
 ```
 
 Oder in `~/.zshrc`:
@@ -141,8 +141,8 @@ export OLLAMA_MAX_LOADED_MODELS=2
 
 ## Latenz-Checkliste
 
-- [ ] Ollama läuft: `Mac: ollama ps`
-- [ ] Modell geladen: `Mac: ollama list | grep qwen3`
-- [ ] Keine GPU-Konkurrenz: `Mac: ps aux | grep -i gpu`
-- [ ] RAM frei: `Mac: memory_pressure` (Ziel: < 75%)
-- [ ] OpenClaw Gateway connected: `Mac: openclaw status`
+- [ ] Ollama läuft: `ollama ps`
+- [ ] Modell geladen: `ollama list | grep qwen3`
+- [ ] Keine GPU-Konkurrenz: `ps aux | grep -i gpu`
+- [ ] RAM frei: `memory_pressure` (Ziel: < 75%)
+- [ ] OpenClaw Gateway connected: `openclaw status`
