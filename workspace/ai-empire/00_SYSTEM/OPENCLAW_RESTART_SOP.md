@@ -1,13 +1,14 @@
 # OpenClaw Restart SOP
 
-> Standard Operating Procedure für sicheres Stoppen und Neustarten von OpenClaw.
+> Standard Operating Procedure fuer sicheres Stoppen und Neustarten von OpenClaw.
+> Basiert auf `openclaw --help` (v2026.2.26).
 
 ---
 
 ## Voraussetzungen
 
-- `commands.restart=true` in `~/.openclaw/openclaw.json` gesetzt
-- Backup der Config existiert (siehe unten)
+- OpenClaw installiert (`which openclaw`)
+- Config valid (`openclaw doctor`)
 
 ---
 
@@ -21,6 +22,9 @@ cp ~/.openclaw/openclaw.json ~/.openclaw/openclaw.json.bak.$(date +%Y%m%d_%H%M%S
 
 ```bash
 openclaw doctor
+```
+
+```bash
 openclaw status
 ```
 
@@ -30,87 +34,103 @@ Nur fortfahren wenn `doctor` keine kritischen Fehler zeigt.
 
 ```bash
 openclaw doctor --fix
+```
+
+## 4. Gateway neu starten
+
+`openclaw restart` existiert nicht. Stattdessen:
+
+### Option A: Gateway mit --force (bevorzugt)
+
+Killt den alten Gateway-Prozess auf dem Port und startet neu:
+
+```bash
+openclaw gateway --force
+```
+
+### Option B: Gateway manuell stoppen + starten
+
+```bash
+lsof -t -iTCP:18789 -sTCP:LISTEN | xargs kill -TERM 2>/dev/null; sleep 2; openclaw gateway
+```
+
+### Option C: Gateway im Hintergrund
+
+```bash
+openclaw gateway --force &
+```
+
+## 5. Post-Restart Verifizierung
+
+```bash
 openclaw doctor
 ```
 
-Prüfe Output: Alle Checks sollten PASS zeigen.
+```bash
+openclaw status
+```
 
-## 4. Restart aktivieren (einmalig)
+```bash
+lsof -nP -iTCP:18789 -sTCP:LISTEN
+```
 
-Falls noch nicht gesetzt:
+Erwartung:
+- Doctor: keine kritischen Fehler
+- Status: WhatsApp linked, Gateway connected
+- Port 18789: openclaw Prozess lauscht
+
+## 6. Modell konfigurieren
+
+Korrekte Config-Pfade (Schema v2026.2.26):
+
+```
+agents.defaults.model.primary    → z.B. "ollama/qwen3:8b"
+agents.defaults.model.fallbacks  → z.B. ["ollama/qwen3:4b"]
+```
+
+Per CLI setzen:
+
+```bash
+openclaw config set agents.defaults.model.primary "ollama/qwen3:8b"
+```
+
+Oder per JSON:
 
 ```bash
 cat ~/.openclaw/openclaw.json | python3 -c "
 import json, sys
 cfg = json.load(sys.stdin)
-cfg.setdefault('commands', {})['restart'] = True
+cfg['agents']['defaults']['model']['primary'] = 'ollama/qwen3:8b'
 json.dump(cfg, sys.stdout, indent=2)
-" > /tmp/openclaw_tmp.json && mv /tmp/openclaw_tmp.json ~/.openclaw/openclaw.json
+" > /tmp/oc_tmp.json && mv /tmp/oc_tmp.json ~/.openclaw/openclaw.json
 ```
 
-Verifizieren:
+Danach validieren:
 
 ```bash
-python3 -c "import json; c=json.load(open('$HOME/.openclaw/openclaw.json')); print('restart:', c.get('commands',{}).get('restart','NOT SET'))"
+openclaw doctor --fix
 ```
-
-## 5. Sicherer Restart
-
-```bash
-openclaw restart
-```
-
-Falls `openclaw restart` nicht verfügbar:
-
-```bash
-openclaw stop && sleep 2 && openclaw start
-```
-
-## 6. Post-Restart Verifizierung
-
-```bash
-openclaw doctor
-openclaw status
-lsof -nP -iTCP:18789 -sTCP:LISTEN
-```
-
-Erwartung:
-- Doctor: alle Checks PASS
-- Status: Gateway connected
-- Port 18789: openclaw Prozess lauscht
 
 ## 7. sessions_spawn Konfiguration
 
 ### Option A: Agent-Allowlist (bevorzugt)
 
-Ermittle verfügbare Agents:
+Ermittle verfuegbare Agents:
 
 ```bash
 openclaw agents list
 ```
 
-Setze Allowlist (ersetze AGENT_ID durch tatsächliche ID):
-
-```bash
-cat ~/.openclaw/openclaw.json | python3 -c "
-import json, sys
-cfg = json.load(sys.stdin)
-cfg.setdefault('sessions', {})['spawn'] = {'allowed': ['AGENT_ID']}
-json.dump(cfg, sys.stdout, indent=2)
-" > /tmp/openclaw_tmp.json && mv /tmp/openclaw_tmp.json ~/.openclaw/openclaw.json
-```
-
 ### Option B: Spawn deaktiviert lassen
 
-Wenn unklar welche Agents erlaubt sein sollen → spawn bleibt `none`.
-Stattdessen Cron/Jobs für automatisierte Tasks nutzen (siehe Phase D).
+Wenn unklar welche Agents erlaubt sein sollen, bleibt spawn `none`.
+Stattdessen Cron-basierte Automatisierung nutzen:
 
-**Dokumentation:** sessions_spawn bleibt deaktiviert weil:
-- Sicherheitsrisiko bei offener Allowlist
-- Cron-basierte Automatisierung ist vorhersagbarer
-- Explizite Agent-Zuweisung ist sicherer
+```bash
+openclaw cron --help
+```
 
-## 8. Port-Konflikt lösen
+## 8. Port-Konflikt loesen
 
 Falls Port 18789 belegt:
 
@@ -118,22 +138,16 @@ Falls Port 18789 belegt:
 lsof -nP -iTCP:18789 -sTCP:LISTEN
 ```
 
-### Option A: Blockierenden Prozess beenden
+### Option A: --force (raeumt den Port automatisch)
 
 ```bash
-kill -TERM $(lsof -t -iTCP:18789 -sTCP:LISTEN)
+openclaw gateway --force
 ```
 
 ### Option B: Alternativen Port nutzen
 
 ```bash
-cat ~/.openclaw/openclaw.json | python3 -c "
-import json, sys
-cfg = json.load(sys.stdin)
-cfg.setdefault('gateway', {})['port'] = 18790
-json.dump(cfg, sys.stdout, indent=2)
-" > /tmp/openclaw_tmp.json && mv /tmp/openclaw_tmp.json ~/.openclaw/openclaw.json
-openclaw restart
+openclaw gateway --port 18790
 ```
 
 ---
@@ -143,9 +157,15 @@ openclaw restart
 Falls etwas schiefgeht:
 
 ```bash
-ls -t ~/.openclaw/openclaw.json.bak.* | head -1
 cp $(ls -t ~/.openclaw/openclaw.json.bak.* | head -1) ~/.openclaw/openclaw.json
-openclaw restart
+```
+
+```bash
+openclaw doctor --fix
+```
+
+```bash
+openclaw gateway --force
 ```
 
 ---
@@ -154,7 +174,7 @@ openclaw restart
 
 - [ ] Backup erstellt
 - [ ] Doctor clean vor Restart
-- [ ] Restart erfolgreich
+- [ ] `openclaw gateway --force` erfolgreich
 - [ ] Doctor clean nach Restart
 - [ ] Port 18789 aktiv
-- [ ] Gateway connected
+- [ ] WhatsApp linked

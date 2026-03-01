@@ -46,6 +46,7 @@ copy_if_exists "$SCRIPT_DIR/00_SYSTEM/OPENCLAW_RESTART_SOP.md"     "$DEST/00_SYS
 copy_if_exists "$SCRIPT_DIR/00_SYSTEM/PERFORMANCE_PROFILE.md"      "$DEST/00_SYSTEM/PERFORMANCE_PROFILE.md"
 copy_if_exists "$SCRIPT_DIR/00_SYSTEM/CONTEXT_TEST_PROMPTS.md"     "$DEST/00_SYSTEM/CONTEXT_TEST_PROMPTS.md"
 copy_if_exists "$SCRIPT_DIR/automation/context_sync.py"            "$DEST/automation/context_sync.py"
+copy_if_exists "$SCRIPT_DIR/00_SYSTEM/TELEGRAM_CONTROL_SOP.md"     "$DEST/00_SYSTEM/TELEGRAM_CONTROL_SOP.md"
 copy_if_exists "$SCRIPT_DIR/AGENT_CONFIG.md"                       "$DEST/AGENT_CONFIG.md"
 copy_if_exists "$SCRIPT_DIR/USER.md"                               "$DEST/USER.md"
 
@@ -72,18 +73,32 @@ except Exception as e:
     print(f"  WARN: Konnte Config nicht lesen: {e}", file=sys.stderr)
     sys.exit(0)
 
-# Restart aktivieren
-cfg.setdefault("commands", {})["restart"] = True
+changed = []
 
-# Schnelles Default-Modell
-cfg.setdefault("models", {})["default"] = "ollama/qwen3:8b"
-cfg["models"]["thinking"] = "minimal"
-cfg["models"]["max_tokens"] = 2048
+# Set default model via agents.defaults.model.primary
+agents = cfg.setdefault("agents", {})
+defaults = agents.setdefault("defaults", {})
+model = defaults.setdefault("model", {})
+if model.get("primary") != "ollama/qwen3:8b":
+    model["primary"] = "ollama/qwen3:8b"
+    changed.append("agents.defaults.model.primary=ollama/qwen3:8b")
 
-with open(cfg_path, "w") as f:
-    json.dump(cfg, f, indent=2)
+if "fallbacks" not in model:
+    model["fallbacks"] = ["ollama/qwen3:4b"]
+    changed.append("agents.defaults.model.fallbacks=[qwen3:4b]")
 
-print("  restart=true, model=ollama/qwen3:8b, thinking=minimal")
+# Enable restart command
+commands = cfg.setdefault("commands", {})
+if commands.get("restart") is not True:
+    commands["restart"] = True
+    changed.append("commands.restart=true")
+
+if changed:
+    with open(cfg_path, "w") as f:
+        json.dump(cfg, f, indent=2)
+    print("  " + ", ".join(changed))
+else:
+    print("  Config already correct — no changes needed")
 PYEOF
     echo "  OK"
 else
@@ -193,9 +208,10 @@ if [ -f "$OC_CFG" ]; then
     python3 -c "
 import json
 c = json.load(open('$OC_CFG'))
-print(f\"    restart: {c.get('commands',{}).get('restart','NOT SET')}\")
-print(f\"    model:   {c.get('models',{}).get('default','NOT SET')}\")
-print(f\"    thinking:{c.get('models',{}).get('thinking','NOT SET')}\")
+model = c.get('agents',{}).get('defaults',{}).get('model',{})
+print(f\"    primary model: {model.get('primary','NOT SET')}\")
+print(f\"    fallbacks:     {model.get('fallbacks','NOT SET')}\")
+print(f\"    restart:       {c.get('commands',{}).get('restart','NOT SET')}\")
 " 2>/dev/null || echo "    WARN: Konnte Config nicht lesen"
 else
     echo "    Nicht gefunden"
@@ -206,5 +222,5 @@ echo "=== Deploy abgeschlossen ==="
 echo ""
 echo "Nächste Schritte:"
 echo "  1. openclaw doctor --fix"
-echo "  2. openclaw restart"
+echo "  2. openclaw gateway --force    (startet Gateway neu)"
 echo "  3. Test: python3 $DEST/automation/context_sync.py --dry-run"

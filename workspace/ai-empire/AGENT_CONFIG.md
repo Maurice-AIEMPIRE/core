@@ -59,25 +59,43 @@ Dann erneut laden.
 
 ### Standard Agent (Default)
 
-- **Modell:** `ollama/qwen3:8b`
-- **Thinking:** `minimal`
+- **Modell:** `ollama/qwen3:8b` (via `agents.defaults.model.primary`)
+- **Fallback:** `ollama/qwen3:4b`
 - **Kontext-Quellen:** USER.md, CONTEXT_SNAPSHOT.md, Tages-Memory
-- **Einsatz:** Alltags-Chat, Quick Questions, WhatsApp Replies
+- **Einsatz:** Alltags-Chat, Quick Questions, WhatsApp + Telegram Replies
 
 ### DeepWork Agent
 
-- **Modell:** `ollama/qwen3:32b` (oder bestes verfügbares)
-- **Thinking:** `high`
+- **Modell:** `ollama/glm-4.7:cloud` (oder bestes verfuegbares)
 - **Kontext-Quellen:** Alle + relevante Projektdateien
 - **Einsatz:** Code Review, Architektur, komplexe Analyse
 - **Aktivierung:** `deepwork-on` / `deepwork-off` (siehe PERFORMANCE_PROFILE.md)
 
 ### Context Sync Agent (Automatisch)
 
-- **Trigger:** Stündlich via launchd
+- **Trigger:** Stuendlich via launchd
 - **Script:** `automation/context_sync.py`
 - **Output:** `shared-context/CONTEXT_SNAPSHOT.md`
-- **Kein User-Interaction nötig**
+- **Kein User-Interaction noetig**
+
+---
+
+## Channels
+
+### WhatsApp
+
+- **Status:** linked
+- **Config:** `channels.whatsapp.enabled: true`
+- **DM Policy:** `pairing`
+- **Group Policy:** `allowlist`
+
+### Telegram (Bot-Steuerung)
+
+- **Status:** Einrichtung — siehe `00_SYSTEM/TELEGRAM_CONTROL_SOP.md`
+- **Config:** `channels.telegram.enabled: true`
+- **DM Policy:** `owner` (nur du kannst den Bot steuern)
+- **Group Policy:** `allowlist`
+- **Setup:** `openclaw channels login --channel telegram`
 
 ---
 
@@ -89,9 +107,10 @@ Dann erneut laden.
 ├── USER.md                            ← User-Profil (manuell pflegen)
 ├── 00_SYSTEM/
 │   ├── DIAG_OPENCLAW_*.md             ← Diagnose-Reports
-│   ├── OPENCLAW_RESTART_SOP.md        ← Restart-Anleitung
+│   ├── OPENCLAW_RESTART_SOP.md        ← Restart-Anleitung (gateway --force)
 │   ├── PERFORMANCE_PROFILE.md         ← Modell-Konfiguration
-│   └── CONTEXT_TEST_PROMPTS.md        ← Test-Prompts für Context Sync
+│   ├── TELEGRAM_CONTROL_SOP.md        ← Telegram Bot Setup + Steuerung
+│   └── CONTEXT_TEST_PROMPTS.md        ← Test-Prompts fuer Context Sync
 ├── automation/
 │   ├── context_sync.py                ← Stündlicher Context Sync
 │   └── ai.empire.contextsync.hourly.plist ← launchd Scheduler
