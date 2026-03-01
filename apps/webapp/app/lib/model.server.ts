@@ -32,6 +32,11 @@ export function getModelForTask(complexity: ModelComplexity = "high"): string {
     return baseModel;
   }
 
+  // Ollama models (local/cloud-proxied) have no cheaper variant — use as-is
+  if (baseModel.startsWith("ollama/") || process.env.OLLAMA_URL) {
+    return baseModel;
+  }
+
   // LOW complexity - automatically downgrade expensive models to cheaper variants
   // If already using a cheap model, keep it
   const downgrades: Record<string, string> = {
@@ -63,42 +68,45 @@ export const getModel = (takeModel?: string) => {
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
-  let ollamaUrl = process.env.OLLAMA_URL;
+  const ollamaUrl = process.env.OLLAMA_URL;
   model = model || process.env.MODEL || "gpt-4.1-2025-04-14";
 
+  // Handle ollama/modelname format (used by OpenClaw gateway)
+  if (model.startsWith("ollama/")) {
+    const ollamaModelName = model.slice("ollama/".length);
+    const baseURL = ollamaUrl || "http://localhost:11434";
+    const ollama = createOllama({ baseURL });
+    return ollama(ollamaModelName);
+  }
+
   let modelInstance;
-  let modelTemperature = Number(process.env.MODEL_TEMPERATURE) || 1;
-  ollamaUrl = undefined;
 
-  // First check if Ollama URL exists and use Ollama
+  // Use Ollama when OLLAMA_URL is configured
   if (ollamaUrl) {
-    const ollama = createOllama({
-      baseURL: ollamaUrl,
-    });
-    modelInstance = ollama(model || "llama2"); // Default to llama2 if no model specified
-  } else {
-    // If no Ollama, check other models
-
-    if (model.includes("claude")) {
-      if (!anthropicKey) {
-        throw new Error("No Anthropic API key found. Set ANTHROPIC_API_KEY");
-      }
-      modelInstance = anthropic(model);
-      modelTemperature = 0.5;
-    } else if (model.includes("gemini")) {
-      if (!googleKey) {
-        throw new Error("No Google API key found. Set GOOGLE_API_KEY");
-      }
-      modelInstance = google(model);
-    } else {
-      if (!openaiKey) {
-        throw new Error("No OpenAI API key found. Set OPENAI_API_KEY");
-      }
-      modelInstance = openai.responses(model);
-    }
-
+    const ollama = createOllama({ baseURL: ollamaUrl });
+    modelInstance = ollama(model);
     return modelInstance;
   }
+
+  // Cloud providers
+  if (model.includes("claude")) {
+    if (!anthropicKey) {
+      throw new Error("No Anthropic API key found. Set ANTHROPIC_API_KEY");
+    }
+    modelInstance = anthropic(model);
+  } else if (model.includes("gemini")) {
+    if (!googleKey) {
+      throw new Error("No Google API key found. Set GOOGLE_GENERATIVE_AI_API_KEY");
+    }
+    modelInstance = google(model);
+  } else {
+    if (!openaiKey) {
+      throw new Error("No OpenAI API key found. Set OPENAI_API_KEY");
+    }
+    modelInstance = openai.responses(model);
+  }
+
+  return modelInstance;
 };
 
 export interface TokenUsage {
@@ -284,6 +292,9 @@ export function isProprietaryModel(
 ): boolean {
   const model = modelName || getModelForTask(complexity);
   if (!model) return false;
+
+  // Ollama models (local or cloud-proxied via ollama/) are never proprietary
+  if (model.startsWith("ollama/") || process.env.OLLAMA_URL) return false;
 
   // Proprietary model patterns
   const proprietaryPatterns = [
