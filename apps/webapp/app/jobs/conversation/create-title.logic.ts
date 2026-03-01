@@ -2,7 +2,7 @@ import { conversationTitlePrompt } from "~/trigger/conversation/prompt";
 import { prisma } from "~/trigger/utils/prisma";
 import { logger } from "~/services/logger.service";
 import { generateText, type LanguageModel } from "ai";
-import { getModel } from "~/lib/model.server";
+import { getWorkingModel } from "~/lib/model.server";
 
 export interface CreateConversationTitlePayload {
   conversationId: string;
@@ -24,8 +24,9 @@ export async function processConversationTitleCreation(
 ): Promise<CreateConversationTitleResult> {
   try {
     let conversationTitleResponse = "";
+    const { model: titleModel } = await getWorkingModel("low", "create-title");
     const { text } = await generateText({
-      model: getModel() as LanguageModel,
+      model: titleModel as LanguageModel,
       messages: [
         {
           role: "user",

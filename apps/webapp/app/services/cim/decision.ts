@@ -18,7 +18,7 @@ import { generateObject } from "ai";
 import { z } from "zod";
 
 import { logger } from "~/services/logger.service";
-import { getModel, getModelForTask } from "~/lib/model.server";
+import { getWorkingModel } from "~/lib/model.server";
 
 import type {
   IntentClassification,
@@ -70,8 +70,7 @@ export async function classifyIntent(
   logger.info(`[CIM:Decision] Classifying intent for: "${query}"`);
 
   try {
-    const modelName = getModelForTask("low");
-    const model = getModel(modelName);
+    const { model } = await getWorkingModel("low", "cim-classify");
 
     const contextSummary = [
       `Available integrations: ${perception.activeIntegrations.join(", ") || "none"}`,
@@ -179,10 +178,8 @@ export async function createPlan(
   }
 
   try {
-    const modelName = getModelForTask(
-      intent.complexity === "complex" ? "high" : "low",
-    );
-    const model = getModel(modelName);
+    const tier = intent.complexity === "complex" ? "high" : "low" as const;
+    const { model } = await getWorkingModel(tier, "cim-plan");
 
     const contextSummary = [
       `Goal: ${goal.description}`,

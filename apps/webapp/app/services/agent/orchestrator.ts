@@ -14,7 +14,7 @@ import {
 } from "./explorers";
 import { logger } from "../logger.service";
 import { IntegrationLoader } from "~/utils/mcp/integration-loader";
-import { getModel, getModelForTask } from "~/lib/model.server";
+import { getWorkingModel } from "~/lib/model.server";
 
 export type OrchestratorMode = "read" | "write";
 
@@ -305,8 +305,7 @@ export async function runOrchestrator(
     });
   }
 
-  const model = getModelForTask("high");
-  const modelInstance = getModel(model);
+  const { model: modelInstance } = await getWorkingModel("high", "orchestrator");
 
   const stream = streamText({
     model: modelInstance as LanguageModel,

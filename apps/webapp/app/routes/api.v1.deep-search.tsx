@@ -9,7 +9,7 @@ import {
   streamText,
 } from "ai";
 import { logger } from "~/services/logger.service";
-import { getModel } from "~/lib/model.server";
+import { getWorkingModel } from "~/lib/model.server";
 import { searchMemoryWithAgent } from "~/services/agent/memory";
 
 const DeepSearchBodySchema = z.object({
@@ -78,9 +78,11 @@ ${invalidatedFacts.length > 0 ? `INVALIDATED FACTS (outdated information):\n${in
 
 Provide a clear, helpful summary based ONLY on the memory above. Do not add any information not present in the memory.`;
 
+      const { model: searchModel } = await getWorkingModel("high", "deep-search");
+
       if (body.stream) {
         const result = streamText({
-          model: getModel() as LanguageModel,
+          model: searchModel as LanguageModel,
           messages: [
             {
               role: "system",
@@ -96,7 +98,7 @@ Provide a clear, helpful summary based ONLY on the memory above. Do not add any 
         return result.toUIMessageStreamResponse({});
       } else {
         const { text } = await generateText({
-          model: getModel() as LanguageModel,
+          model: searchModel as LanguageModel,
           messages: [
             {
               role: "system",

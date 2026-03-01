@@ -14,7 +14,7 @@ import {
   upsertConversationHistory,
 } from "~/services/conversation.server";
 
-import { getModel } from "~/lib/model.server";
+import { getWorkingModel } from "~/lib/model.server";
 import { EpisodeType, UserTypeEnum } from "@core/types";
 import { enqueueCreateConversationTitle } from "~/lib/queue-adapter.server";
 import { IntegrationLoader } from "~/utils/mcp/integration-loader";
@@ -175,8 +175,9 @@ const { loader, action } = createHybridActionApiRoute(
     });
 
     // Generate response using generateText (non-streaming)
+    const { model: chatModel } = await getWorkingModel("high", "chat-nostream");
     const result = await generateText({
-      model: getModel() as LanguageModel,
+      model: chatModel as LanguageModel,
       messages: [
         {
           role: "system",

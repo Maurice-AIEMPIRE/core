@@ -1,6 +1,6 @@
 import { generateObject } from "ai";
 import { z } from "zod";
-import { getModel, getModelForTask } from "~/lib/model.server";
+import { getWorkingModel } from "~/lib/model.server";
 import { logger } from "~/services/logger.service";
 import { SearchService } from "../search.server";
 import { searchV2 } from "../search-v2";
@@ -127,12 +127,7 @@ export async function memoryAgent({
     logger.info(`[MemoryAgent] Processing intent: "${intent}"`);
 
     // Use low complexity model for query generation to save costs
-    const modelName = getModelForTask("low");
-    const model = getModel(modelName);
-
-    if (!model) {
-      throw new Error(`Failed to initialize model: ${modelName}`);
-    }
+    const { model } = await getWorkingModel("low", "memory-agent");
 
     // Step 1: Generate queries using LLM
     const { object: queryObject } = await generateObject({

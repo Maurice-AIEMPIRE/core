@@ -8,7 +8,7 @@ import {
 import { z } from "zod";
 
 import { logger } from "~/services/logger.service";
-import { getModel, getModelForTask } from "~/lib/model.server";
+import { getWorkingModel } from "~/lib/model.server";
 import {
   handleExecuteIntegrationAction,
   handleGetIntegrationActions,
@@ -151,8 +151,9 @@ export async function runIntegrationExplorer(
 
   if (!availableIntegrations.length) {
     // Return empty stream for no integrations
+    const { model: fallbackModel } = await getWorkingModel("low", "integration-explorer-empty");
     const stream = streamText({
-      model: getModel() as LanguageModel,
+      model: fallbackModel as LanguageModel,
       messages: [{ role: "user", content: "no integrations connected" }],
       abortSignal,
     });
@@ -229,12 +230,10 @@ export async function runIntegrationExplorer(
     }),
   };
 
-  const model = getModelForTask(INTEGRATION_COMPLEXITY);
+  const { modelName, model: modelInstance } = await getWorkingModel(INTEGRATION_COMPLEXITY, "integration-explorer");
   logger.info(
-    `IntegrationExplorer: Starting stream, complexity: ${INTEGRATION_COMPLEXITY}, model: ${model}`,
+    `IntegrationExplorer: Starting stream, complexity: ${INTEGRATION_COMPLEXITY}, model: ${modelName}`,
   );
-
-  const modelInstance = getModel(model);
 
   const stream = streamText({
     model: modelInstance as LanguageModel,

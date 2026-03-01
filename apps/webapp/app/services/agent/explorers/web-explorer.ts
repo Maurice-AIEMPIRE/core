@@ -1,10 +1,10 @@
-import { streamText, type LanguageModel, stepCountIs, tool } from "ai";
+import { generateText, type LanguageModel, stepCountIs, tool } from "ai";
 import { z } from "zod";
 
 import Exa from "exa-js";
 import { logger } from "~/services/logger.service";
 import { env } from "~/env.server";
-import { getModel, getModelForTask } from "~/lib/model.server";
+import { getWorkingModel } from "~/lib/model.server";
 
 const WEB_COMPLEXITY = "high";
 
@@ -150,10 +150,8 @@ ${r.text || "No content available"}`;
   };
 
   try {
-    let model = getModelForTask(WEB_COMPLEXITY);
-    logger.info(`complexity: ${WEB_COMPLEXITY}, model: ${model}`);
-
-    const modelInstance = getModel(model);
+    const { modelName, model: modelInstance } = await getWorkingModel(WEB_COMPLEXITY, "web-explorer");
+    logger.info(`complexity: ${WEB_COMPLEXITY}, model: ${modelName}`);
 
     const { text } = await generateText({
       model: modelInstance as LanguageModel,

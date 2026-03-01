@@ -197,6 +197,20 @@ async function resolveWorkingModel(
   );
 }
 
+/**
+ * Convenience wrapper: resolves the first working model for a given complexity
+ * and returns it as a LanguageModel ready for streamText / generateText.
+ * Use this instead of bare `getModel()` to benefit from MODEL_FALLBACKS rotation.
+ */
+export async function getWorkingModel(
+  complexity: ModelComplexity = "high",
+  label = "call",
+): Promise<{ modelName: string; model: ReturnType<typeof getModel> }> {
+  const models = getModelList(complexity);
+  const { modelName, modelInstance } = await resolveWorkingModel(models, label);
+  return { modelName, model: modelInstance };
+}
+
 export interface TokenUsage {
   promptTokens?: number;
   completionTokens?: number;

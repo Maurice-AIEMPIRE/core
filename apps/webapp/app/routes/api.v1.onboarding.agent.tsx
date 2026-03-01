@@ -1,7 +1,7 @@
 import { streamText, tool, type LanguageModel, stepCountIs } from "ai";
 import { z } from "zod";
 import { createHybridActionApiRoute } from "~/services/routeBuilders/apiBuilder.server";
-import { getModel } from "~/lib/model.server";
+import { getWorkingModel } from "~/lib/model.server";
 
 import { callMemoryTool } from "~/utils/mcp/memory";
 import { getIntegrationAccountBySlugAndUser } from "~/services/integrationAccount.server";
@@ -320,8 +320,9 @@ const { loader, action } = createHybridActionApiRoute(
       progress_update: progressUpdateTool,
     };
 
+    const { model: agentModel } = await getWorkingModel("high", "onboarding");
     const result = streamText({
-      model: getModel() as LanguageModel,
+      model: agentModel as LanguageModel,
       messages: [
         {
           role: "system",
