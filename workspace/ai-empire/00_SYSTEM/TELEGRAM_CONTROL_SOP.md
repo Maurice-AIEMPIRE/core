@@ -76,7 +76,7 @@ c=json.load(open(p))
 t=c.setdefault('channels',{}).setdefault('telegram',{})
 t['enabled']=True
 t['botToken']=input('Token: ')
-t['dmPolicy']='owner'
+t['dmPolicy']='pairing'
 t['groupPolicy']='allowlist'
 t['streaming']='off'
 json.dump(c,open(p,'w'),indent=2)
@@ -217,7 +217,7 @@ openclaw config set channels.telegram.debounceMs 500
 ## Sicherheit
 
 - Bot-Token ist ein Secret — nie in Git
-- dmPolicy: "owner" — nur du steuerst
+- dmPolicy: "pairing" — nur gepaarte Nutzer steuern
 - groupPolicy: "allowlist" — nur freigegebene Gruppen
 - Token geleakt? -> @BotFather -> /revoke
 - Audit: `openclaw security audit --deep`

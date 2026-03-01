@@ -17,29 +17,37 @@ echo "Ziel: $DEST"
 echo ""
 
 # ──────────────────────────────────────────────
-# 0. Konkurrierende Dienste pruefen
+# 0. Konkurrierende Dienste pruefen + stoppen
 # ──────────────────────────────────────────────
 echo "[0] Dienst-Konflikte..."
-CONFLICTS=""
 if command -v launchctl &>/dev/null; then
-    for svc in $(launchctl list 2>/dev/null | grep -i 'telegram' | awk '{print $3}'); do
-        CONFLICTS="$CONFLICTS $svc"
-    done
-fi
+    # Finde Telegram-Router Prozesse (nicht die Telegram Desktop App)
+    ROUTER_PIDS=$(pgrep -f telegram_router 2>/dev/null || true)
+    if [ -n "$ROUTER_PIDS" ]; then
+        echo "  Stoppe telegram_router Prozesse: $ROUTER_PIDS"
+        kill $ROUTER_PIDS 2>/dev/null || true
+    fi
 
-if [ -n "$CONFLICTS" ]; then
-    echo "  WARNUNG: Telegram-Dienste aktiv:"
-    for svc in $CONFLICTS; do
-        echo "    - $svc"
+    # Entferne Plists die den Router neu starten wuerden
+    for plist in ~/Library/LaunchAgents/*telegram-router* ~/Library/LaunchAgents/*telegram-control*; do
+        if [ -f "$plist" ]; then
+            # Bootout via plist (umgeht Service-Name-Probleme)
+            launchctl bootout "gui/$(id -u)" "$plist" 2>/dev/null || true
+            rm -f "$plist"
+            echo "  Entfernt: $(basename "$plist")"
+        fi
     done
-    echo ""
-    echo "  Diese verursachen 409-Conflict mit OpenClaw."
-    echo "  Stoppe nach dem Deploy mit:"
-    for svc in $CONFLICTS; do
-        echo "    launchctl bootout gui/\$(id -u)/$svc"
-    done
+
+    # Nochmal pruefen
+    REMAINING=$(pgrep -f telegram_router 2>/dev/null || true)
+    if [ -n "$REMAINING" ]; then
+        echo "  WARNUNG: telegram_router laeuft noch (PIDs: $REMAINING)"
+        echo "  Manuell stoppen: kill $REMAINING"
+    else
+        echo "  OK (keine Konflikte)"
+    fi
 else
-    echo "  OK (keine Konflikte)"
+    echo "  OK (kein launchd)"
 fi
 echo ""
 

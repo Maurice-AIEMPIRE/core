@@ -119,7 +119,7 @@ except Exception as e:
 tg = cfg.setdefault("channels", {}).setdefault("telegram", {})
 tg["enabled"] = True
 tg["botToken"] = token
-tg["dmPolicy"] = "owner"
+tg["dmPolicy"] = "pairing"
 tg["groupPolicy"] = "allowlist"
 tg["streaming"] = "off"
 
@@ -136,7 +136,7 @@ with open(cfg_path, "w") as f:
     json.dump(cfg, f, indent=2)
 
 print("  OK: Telegram Bot-Token konfiguriert")
-print(f"  dmPolicy: owner")
+print(f"  dmPolicy: pairing")
 print(f"  groupPolicy: allowlist")
 print(f"  plugin: enabled")
 PYEOF
