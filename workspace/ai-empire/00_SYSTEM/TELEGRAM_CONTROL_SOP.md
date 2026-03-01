@@ -54,42 +54,44 @@ help - Zeige Hilfe
 
 ## Phase 2: OpenClaw mit Telegram verbinden
 
-### 2.1 Telegram Channel konfigurieren
+> `openclaw channels login --channel telegram` funktioniert NICHT fuer Telegram.
+> Der Bot-Token muss direkt in die Config geschrieben werden.
+
+### 2.1 Setup-Script ausfuehren (empfohlen)
 
 ```bash
-openclaw channels login --channel telegram
+bash ~/ai-empire-core/workspace/ai-empire/automation/telegram-setup.sh
 ```
 
-Wenn das interaktiv nach dem Token fragt, gib den BotFather-Token ein.
+Das Script:
+- Fragt den Bot-Token ab (ohne Echo — Token wird nicht angezeigt)
+- Prueft das Token-Format
+- Setzt `channels.telegram.botToken` in der Config
+- Setzt `dmPolicy: owner` (nur du kannst den Bot steuern)
+- Erstellt ein Backup der Config
 
-Falls es eine direkte Config-Option gibt:
+### 2.2 Alternativ: Token manuell in Config setzen
 
 ```bash
-openclaw config set channels.telegram.botToken "<DEIN_BOT_TOKEN>"
-```
-
-### 2.2 Alternativ: Config direkt setzen
-
-```bash
-cat ~/.openclaw/openclaw.json | python3 -c "
-import json, sys
-cfg = json.load(sys.stdin)
+python3 -c "
+import json
+cfg = json.load(open('$HOME/.openclaw/openclaw.json'))
 tg = cfg.setdefault('channels', {}).setdefault('telegram', {})
 tg['enabled'] = True
+tg['botToken'] = input('Bot-Token: ')
 tg['dmPolicy'] = 'owner'
 tg['groupPolicy'] = 'allowlist'
 tg['streaming'] = 'off'
-json.dump(cfg, sys.stdout, indent=2)
-" > /tmp/oc_tmp.json && mv /tmp/oc_tmp.json ~/.openclaw/openclaw.json
+json.dump(cfg, open('$HOME/.openclaw/openclaw.json', 'w'), indent=2)
+print('OK')
+"
 ```
 
-### 2.3 Validieren
+### 2.3 Validieren + Gateway neustarten
 
 ```bash
 openclaw doctor --fix
-```
-
-```bash
+openclaw gateway --force
 openclaw status
 ```
 

@@ -63,17 +63,39 @@ if [ -f "$OC_CFG" ]; then
     echo "  Backup: ${OC_CFG}.bak.${TIMESTAMP}"
 
     python3 << 'PYEOF'
-import json, os, sys
+import json, os, sys, re
 
 cfg_path = os.path.expanduser("~/.openclaw/openclaw.json")
+
+# Try to load JSON; if broken, attempt basic repair
 try:
     with open(cfg_path, "r") as f:
-        cfg = json.load(f)
+        raw = f.read()
+    try:
+        cfg = json.loads(raw)
+    except json.JSONDecodeError:
+        # Common fix: missing comma/brace in plugins block
+        # Try adding missing commas before closing braces
+        fixed = re.sub(r'(true|false|null|"[^"]*"|\d+)\s*\n(\s*")', r'\1,\n\2', raw)
+        try:
+            cfg = json.loads(fixed)
+            print("  REPAIRED: Fixed JSON syntax (missing commas)")
+        except json.JSONDecodeError as e2:
+            print(f"  WARN: Config JSON kaputt und nicht reparierbar: {e2}", file=sys.stderr)
+            print("  Fuehre 'openclaw doctor --fix' aus um die Config zu reparieren.", file=sys.stderr)
+            sys.exit(0)
 except Exception as e:
     print(f"  WARN: Konnte Config nicht lesen: {e}", file=sys.stderr)
     sys.exit(0)
 
 changed = []
+
+# Remove invalid top-level model keys (from older deploy versions)
+models = cfg.get("models", {})
+for bad_key in ("default", "thinking", "max_tokens"):
+    if bad_key in models:
+        del models[bad_key]
+        changed.append(f"removed models.{bad_key}")
 
 # Set default model via agents.defaults.model.primary
 agents = cfg.setdefault("agents", {})
@@ -93,9 +115,19 @@ if commands.get("restart") is not True:
     commands["restart"] = True
     changed.append("commands.restart=true")
 
+# Fix plugins.entries structure
+plugins = cfg.get("plugins", {})
+entries = plugins.get("entries", {})
+for name in ("whatsapp", "telegram"):
+    if name in entries and not isinstance(entries[name], dict):
+        entries[name] = {"enabled": True}
+        changed.append(f"fixed plugins.entries.{name}")
+
+# Always write (json.dump produces valid JSON even if input was broken)
+with open(cfg_path, "w") as f:
+    json.dump(cfg, f, indent=2)
+
 if changed:
-    with open(cfg_path, "w") as f:
-        json.dump(cfg, f, indent=2)
     print("  " + ", ".join(changed))
 else:
     print("  Config already correct — no changes needed")

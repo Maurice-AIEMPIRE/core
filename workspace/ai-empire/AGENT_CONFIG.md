@@ -92,11 +92,11 @@ Dann erneut laden.
 ### Telegram (Bot-Steuerung)
 
 - **Bot:** @M0Claw92bot
-- **Status:** Token vorhanden — `openclaw channels login --channel telegram` ausfuehren
+- **Status:** Token vorhanden — `bash automation/telegram-setup.sh` ausfuehren
 - **Config:** `channels.telegram.enabled: true`
 - **DM Policy:** `owner` (nur du kannst den Bot steuern)
 - **Group Policy:** `allowlist`
-- **Setup:** `openclaw channels login --channel telegram`
+- **Setup:** `bash automation/telegram-setup.sh` (setzt Token sicher in Config)
 
 ---
 
