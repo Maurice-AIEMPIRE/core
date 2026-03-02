@@ -1,9 +1,7 @@
 import {
-  streamText,
   type LanguageModel,
   stepCountIs,
   tool,
-  StreamTextResult,
 } from "ai";
 import { z } from "zod";
 
@@ -151,7 +149,7 @@ export async function runIntegrationExplorer(
 
   if (!availableIntegrations.length) {
     // Return empty stream for no integrations
-    const stream = streamText({
+    const stream = safeStreamText({
       model: getModel() as LanguageModel,
       messages: [{ role: "user", content: "no integrations connected" }],
       abortSignal,

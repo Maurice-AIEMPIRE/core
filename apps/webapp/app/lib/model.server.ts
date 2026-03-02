@@ -105,8 +105,16 @@ export function isToolsNotSupportedError(error: unknown): boolean {
 /**
  * Wrapper for generateText that automatically retries without tools
  * if the model doesn't support tool calling.
+ * Uses both static blocklist check AND runtime error detection.
  */
 export async function safeGenerateText(options: Parameters<typeof generateText>[0]) {
+  // Pre-check: strip tools if model is known not to support them
+  const modelId = (options.model as any)?.modelId as string | undefined;
+  if (!modelSupportsTools(modelId) && options.tools) {
+    const { tools: _tools, toolChoice: _toolChoice, ...optionsWithoutTools } = options as any;
+    return await generateText(optionsWithoutTools);
+  }
+
   try {
     return await generateText(options);
   } catch (error) {
@@ -122,10 +130,12 @@ export async function safeGenerateText(options: Parameters<typeof generateText>[
 /**
  * Wrapper for streamText that automatically falls back to no-tools mode
  * if the model doesn't support tool calling.
- * Since streamText returns a stream, we check for errors on consumption.
+ * Extracts the model name from the options to check tool support accurately.
  */
 export function safeStreamText(options: Parameters<typeof streamText>[0]) {
-  const supportsTools = modelSupportsTools();
+  // Extract model name from options for accurate tool support check
+  const modelId = (options.model as any)?.modelId as string | undefined;
+  const supportsTools = modelSupportsTools(modelId);
 
   // If we already know the model doesn't support tools, skip them
   if (!supportsTools) {
