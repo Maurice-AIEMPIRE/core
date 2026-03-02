@@ -4,7 +4,7 @@ import { z } from "zod";
 import Exa from "exa-js";
 import { logger } from "~/services/logger.service";
 import { env } from "~/env.server";
-import { getModel, getModelForTask } from "~/lib/model.server";
+import { getModel, getModelForTask, modelSupportsTools } from "~/lib/model.server";
 
 const WEB_COMPLEXITY = "high";
 
@@ -155,12 +155,13 @@ ${r.text || "No content available"}`;
 
     const modelInstance = getModel(model);
 
+    const supportsTools = modelSupportsTools(model);
+
     const { text } = await generateText({
       model: modelInstance as LanguageModel,
       system: getWebExplorerPrompt(timezone),
       messages: [{ role: "user", content: query }],
-      tools,
-      stopWhen: stepCountIs(6),
+      ...(supportsTools ? { tools, stopWhen: stepCountIs(6) } : {}),
     });
 
     logger.info("WebExplorer completed", {

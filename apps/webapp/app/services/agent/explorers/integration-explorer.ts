@@ -8,7 +8,7 @@ import {
 import { z } from "zod";
 
 import { logger } from "~/services/logger.service";
-import { getModel, getModelForTask } from "~/lib/model.server";
+import { getModel, getModelForTask, modelSupportsTools } from "~/lib/model.server";
 import {
   handleExecuteIntegrationAction,
   handleGetIntegrationActions,
@@ -236,12 +236,13 @@ export async function runIntegrationExplorer(
 
   const modelInstance = getModel(model);
 
+  const supportsTools = modelSupportsTools(model);
+
   const stream = streamText({
     model: modelInstance as LanguageModel,
     system: getIntegrationExplorerPrompt(availableIntegrations, mode, timezone),
     messages: [{ role: "user", content: query }],
-    tools,
-    stopWhen: stepCountIs(10),
+    ...(supportsTools ? { tools, stopWhen: stepCountIs(10) } : {}),
     abortSignal,
   });
 

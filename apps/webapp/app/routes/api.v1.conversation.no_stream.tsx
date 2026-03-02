@@ -14,7 +14,7 @@ import {
   upsertConversationHistory,
 } from "~/services/conversation.server";
 
-import { getModel } from "~/lib/model.server";
+import { getModel, modelSupportsTools } from "~/lib/model.server";
 import { EpisodeType, UserTypeEnum } from "@core/types";
 import { enqueueCreateConversationTitle } from "~/lib/queue-adapter.server";
 import { IntegrationLoader } from "~/utils/mcp/integration-loader";
@@ -175,6 +175,8 @@ const { loader, action } = createHybridActionApiRoute(
     });
 
     // Generate response using generateText (non-streaming)
+    const supportsTools = modelSupportsTools();
+
     const result = await generateText({
       model: getModel() as LanguageModel,
       messages: [
@@ -184,8 +186,7 @@ const { loader, action } = createHybridActionApiRoute(
         },
         ...modelMessages,
       ],
-      tools,
-      stopWhen: [stepCountIs(10)],
+      ...(supportsTools ? { tools, stopWhen: [stepCountIs(10)] } : {}),
       temperature: 0.5,
     });
 

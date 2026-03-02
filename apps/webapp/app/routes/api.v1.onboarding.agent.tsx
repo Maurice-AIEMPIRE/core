@@ -1,7 +1,7 @@
 import { streamText, tool, type LanguageModel, stepCountIs } from "ai";
 import { z } from "zod";
 import { createHybridActionApiRoute } from "~/services/routeBuilders/apiBuilder.server";
-import { getModel } from "~/lib/model.server";
+import { getModel, modelSupportsTools } from "~/lib/model.server";
 
 import { callMemoryTool } from "~/utils/mcp/memory";
 import { getIntegrationAccountBySlugAndUser } from "~/services/integrationAccount.server";
@@ -320,6 +320,8 @@ const { loader, action } = createHybridActionApiRoute(
       progress_update: progressUpdateTool,
     };
 
+    const supportsTools = modelSupportsTools();
+
     const result = streamText({
       model: getModel() as LanguageModel,
       messages: [
@@ -332,8 +334,7 @@ const { loader, action } = createHybridActionApiRoute(
           content: "analyze my emails from the past 6 months. start fetching.",
         },
       ],
-      tools,
-      stopWhen: stepCountIs(50), // Allow enough steps for iterations and updates
+      ...(supportsTools ? { tools, stopWhen: stepCountIs(50) } : {}),
       temperature: 0.7,
     });
 

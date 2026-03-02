@@ -1,7 +1,7 @@
 import { streamText, type LanguageModel, stepCountIs, tool } from "ai";
 import { z } from "zod";
 import { logger } from "~/services/logger.service";
-import { getModel, getModelForTask } from "~/lib/model.server";
+import { getModel, getModelForTask, modelSupportsTools } from "~/lib/model.server";
 import { searchMemoryWithAgent } from "../memory";
 
 const MEMORY_COMPLEXITY = "low";
@@ -95,12 +95,13 @@ export async function runMemoryExplorer(
 
   const modelInstance = getModel(model);
 
+  const supportsTools = modelSupportsTools(model);
+
   const stream = streamText({
     model: modelInstance as LanguageModel,
     system: MEMORY_EXPLORER_PROMPT,
     messages: [{ role: "user", content: query }],
-    tools,
-    stopWhen: stepCountIs(3), // Reduced for speed
+    ...(supportsTools ? { tools, stopWhen: stepCountIs(3) } : {}),
     abortSignal,
   });
 

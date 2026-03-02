@@ -57,18 +57,49 @@ export function getModelForTask(complexity: ModelComplexity = "high"): string {
   return downgrades[baseModel] || baseModel;
 }
 
+/**
+ * Check if the current model supports tool/function calling.
+ * Models accessed via Ollama that are known not to support tools
+ * (e.g. deepseek-r1, reasoning-only models) return false.
+ */
+export function modelSupportsTools(modelName?: string): boolean {
+  const model = modelName || process.env.MODEL || "gpt-4.1-2025-04-14";
+  const ollamaUrl = process.env.OLLAMA_URL;
+
+  // If not using Ollama, all supported providers (OpenAI, Anthropic, Google) support tools
+  if (!ollamaUrl) {
+    return true;
+  }
+
+  // Ollama models that do NOT support tool calling
+  const noToolPatterns = [
+    /deepseek-r1/i,       // DeepSeek R1 reasoning models
+    /deepseek-coder/i,    // DeepSeek Coder (older versions)
+    /phi-2/i,             // Microsoft Phi-2
+    /codellama/i,         // Code Llama
+    /starcoder/i,         // StarCoder
+    /falcon/i,            // Falcon models
+    /orca-mini/i,         // Orca Mini
+    /tinyllama/i,         // TinyLlama
+    /stablelm/i,          // StableLM
+    /vicuna/i,            // Vicuna
+    /wizardcoder/i,       // WizardCoder
+  ];
+
+  return !noToolPatterns.some((pattern) => pattern.test(model));
+}
+
 export const getModel = (takeModel?: string) => {
   let model = takeModel;
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
-  let ollamaUrl = process.env.OLLAMA_URL;
+  const ollamaUrl = process.env.OLLAMA_URL;
   model = model || process.env.MODEL || "gpt-4.1-2025-04-14";
 
   let modelInstance;
   let modelTemperature = Number(process.env.MODEL_TEMPERATURE) || 1;
-  ollamaUrl = undefined;
 
   // First check if Ollama URL exists and use Ollama
   if (ollamaUrl) {
@@ -96,9 +127,9 @@ export const getModel = (takeModel?: string) => {
       }
       modelInstance = openai.responses(model);
     }
-
-    return modelInstance;
   }
+
+  return modelInstance;
 };
 
 export interface TokenUsage {
