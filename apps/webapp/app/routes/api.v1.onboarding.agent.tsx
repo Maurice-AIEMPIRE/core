@@ -1,7 +1,7 @@
-import { streamText, tool, type LanguageModel, stepCountIs } from "ai";
+import { tool, type LanguageModel, stepCountIs } from "ai";
 import { z } from "zod";
 import { createHybridActionApiRoute } from "~/services/routeBuilders/apiBuilder.server";
-import { getModel, modelSupportsTools } from "~/lib/model.server";
+import { getModel, modelSupportsTools, safeStreamText } from "~/lib/model.server";
 
 import { callMemoryTool } from "~/utils/mcp/memory";
 import { getIntegrationAccountBySlugAndUser } from "~/services/integrationAccount.server";
@@ -322,7 +322,7 @@ const { loader, action } = createHybridActionApiRoute(
 
     const supportsTools = modelSupportsTools();
 
-    const result = streamText({
+    const result = safeStreamText({
       model: getModel() as LanguageModel,
       messages: [
         {

@@ -1,10 +1,10 @@
-import { streamText, type LanguageModel, stepCountIs, tool } from "ai";
+import { type LanguageModel, stepCountIs, tool } from "ai";
 import { z } from "zod";
 
 import Exa from "exa-js";
 import { logger } from "~/services/logger.service";
 import { env } from "~/env.server";
-import { getModel, getModelForTask, modelSupportsTools } from "~/lib/model.server";
+import { getModel, getModelForTask, modelSupportsTools, safeGenerateText } from "~/lib/model.server";
 
 const WEB_COMPLEXITY = "high";
 
@@ -157,7 +157,7 @@ ${r.text || "No content available"}`;
 
     const supportsTools = modelSupportsTools(model);
 
-    const { text } = await generateText({
+    const { text } = await safeGenerateText({
       model: modelInstance as LanguageModel,
       system: getWebExplorerPrompt(timezone),
       messages: [{ role: "user", content: query }],

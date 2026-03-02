@@ -1,6 +1,5 @@
 import {
   convertToModelMessages,
-  generateText,
   type LanguageModel,
   generateId,
   stepCountIs,
@@ -14,7 +13,7 @@ import {
   upsertConversationHistory,
 } from "~/services/conversation.server";
 
-import { getModel, modelSupportsTools } from "~/lib/model.server";
+import { getModel, modelSupportsTools, safeGenerateText } from "~/lib/model.server";
 import { EpisodeType, UserTypeEnum } from "@core/types";
 import { enqueueCreateConversationTitle } from "~/lib/queue-adapter.server";
 import { IntegrationLoader } from "~/utils/mcp/integration-loader";
@@ -175,9 +174,10 @@ const { loader, action } = createHybridActionApiRoute(
     });
 
     // Generate response using generateText (non-streaming)
+    // Uses safeGenerateText which auto-retries without tools if model doesn't support them
     const supportsTools = modelSupportsTools();
 
-    const result = await generateText({
+    const result = await safeGenerateText({
       model: getModel() as LanguageModel,
       messages: [
         {

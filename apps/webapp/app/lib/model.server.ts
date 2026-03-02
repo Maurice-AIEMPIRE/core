@@ -59,6 +59,7 @@ export function getModelForTask(complexity: ModelComplexity = "high"): string {
 
 /**
  * Check if the current model supports tool/function calling.
+ * Uses a blocklist for known non-tool models AND runtime detection.
  * Models accessed via Ollama that are known not to support tools
  * (e.g. deepseek-r1, reasoning-only models) return false.
  */
@@ -87,6 +88,52 @@ export function modelSupportsTools(modelName?: string): boolean {
   ];
 
   return !noToolPatterns.some((pattern) => pattern.test(model));
+}
+
+/**
+ * Check if an error is the "does not support tools" error from Ollama.
+ * This catches ALL models that don't support tools, even ones not in the blocklist.
+ */
+export function isToolsNotSupportedError(error: unknown): boolean {
+  if (!error) return false;
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes("does not support tools") ||
+    message.includes("does not support tool") ||
+    (message.includes("400") && message.includes("tools"));
+}
+
+/**
+ * Wrapper for generateText that automatically retries without tools
+ * if the model doesn't support tool calling.
+ */
+export async function safeGenerateText(options: Parameters<typeof generateText>[0]) {
+  try {
+    return await generateText(options);
+  } catch (error) {
+    if (isToolsNotSupportedError(error) && options.tools) {
+      logger.warn(`Model does not support tools, retrying without tools: ${error}`);
+      const { tools: _tools, toolChoice: _toolChoice, ...optionsWithoutTools } = options as any;
+      return await generateText(optionsWithoutTools);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Wrapper for streamText that automatically falls back to no-tools mode
+ * if the model doesn't support tool calling.
+ * Since streamText returns a stream, we check for errors on consumption.
+ */
+export function safeStreamText(options: Parameters<typeof streamText>[0]) {
+  const supportsTools = modelSupportsTools();
+
+  // If we already know the model doesn't support tools, skip them
+  if (!supportsTools) {
+    const { tools: _tools, toolChoice: _toolChoice, stopWhen: _stopWhen, ...optionsWithoutTools } = options as any;
+    return streamText(optionsWithoutTools);
+  }
+
+  return streamText(options);
 }
 
 export const getModel = (takeModel?: string) => {

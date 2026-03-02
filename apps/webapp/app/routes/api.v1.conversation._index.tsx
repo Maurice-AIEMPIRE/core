@@ -1,6 +1,5 @@
 import {
   convertToModelMessages,
-  streamText,
   validateUIMessages,
   type LanguageModel,
   generateId,
@@ -15,7 +14,7 @@ import {
   upsertConversationHistory,
 } from "~/services/conversation.server";
 
-import { getModel, modelSupportsTools } from "~/lib/model.server";
+import { getModel, modelSupportsTools, safeStreamText } from "~/lib/model.server";
 import { EpisodeType, UserTypeEnum } from "@core/types";
 import { enqueueCreateConversationTitle } from "~/lib/queue-adapter.server";
 import { IntegrationLoader } from "~/utils/mcp/integration-loader";
@@ -184,7 +183,7 @@ const { loader, action } = createHybridActionApiRoute(
 
     const supportsTools = modelSupportsTools();
 
-    const result = streamText({
+    const result = safeStreamText({
       model: getModel() as LanguageModel,
       messages: [
         {
