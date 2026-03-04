@@ -23,7 +23,8 @@
     "enabled": true,
     "profile": "openclaw",
     "scripts": {
-      "x-twitter": "openclaw/browser/x-twitter.sh"
+      "x-twitter": "openclaw/browser/x-twitter.sh",
+      "x-content-engine": "openclaw/browser/x-content-engine.sh"
     },
     "allowedDomains": [
       "x.com",
@@ -39,6 +40,13 @@
     "/kelly-analytics": "bash openclaw/browser/x-twitter.sh analytics",
     "/kelly-engage": "bash openclaw/browser/x-twitter.sh engage",
     "/kelly-reply": "bash openclaw/browser/x-twitter.sh reply",
-    "/kelly-profile": "bash openclaw/browser/x-twitter.sh profile"
+    "/kelly-profile": "bash openclaw/browser/x-twitter.sh profile",
+    "/kelly-generate": "bash openclaw/browser/x-content-engine.sh generate",
+    "/kelly-content-thread": "bash openclaw/browser/x-content-engine.sh thread",
+    "/kelly-viral-hooks": "bash openclaw/browser/x-content-engine.sh viral-hooks",
+    "/kelly-schedule": "bash openclaw/browser/x-content-engine.sh schedule",
+    "/kelly-auto-engage": "bash openclaw/browser/x-content-engine.sh auto-engage",
+    "/kelly-growth": "bash openclaw/browser/x-content-engine.sh growth-scan",
+    "/kelly-daily": "bash openclaw/browser/x-content-engine.sh daily"
   }
 }

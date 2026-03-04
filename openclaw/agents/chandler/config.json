@@ -1,8 +1,8 @@
 {
   "id": "chandler",
   "name": "Chandler",
-  "role": "Sales & Marketing",
-  "description": "Sales Automation & Marketing Strategy",
+  "role": "Sales & Trading",
+  "description": "Sales Automation, Trading Signals & Prediction Markets — Browser Automation via OpenClaw",
   "model": "ollama/glm4:9b-chat",
   "provider": "ollama",
   "device": "server",
@@ -10,9 +10,48 @@
     "sales_automation",
     "lead_generation",
     "marketing_strategy",
-    "analytics"
+    "analytics",
+    "browser_trading",
+    "browser_xrp",
+    "browser_polymarket",
+    "trading_signals",
+    "prediction_markets"
   ],
   "maxSteps": 80,
   "reasoningMode": "medium",
-  "memoryEnabled": true
+  "memoryEnabled": true,
+  "browser": {
+    "enabled": true,
+    "profile": "openclaw",
+    "scripts": {
+      "trading-xrp": "openclaw/browser/trading-xrp.sh",
+      "polymarket": "openclaw/browser/polymarket.sh"
+    },
+    "allowedDomains": [
+      "www.coingecko.com",
+      "www.tradingview.com",
+      "alternative.me",
+      "whale-alert.io",
+      "polymarket.com",
+      "news.google.com",
+      "coinmarketcap.com"
+    ]
+  },
+  "commands": {
+    "/chandler-xrp-price": "bash openclaw/browser/trading-xrp.sh price",
+    "/chandler-xrp-signals": "bash openclaw/browser/trading-xrp.sh signals",
+    "/chandler-xrp-monitor": "bash openclaw/browser/trading-xrp.sh monitor",
+    "/chandler-xrp-analysis": "bash openclaw/browser/trading-xrp.sh analysis",
+    "/chandler-xrp-fear": "bash openclaw/browser/trading-xrp.sh fear-greed",
+    "/chandler-xrp-whale": "bash openclaw/browser/trading-xrp.sh whale-alert",
+    "/chandler-xrp-news": "bash openclaw/browser/trading-xrp.sh news",
+    "/chandler-xrp-dca": "bash openclaw/browser/trading-xrp.sh dca-plan",
+    "/chandler-xrp-alerts": "bash openclaw/browser/trading-xrp.sh alerts",
+    "/chandler-poly-login": "bash openclaw/browser/polymarket.sh login",
+    "/chandler-poly-trending": "bash openclaw/browser/polymarket.sh trending",
+    "/chandler-poly-signals": "bash openclaw/browser/polymarket.sh signals",
+    "/chandler-poly-portfolio": "bash openclaw/browser/polymarket.sh portfolio",
+    "/chandler-poly-arbitrage": "bash openclaw/browser/polymarket.sh arbitrage",
+    "/chandler-poly-report": "bash openclaw/browser/polymarket.sh report"
+  }
 }

@@ -12,3 +12,12 @@
 
 # Auto-Deploy - alle 2 Minuten
 */2 * * * * /opt/money-machine/server/scripts/auto-deploy.sh >> /opt/money-machine/openclaw/memory/deploy.log 2>&1
+
+# Trading Signals - Chandler - 3x taeglich (08:00, 14:00, 20:00)
+0 8,14,20 * * * /opt/money-machine/openclaw/cron/trading-signals.sh >> /opt/money-machine/openclaw/memory/cron.log 2>&1
+
+# Content Engine - Kelly + Ross - taeglich 10:00
+0 10 * * * /opt/money-machine/openclaw/cron/content-engine.sh >> /opt/money-machine/openclaw/memory/cron.log 2>&1
+
+# Polymarket Report - Chandler - taeglich 20:00
+0 20 * * * /opt/money-machine/openclaw/cron/polymarket-report.sh >> /opt/money-machine/openclaw/memory/cron.log 2>&1

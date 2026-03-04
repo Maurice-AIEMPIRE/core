@@ -14,7 +14,10 @@
     "browser_youtube_studio",
     "browser_upload",
     "browser_analytics",
-    "browser_community"
+    "browser_community",
+    "faceless_youtube",
+    "tts_pipeline",
+    "video_assembly"
   ],
   "maxSteps": 60,
   "reasoningMode": "medium",
@@ -23,7 +26,8 @@
     "enabled": true,
     "profile": "openclaw",
     "scripts": {
-      "youtube-studio": "openclaw/browser/youtube-studio.sh"
+      "youtube-studio": "openclaw/browser/youtube-studio.sh",
+      "youtube-faceless": "openclaw/browser/youtube-faceless.sh"
     },
     "allowedDomains": [
       "studio.youtube.com",
@@ -38,6 +42,11 @@
     "/ross-comments": "bash openclaw/browser/youtube-studio.sh comments",
     "/ross-community": "bash openclaw/browser/youtube-studio.sh community",
     "/ross-status": "bash openclaw/browser/youtube-studio.sh status",
-    "/ross-shorts": "bash openclaw/browser/youtube-studio.sh shorts"
+    "/ross-shorts": "bash openclaw/browser/youtube-studio.sh shorts",
+    "/ross-faceless": "bash openclaw/browser/youtube-faceless.sh pipeline",
+    "/ross-script": "bash openclaw/browser/youtube-faceless.sh script",
+    "/ross-tts": "bash openclaw/browser/youtube-faceless.sh tts",
+    "/ross-niches": "bash openclaw/browser/youtube-faceless.sh niches",
+    "/ross-trending": "bash openclaw/browser/youtube-faceless.sh trending"
   }
 }
