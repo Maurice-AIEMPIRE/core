@@ -88,7 +88,7 @@ const Tool = ({
       open={isOpen}
       onOpenChange={setIsOpen}
       className={cn(
-        "my-1 w-full rounded border-1 border-gray-300 px-2",
+        "my-1 w-full rounded-lg border border-border/60 px-2 transition-colors duration-150 hover:border-border",
         isDisabled && "cursor-not-allowed opacity-50",
       )}
     >
@@ -258,14 +258,14 @@ const ConversationItemComponent = ({
   return (
     <div
       className={cn(
-        "flex w-full gap-2 px-4 pb-2",
+        "flex w-full gap-2 px-4 pb-2 page-transition",
         isUser && "my-4 justify-end",
       )}
     >
       <div
         className={cn(
           "flex w-full flex-col",
-          isUser && "bg-primary/20 w-fit max-w-[500px] rounded-md p-3",
+          isUser && "bg-primary/10 border border-primary/20 w-fit max-w-[500px] rounded-xl p-3 shadow-sm",
         )}
       >
         {groupedParts.map((group, groupIndex) => {

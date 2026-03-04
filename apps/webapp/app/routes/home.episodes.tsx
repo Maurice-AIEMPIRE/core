@@ -78,7 +78,7 @@ export default function LogsAll() {
           ]}
         />
 
-        <div className="flex h-[calc(100vh)] w-full flex-col items-center space-y-6 pt-3 md:h-[calc(100vh_-_56px)]">
+        <div className="page-transition flex h-[calc(100vh)] w-full flex-col items-center space-y-6 pt-3 md:h-[calc(100vh_-_56px)]">
           {isInitialLoad ? (
             <>
               <LoaderCircle className="text-primary h-4 w-4 animate-spin" />

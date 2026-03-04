@@ -219,7 +219,7 @@ export const ExampleUseCases = ({ onSelectPrompt }: ExampleUseCasesProps) => {
   return (
     <div className="flex w-full max-w-[90ch] flex-col items-center justify-center pb-8">
       <Tabs defaultValue={categories[0].category} className="w-full">
-        <TabsList className="mb-2 h-10 gap-2">
+        <TabsList className="mb-4 h-10 gap-2 rounded-xl">
           {categories.map((category) => {
             const Icon = category.icon;
 
@@ -227,9 +227,9 @@ export const ExampleUseCases = ({ onSelectPrompt }: ExampleUseCasesProps) => {
               <TabsTrigger
                 key={category.category}
                 value={category.category}
-                className="flex h-8 gap-2"
+                className="flex h-8 gap-2 rounded-lg transition-all duration-150"
               >
-                <Icon className="h-5 w-5" />
+                <Icon className="h-4 w-4" />
                 {category.category}
               </TabsTrigger>
             );
@@ -238,22 +238,32 @@ export const ExampleUseCases = ({ onSelectPrompt }: ExampleUseCasesProps) => {
 
         {categories.map((category) => (
           <TabsContent key={category.category} value={category.category}>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="stagger-fade grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {useCases
                 .filter((useCase) => useCase.category === category.category)
                 .map((useCase, index) => {
+                  const Icon = useCase.icon;
                   return (
                     <div
                       key={index}
                       className={cn(
-                        "group hover:bg-background-3/80 relative flex flex-col rounded-xl bg-white p-4 transition-all",
+                        "card-hover group relative flex flex-col rounded-xl border border-border/40 bg-background-3 p-4 transition-all duration-200 hover:border-primary/30",
                       )}
                     >
-                      <h3 className="mb-4 text-base">{useCase.title}</h3>
+                      <div className="mb-3 flex items-center gap-2">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                          <Icon className="h-3.5 w-3.5 text-primary" />
+                        </div>
+                        <h3 className="text-base font-medium">{useCase.title}</h3>
+                      </div>
+                      <p className="text-muted-foreground mb-4 line-clamp-2 text-sm leading-relaxed">
+                        {useCase.prompt}
+                      </p>
                       <div className="mt-auto flex justify-end">
                         <Button
                           type="button"
                           variant="secondary"
+                          className="rounded-lg opacity-0 transition-opacity duration-150 group-hover:opacity-100"
                           onClick={() => onSelectPrompt(useCase.prompt)}
                         >
                           Try Prompt

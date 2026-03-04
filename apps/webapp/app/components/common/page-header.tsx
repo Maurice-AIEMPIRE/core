@@ -76,7 +76,7 @@ export function PageHeader({
     navigation.state === "loading" || navigation.state === "submitting";
 
   return (
-    <header className="relative flex h-(--header-height) shrink-0 items-center gap-2 border-b border-gray-300 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
+    <header className="glass relative flex h-(--header-height) shrink-0 items-center gap-2 border-b border-border/50 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       {/* Keyframes for the loading bar animation */}
       <style>
         {`
@@ -168,17 +168,13 @@ export function PageHeader({
       {isLoading && (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute top-[40px] left-0 z-20 h-0.5 w-full overflow-hidden rounded-md"
+          className="pointer-events-none absolute bottom-0 left-0 z-20 h-[2px] w-full overflow-hidden"
         >
           <div
-            className={`bg-primary/50 h-full w-full transition-opacity duration-200 ${
-              isLoading ? "opacity-100" : "opacity-0"
-            }`}
+            className="gradient-accent h-full w-full transition-opacity duration-200"
             style={{
-              transform: isLoading ? "translateX(-100%)" : "translateX(-100%)",
-              animation: isLoading
-                ? "pageheader-loading-bar 1.2s cubic-bezier(0.4,0,0.2,1) infinite"
-                : "none",
+              transform: "translateX(-100%)",
+              animation: "pageheader-loading-bar 1.2s cubic-bezier(0.4,0,0.2,1) infinite",
             }}
           />
         </div>

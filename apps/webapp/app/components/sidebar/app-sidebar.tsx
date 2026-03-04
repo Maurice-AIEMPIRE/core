@@ -82,16 +82,18 @@ export function AppSidebar({ labels }: { labels: Label[] }) {
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem className="flex justify-center">
-              <div className="mt-1 ml-1 flex w-full items-center justify-start gap-2">
+              <div className="mt-1 ml-1 flex w-full items-center justify-start gap-2 font-medium tracking-wide">
                 <Logo size={20} />
-                C.O.R.E.
+                <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                  C.O.R.E.
+                </span>
               </div>
 
               <div className="flex gap-1">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="rounded"
+                  className="rounded-md"
                   onClick={() => setCommandBar(true)}
                 >
                   <Search size={16} />
@@ -99,7 +101,7 @@ export function AppSidebar({ labels }: { labels: Label[] }) {
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="rounded"
+                  className="rounded-md"
                   onClick={() => navigate(`/home/episode`)}
                 >
                   <Plus size={16} />

@@ -67,12 +67,15 @@ export const ConversationNew = ({
       >
         <div className="flex h-full w-full flex-col items-center justify-start overflow-y-auto p-4">
           <div className="flex w-full flex-col items-center">
-            <div className="w-full max-w-[90ch] pt-[5rem]">
-              <h1 className="mx-1 mb-4 text-center text-3xl font-medium">
+            <div className="page-transition w-full max-w-[90ch] pt-[5rem]">
+              <h1 className="mx-1 mb-2 text-center text-3xl font-semibold tracking-tight">
                 What would you like me to remember?
               </h1>
+              <p className="text-muted-foreground mx-1 mb-6 text-center text-md">
+                Ask anything, save memories, or trigger actions across your integrations.
+              </p>
 
-              <div className="bg-background-3 mb-4 rounded-lg border-1 border-gray-300 py-2">
+              <div className="bg-background-3 mb-6 rounded-xl border border-border/60 py-2 shadow-1 transition-all duration-200 focus-within:border-primary/40 focus-within:shadow-md focus-within:shadow-primary/5">
                 <EditorRoot>
                   <EditorContent
                     ref={editorRef}
@@ -137,8 +140,8 @@ export const ConversationNew = ({
                 </EditorRoot>
                 <div className="mb-1 flex justify-end px-3">
                   <Button
-                    variant="secondary"
-                    className="gap-1 shadow-none transition-all duration-500 ease-in-out"
+                    variant="default"
+                    className="gap-1 rounded-lg"
                     type="submit"
                     size="lg"
                   >

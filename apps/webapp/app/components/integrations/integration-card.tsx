@@ -30,16 +30,16 @@ export function IntegrationCard({
       to={`/home/integration/${integration.slug || integration.id}`}
       className="bg-background-3 h-full rounded-lg"
     >
-      <Card className="transition-all">
+      <Card className="card-hover cursor-pointer transition-all hover:border-primary/30">
         <CardHeader className="p-4">
           <div className="flex items-center justify-between">
-            <div className="bg-background-2 mb-2 flex h-6 w-6 items-center justify-center rounded">
-              <Component size={18} />
+            <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+              <Component size={18} className="text-primary" />
             </div>
 
             {isConnected && (
               <div className="flex w-full items-center justify-end">
-                <Badge className="h-6 rounded !bg-green-100 p-2 text-sm text-green-800">
+                <Badge className="h-6 rounded-full !bg-success/10 px-3 text-sm !text-success">
                   Connected
                 </Badge>
               </div>

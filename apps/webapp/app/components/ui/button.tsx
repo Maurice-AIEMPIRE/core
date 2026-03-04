@@ -7,17 +7,17 @@ import { cn } from "../../lib/utils";
 import { LoaderCircle } from "lucide-react";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded transition-colors focus-visible:outline-none focus-visible:shadow-none disabled:pointer-events-none disabled:opacity-50 dark:focus-visible:ring-slate-300",
+  "inline-flex items-center justify-center whitespace-nowrap rounded transition-all duration-150 ease-out focus-visible:outline-none focus-visible:shadow-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:pointer-events-none disabled:opacity-50 dark:focus-visible:ring-slate-300 active:scale-[0.97]",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-white hover:bg-primary/90 dark:hover:bg-primary/90",
-        destructive: "text-red-500 bg-grayAlpha-100 border-none",
-        outline: "border border-border shadow-sm hover:bg-gray-100 shadow-none",
+          "bg-primary text-white hover:bg-primary/90 hover:shadow-md hover:shadow-primary/20 dark:hover:bg-primary/90",
+        destructive: "text-red-500 bg-grayAlpha-100 border-none hover:bg-red-500/10",
+        outline: "border border-border hover:bg-gray-100 hover:border-gray-400 dark:hover:border-gray-600",
         secondary: "bg-grayAlpha-100 hover:bg-grayAlpha-200 border-none",
         ghost: "dark:focus-visible:ring-0 hover:bg-grayAlpha-100",
-        link: "dark:focus-visible:ring-0",
+        link: "dark:focus-visible:ring-0 hover:underline underline-offset-4",
       },
       size: {
         default: "h-7 rounded px-2 py-1",

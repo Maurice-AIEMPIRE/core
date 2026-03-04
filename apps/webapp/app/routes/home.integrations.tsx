@@ -90,17 +90,17 @@ export default function Integrations() {
             },
           ]}
         />
-        <div className="home flex h-[calc(100vh_-_40px)] flex-col gap-6 overflow-y-auto p-4 px-5 md:h-[calc(100vh_-_56px)]">
+        <div className="home flex h-[calc(100vh_-_40px)] flex-col gap-8 overflow-y-auto p-4 px-5 md:h-[calc(100vh_-_56px)]">
           {/* Providers Section */}
-          <div className="space-y-3">
+          <div className="page-transition space-y-4">
             <div>
-              <h2 className="text-lg font-semibold">Providers</h2>
+              <h2 className="text-lg font-semibold tracking-tight">Providers</h2>
               <p className="text-muted-foreground text-sm">
                 Connect AI providers to Core's memory system. Click on any
                 provider to set up the integration.
               </p>
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            <div className="stagger-fade grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {providers.map((provider) => {
                 const isConnected = isProviderConnected(provider.id);
                 return (
@@ -111,9 +111,9 @@ export default function Integrations() {
           </div>
 
           {/* Integrations Section */}
-          <div className="mb-10 space-y-3">
+          <div className="page-transition mb-10 space-y-4">
             <div>
-              <h2 className="text-lg font-semibold">Integrations</h2>
+              <h2 className="text-lg font-semibold tracking-tight">Integrations</h2>
               <p className="text-muted-foreground text-sm">
                 Connect third-party apps and services to enhance your Core
                 experience.
