@@ -15,7 +15,7 @@ from memory.memory import MemorySystem
 from modules.revenue_engine import RevenueEngine
 from modules.self_improve import SelfImproveLoop
 from pipeline.pipeline import RevenuePipeline
-from queue.task_queue import TaskQueue
+from taskqueue.task_queue import TaskQueue
 from registry.agent_registry import AgentRegistry
 from shared.models import (
     AgentRole,

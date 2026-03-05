@@ -9,7 +9,7 @@ COPY shared/ /app/shared/
 COPY kernel/ /app/kernel/
 COPY agents/ /app/agents/
 COPY registry/ /app/registry/
-COPY queue/ /app/queue/
+COPY taskqueue/ /app/taskqueue/
 COPY llm/ /app/llm/
 COPY memory/ /app/memory/
 COPY tools/ /app/tools/

@@ -10,7 +10,7 @@ from llm.client import LLMClient
 from shared.models import AgentInfo, AgentRole, AgentStatus, Message, Task, TaskStatus
 from shared.redis_bus import RedisBus, agent_channel, CHANNEL_BROADCAST
 from registry.agent_registry import AgentRegistry
-from queue.task_queue import TaskQueue
+from taskqueue.task_queue import TaskQueue
 
 logger = logging.getLogger("galaxia.agent")
 

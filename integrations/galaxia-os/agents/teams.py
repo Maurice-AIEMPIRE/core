@@ -14,7 +14,7 @@ import logging
 
 from agents.base import BaseAgent, ExecutorAgent
 from llm.client import LLMClient
-from queue.task_queue import TaskQueue
+from taskqueue.task_queue import TaskQueue
 from registry.agent_registry import AgentRegistry
 from shared.models import AgentRole
 from shared.redis_bus import RedisBus
