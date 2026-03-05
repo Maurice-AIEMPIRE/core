@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from aiohttp import web
 from prometheus_client import Counter, Gauge, generate_latest, CONTENT_TYPE_LATEST
 
@@ -24,7 +25,9 @@ async def health_handler(request):
     return web.Response(text="OK")
 
 
-async def start_metrics_server(host: str = "0.0.0.0", port: int = 8080):
+async def start_metrics_server(host: str = "0.0.0.0", port: int | None = None):
+    if port is None:
+        port = int(os.environ.get("METRICS_PORT", 8080))
     app = web.Application()
     app.router.add_get("/metrics", metrics_handler)
     app.router.add_get("/health", health_handler)
