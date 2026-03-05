@@ -48,6 +48,12 @@ class TelegramInterface:
         self._app.add_handler(CommandHandler("tools", self._cmd_tools))
         self._app.add_handler(CommandHandler("help", self._cmd_help))
 
+        # Sprint 9 commands
+        self._app.add_handler(CommandHandler("graph", self._cmd_graph))
+        self._app.add_handler(CommandHandler("prune", self._cmd_prune))
+        self._app.add_handler(CommandHandler("tenk", self._cmd_10k))
+        self._app.add_handler(CommandHandler("pipeline", self._cmd_pipeline))
+
         # Natural language fallback
         self._app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self._handle_text))
 
@@ -81,7 +87,12 @@ class TelegramInterface:
             "/leads <Zielgruppe> - Lead-Gen starten\n"
             "/product <Idee> - Produkt entwickeln\n"
             "/draft <Text> - Content erstellen\n"
-            "/deploy - System deployen\n"
+            "/deploy - System deployen\n\n"
+            "*Sprint 9:*\n"
+            "/pipeline - Pipeline Status\n"
+            "/graph - Neo4j Task Graph\n"
+            "/prune - Non-Revenue Tasks löschen\n"
+            "/tenk - 10k€ Revenue Dashboard\n"
             "/help - Hilfe",
             parse_mode="Markdown",
         )
@@ -282,6 +293,99 @@ class TelegramInterface:
         for t in tools:
             lines.append(f"• `{t.name}` - {t.description}")
         await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+
+    async def _cmd_graph(self, update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+        """Show Neo4j task graph as Mermaid diagram."""
+        try:
+            from integrations.neo4j_graph import Neo4jGraph
+            graph = Neo4jGraph()
+            if not graph.connect():
+                await update.message.reply_text("Neo4j nicht erreichbar.")
+                return
+            summary = graph.get_graph_summary()
+            mermaid = graph.get_mermaid_graph()
+            graph.close()
+
+            text = (
+                "📊 *Task Graph*\n\n"
+                f"Agents: {summary['agents']}\n"
+                f"Tasks: {summary['tasks']}\n"
+                f"Revenue: €{summary['revenue_total']:.0f} "
+                f"({summary['revenue_tasks']} Tasks)\n\n"
+                f"```\n{mermaid}\n```"
+            )
+            await update.message.reply_text(text, parse_mode="Markdown")
+        except Exception as e:
+            await update.message.reply_text(f"Graph-Fehler: {e}")
+
+    async def _cmd_prune(self, update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+        """Prune non-revenue tasks from queue."""
+        tasks = self._jarvis.task_queue.all_tasks()
+        pruned = 0
+        for t in tasks:
+            if t.status == "pending" and "[REVENUE]" not in t.title:
+                await self._jarvis.task_queue.update_status(t.id, "cancelled")
+                pruned += 1
+        await update.message.reply_text(
+            f"🗑 *Pruned {pruned} non-revenue Tasks*\n"
+            f"Verbleibend: {len(tasks) - pruned} Tasks",
+            parse_mode="Markdown",
+        )
+
+    async def _cmd_10k(self, update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+        """30-day revenue forecast."""
+        state = self._jarvis.state()
+        pipeline = self._jarvis.pipeline
+
+        # Gather pipeline stats
+        pipeline_info = ""
+        if pipeline:
+            stats = await pipeline.stats()
+            pipeline_info = (
+                f"\n*Pipeline:*\n"
+                f"  Planned: {stats.get('planned', 0)}\n"
+                f"  Research: {stats.get('researched', 0)}\n"
+                f"  Built: {stats.get('built', 0)}\n"
+                f"  Approved: {stats.get('approved', 0)}\n"
+                f"  Pruned: {stats.get('pruned', 0)}\n"
+            )
+
+        text = (
+            "💰 *10k€ Revenue Dashboard*\n\n"
+            f"*System:*\n"
+            f"  Active Agents: {state.active_agents}\n"
+            f"  Completed Tasks: {state.completed_tasks}\n"
+            f"  Running Tasks: {state.running_tasks}\n"
+            f"{pipeline_info}\n"
+            f"*Ziel:* 10.000€ in 30 Tagen\n"
+            f"*Strategie:*\n"
+            f"  1. AI Automation Services (€2-5k/Auftrag)\n"
+            f"  2. Digital Products via Systeme.io\n"
+            f"  3. Consulting & Setup-Pakete\n"
+            f"  4. Recurring Revenue (Hosting/Support)\n\n"
+            f"_Revenue Engine generiert automatisch Tasks alle 30 Min._"
+        )
+        await update.message.reply_text(text, parse_mode="Markdown")
+
+    async def _cmd_pipeline(self, update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+        """Show pipeline status."""
+        pipeline = self._jarvis.pipeline
+        if not pipeline:
+            await update.message.reply_text("Pipeline nicht aktiv.")
+            return
+
+        stats = await pipeline.stats()
+        text = (
+            "🔄 *Revenue Pipeline*\n\n"
+            f"📋 Plan Queue: {stats.get('plan_queue', 0)}\n"
+            f"🔍 Research Queue: {stats.get('research_queue', 0)}\n"
+            f"🔨 Build Queue: {stats.get('build_queue', 0)}\n"
+            f"✅ Review Queue: {stats.get('review_queue', 0)}\n\n"
+            f"*Ergebnisse:*\n"
+            f"  Completed: {stats.get('completed', 0)}\n"
+            f"  Pruned: {stats.get('pruned', 0)}"
+        )
+        await update.message.reply_text(text, parse_mode="Markdown")
 
     async def _handle_text(self, update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle natural language messages as tasks."""

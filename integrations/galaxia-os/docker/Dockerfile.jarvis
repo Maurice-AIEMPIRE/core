@@ -14,6 +14,8 @@ COPY llm/ /app/llm/
 COPY memory/ /app/memory/
 COPY tools/ /app/tools/
 COPY brain/ /app/brain/
+COPY pipeline/ /app/pipeline/
+COPY modules/ /app/modules/
 COPY integrations/ /app/integrations/
 
 ENV PYTHONPATH=/app

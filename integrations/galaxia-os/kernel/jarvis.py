@@ -12,6 +12,9 @@ from brain.empire_brain import EmpireBrain
 from kernel.execution_engine import ExecutionEngine
 from llm.client import LLMClient
 from memory.memory import MemorySystem
+from modules.revenue_engine import RevenueEngine
+from modules.self_improve import SelfImproveLoop
+from pipeline.pipeline import RevenuePipeline
 from queue.task_queue import TaskQueue
 from registry.agent_registry import AgentRegistry
 from shared.models import (
@@ -46,6 +49,7 @@ class JarvisKernel:
         litellm_api_key: str = "sk-galaxia-local",
         default_model: str = "ollama/qwen3:14b",
     ):
+        self._redis_url = redis_url
         self._bus = RedisBus(redis_url)
         self._llm = LLMClient(litellm_url, litellm_api_key, default_model)
         self._registry = AgentRegistry(self._bus)
@@ -54,6 +58,9 @@ class JarvisKernel:
         self._tools = ToolManager()
         self._engine: ExecutionEngine | None = None
         self._brain: EmpireBrain | None = None
+        self._pipeline: RevenuePipeline | None = None
+        self._revenue_engine: RevenueEngine | None = None
+        self._self_improve: SelfImproveLoop | None = None
         self._agents = []
         self._start_time = 0.0
         self._messages_processed = 0
@@ -90,6 +97,14 @@ class JarvisKernel:
     @property
     def brain(self) -> EmpireBrain | None:
         return self._brain
+
+    @property
+    def pipeline(self) -> RevenuePipeline | None:
+        return self._pipeline
+
+    @property
+    def revenue_engine(self) -> RevenueEngine | None:
+        return self._revenue_engine
 
     async def boot(self) -> None:
         """Boot sequence: connect, load state, spawn agents."""
@@ -129,13 +144,28 @@ class JarvisKernel:
         await self._brain.start()
         logger.info("[6/7] Empire Brain initialized")
 
+        # Start Revenue Pipeline (4-stage: Plan -> Research -> Build -> Review)
+        self._pipeline = RevenuePipeline(self._redis_url, self._llm)
+        await self._pipeline.start()
+        logger.info("[7/10] Revenue pipeline started")
+
+        # Start Revenue Engine (auto-generates revenue tasks every 30 min)
+        self._revenue_engine = RevenueEngine(self._redis_url, self._llm)
+        await self._revenue_engine.start()
+        logger.info("[8/10] Revenue engine started")
+
+        # Start Self-Improvement Loop (analyzes + improves every 30 min)
+        self._self_improve = SelfImproveLoop(self._redis_url, self._llm)
+        await self._self_improve.start()
+        logger.info("[9/10] Self-improvement loop started")
+
         # Store boot event in memory
         await self._memory.remember_long("system", "last_boot", {
             "time": time.time(),
             "agents": len(self._agents),
             "tools": len(self._tools.list_tools()),
         })
-        logger.info("[7/7] Boot event stored")
+        logger.info("[10/10] Boot event stored")
 
         self._running = True
         logger.info("=== JARVIS KERNEL ONLINE ===")
@@ -175,6 +205,12 @@ class JarvisKernel:
         self._running = False
         if self._brain:
             await self._brain.stop()
+        if self._pipeline:
+            await self._pipeline.stop()
+        if self._revenue_engine:
+            await self._revenue_engine.stop()
+        if self._self_improve:
+            await self._self_improve.stop()
         for agent in self._agents:
             await agent.stop()
         await self._bus.disconnect()
