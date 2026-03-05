@@ -40,9 +40,10 @@ async def main():
     default_model = os.getenv("DEFAULT_MODEL", "ollama/qwen3:14b")
     telegram_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
 
-    logger.info("╔══════════════════════════════════════╗")
-    logger.info("║   PFEIFER GALAXIA OS - JARVIS v1.0   ║")
-    logger.info("╚══════════════════════════════════════╝")
+    logger.info("╔════════════════════════════════════════════╗")
+    logger.info("║  M4st3rCL4W - GALAXIA OS - SuperGrok v2.0  ║")
+    logger.info("║        50 Agent Fleet | Jarvis Kernel        ║")
+    logger.info("╚════════════════════════════════════════════╝")
 
     # Prometheus metrics server
     metrics_runner = await start_metrics_server()

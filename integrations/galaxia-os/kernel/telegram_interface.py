@@ -70,12 +70,13 @@ class TelegramInterface:
 
     async def _cmd_start(self, update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text(
-            "🌌 *Pfeifer Galaxia OS*\n\n"
-            "Jarvis Kernel ist online.\n\n"
+            "🌌 *M4st3rCL4W - Pfeifer Galaxia OS*\n\n"
+            "SuperGrok Fleet: 50 Agents online.\n"
+            "Jarvis Kernel aktiv.\n\n"
             "Befehle:\n"
             "*System:*\n"
             "/status - Systemstatus\n"
-            "/agents - Aktive Agents\n"
+            "/agents - Aktive Agents (50 SuperGrok Fleet)\n"
             "/tasks - Aufgabenliste\n"
             "/tools - Verfügbare Tools\n"
             "/memory - Memory Stats\n\n"

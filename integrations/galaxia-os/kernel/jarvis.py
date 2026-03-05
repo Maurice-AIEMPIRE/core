@@ -197,7 +197,7 @@ class JarvisKernel:
             await agent.start()
             self._agents.append(agent)
 
-        logger.info("Spawned %d agents (4 core + 5 teams)", len(self._agents))
+        logger.info("Spawned %d agents (4 core + %d team agents)", len(self._agents), len(self._agents) - 4)
 
     async def shutdown(self) -> None:
         """Graceful shutdown."""
