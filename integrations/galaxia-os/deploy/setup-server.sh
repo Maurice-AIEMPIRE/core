@@ -68,7 +68,7 @@ else
 fi
 
 # LiteLLM
-if curl -s http://localhost:4000/health 2>/dev/null | grep -q -i "healthy\|ok\|running" || curl -s http://localhost:4000/models >/dev/null 2>&1; then
+if curl -s --max-time 5 http://localhost:4000/health 2>/dev/null | grep -q -i "healthy\|ok\|running" || curl -s --max-time 5 http://localhost:4000/models >/dev/null 2>&1; then
     echo "  ✓ LiteLLM: OK (localhost:4000)"
     LITELLM_URL="http://localhost:4000"
 else
@@ -77,8 +77,8 @@ else
 fi
 
 # Ollama
-if curl -s http://localhost:11434/api/tags >/dev/null 2>&1; then
-    MODELS=$(curl -s http://localhost:11434/api/tags | python3 -c "import sys,json; print(len(json.load(sys.stdin)['models']))" 2>/dev/null || echo "?")
+if curl -s --max-time 5 http://localhost:11434/api/tags >/dev/null 2>&1; then
+    MODELS=$(curl -s --max-time 5 http://localhost:11434/api/tags | python3 -c "import sys,json; print(len(json.load(sys.stdin)['models']))" 2>/dev/null || echo "?")
     echo "  ✓ Ollama: OK ($MODELS models)"
 else
     echo "  ✗ Ollama: NOT FOUND"
