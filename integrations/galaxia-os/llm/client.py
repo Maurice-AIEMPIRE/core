@@ -59,6 +59,7 @@ class LLMClient:
                 max_tokens=max_tokens,
                 api_base=self._base_url,
                 api_key=self._api_key,
+                timeout=300,
             )
             content = response.choices[0].message.content
             logger.debug("LLM response (%s): %s chars", model, len(content))
