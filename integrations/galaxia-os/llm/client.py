@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from typing import Any
 
 import litellm
@@ -16,13 +17,18 @@ class LLMClient:
 
     def __init__(
         self,
-        litellm_url: str = "http://localhost:4000",
-        api_key: str = "sk-galaxia-local",
-        default_model: str = "ollama/qwen3:14b",
+        litellm_url: str | None = None,
+        api_key: str | None = None,
+        default_model: str | None = None,
     ):
+        litellm_url = litellm_url or os.environ.get("LITELLM_URL", "http://localhost:4000")
+        api_key = api_key or os.environ.get("LITELLM_API_KEY", "sk-galaxia-local")
+        default_model = default_model or os.environ.get("GALAXIA_DEFAULT_MODEL", "ollama/qwen3:14b")
         self._base_url = litellm_url
         self._api_key = api_key
         self._default_model = default_model
+        fallback_str = os.environ.get("GALAXIA_FALLBACK_MODELS", "")
+        self._fallback_models = [m.strip() for m in fallback_str.split(",") if m.strip()]
         litellm.api_base = litellm_url
         litellm.drop_params = True
 
@@ -52,23 +58,31 @@ class LLMClient:
     ) -> str:
         model = model or self._default_model
 
-        try:
-            response = await litellm.acompletion(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                api_base=self._base_url,
-                api_key=self._api_key,
-                timeout=300,
-            )
-            content = response.choices[0].message.content
-            logger.debug("LLM response (%s): %s chars", model, len(content))
-            return content
+        models_to_try = [model] + [m for m in self._fallback_models if m != model]
+        last_error: Exception | None = None
 
-        except Exception:
-            logger.exception("LLM call failed (model=%s)", model)
-            raise
+        for attempt_model in models_to_try:
+            try:
+                response = await litellm.acompletion(
+                    model=attempt_model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    api_base=self._base_url,
+                    api_key=self._api_key,
+                    timeout=300,
+                )
+                content = response.choices[0].message.content
+                logger.debug("LLM response (%s): %s chars", attempt_model, len(content))
+                return content
+            except Exception as e:
+                last_error = e
+                if attempt_model != models_to_try[-1]:
+                    logger.warning("LLM call failed (model=%s), trying fallback", attempt_model)
+                else:
+                    logger.exception("LLM call failed (model=%s), no more fallbacks", attempt_model)
+
+        raise last_error  # type: ignore[misc]
 
     async def plan_task(self, task_description: str) -> list[dict[str, str]]:
         """Use LLM to break a task into subtasks."""
@@ -82,7 +96,6 @@ class LLMClient:
             system=system,
             temperature=0.3,
         )
-
 
         try:
             # Strip markdown code fences if present
@@ -106,7 +119,6 @@ class LLMClient:
             system=system,
             temperature=0.2,
         )
-
 
         try:
             text = response.strip()

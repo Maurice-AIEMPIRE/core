@@ -43,6 +43,12 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - galaxia
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     depends_on:
       redis:
         condition: service_healthy
@@ -60,12 +66,15 @@ services:
       - LITELLM_URL=http://litellm:4000
       - LITELLM_API_KEY=${LITELLM_API_KEY:-sk-galaxia-local}
       - DEFAULT_MODEL=${DEFAULT_MODEL:-ollama/qwen3:14b}
+      - GALAXIA_FALLBACK_MODELS=${GALAXIA_FALLBACK_MODELS:-ollama/qwen3:8b,ollama/mistral:7b}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
     networks:
       - galaxia
     depends_on:
       redis:
+        condition: service_healthy
+      litellm:
         condition: service_healthy
 
   # === PROMETHEUS: Metrics ===
