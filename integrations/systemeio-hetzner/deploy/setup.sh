@@ -359,6 +359,7 @@ services:
     environment:
       - OPENCLAW_MODEL_PROVIDER=ollama
       - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_API_KEY=ollama-local
       - OPENAI_API_KEY=\${OPENAI_API_KEY:-}
       - OPENCLAW_GATEWAY_TOKEN=\${OPENCLAW_GATEWAY_TOKEN}
       - OPENCLAW_SANDBOX=false
@@ -500,17 +501,23 @@ if docker inspect --format='{{.State.Running}}' openclaw 2>/dev/null | grep -q t
     # Auth-Profile fuer Ollama setzen
     echo "  Ollama Auth-Profile wird konfiguriert..."
     mkdir -p /opt/ki-power/openclaw-config
-    cat > /opt/ki-power/openclaw-config/auth-profiles.json << AUTHEOF
+    cat > /opt/ki-power/openclaw-config/auth-profiles.json << 'AUTHEOF'
 {
-  "ollama": {
-    "apiKey": "local",
-    "baseURL": "http://ollama:11434"
-  }
+  "profiles": {
+    "ollama": {
+      "provider": "ollama",
+      "baseUrl": "http://ollama:11434",
+      "apiKey": "ollama-local"
+    }
+  },
+  "default": "ollama"
 }
 AUTHEOF
 
-    # Auth-Profile in alle Agent-Verzeichnisse kopieren
+    # Auth-Profile in alle Agent-Verzeichnisse kopieren (root UND node Pfade)
+    docker exec openclaw mkdir -p /root/.openclaw/agents/main/agent 2>/dev/null || true
     docker exec openclaw mkdir -p /home/node/.openclaw/agents/main/agent 2>/dev/null || true
+    docker cp /opt/ki-power/openclaw-config/auth-profiles.json openclaw:/root/.openclaw/agents/main/agent/auth-profiles.json 2>/dev/null || true
     docker cp /opt/ki-power/openclaw-config/auth-profiles.json openclaw:/home/node/.openclaw/agents/main/agent/auth-profiles.json 2>/dev/null || true
     echo -e "${GREEN}  ✓ Ollama Auth-Profile gesetzt${NC}"
 

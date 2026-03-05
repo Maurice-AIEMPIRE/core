@@ -54,8 +54,8 @@ case "$CHOICE" in
   \"profiles\": {
     \"ollama\": {
       \"provider\": \"ollama\",
-      \"baseUrl\": \"http://host.docker.internal:11434\",
-      \"apiKey\": \"ollama\"
+      \"baseUrl\": \"http://ollama:11434\",
+      \"apiKey\": \"ollama-local\"
     }
   },
   \"default\": \"ollama\"
@@ -113,8 +113,8 @@ AUTHEOF"
   \"profiles\": {
     \"ollama\": {
       \"provider\": \"ollama\",
-      \"baseUrl\": \"http://host.docker.internal:11434\",
-      \"apiKey\": \"ollama\"
+      \"baseUrl\": \"http://ollama:11434\",
+      \"apiKey\": \"ollama-local\"
     },
     \"openai\": {
       \"provider\": \"openai\",
