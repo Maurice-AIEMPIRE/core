@@ -1,33 +1,46 @@
 model_list:
-  # Ollama Models (local, free)
+  # === 5 Ollama Models (local, free, auf Hetzner) ===
+
+  # 1. Hauptmodell: Reasoning + Chat
   - model_name: qwen3-14b
     litellm_params:
       model: ollama/qwen3:14b
       api_base: http://host.docker.internal:11434
+      timeout: 120
 
+  # 2. Code-Spezialist
+  - model_name: deepseek-coder-33b
+    litellm_params:
+      model: ollama/deepseek-coder:33b
+      api_base: http://host.docker.internal:11434
+      timeout: 180
+
+  # 3. Schnelles Fallback
+  - model_name: qwen3-8b
+    litellm_params:
+      model: ollama/qwen3:8b
+      api_base: http://host.docker.internal:11434
+      timeout: 60
+
+  # 4. Allrounder
   - model_name: mistral-7b
     litellm_params:
       model: ollama/mistral:7b
       api_base: http://host.docker.internal:11434
+      timeout: 60
 
-  # OpenAI Models (optional, paid)
-  - model_name: gpt-4.1
+  # 5. Kleines schnelles Modell fuer einfache Tasks
+  - model_name: qwen3-4b
     litellm_params:
-      model: openai/gpt-4.1-2025-04-14
-      api_key: os.environ/OPENAI_API_KEY
+      model: ollama/qwen3:4b
+      api_base: http://host.docker.internal:11434
+      timeout: 30
 
-  - model_name: gpt-4.1-mini
-    litellm_params:
-      model: openai/gpt-4.1-mini
-      api_key: os.environ/OPENAI_API_KEY
-
-# Default model for agents
 litellm_settings:
   drop_params: true
   set_verbose: false
   request_timeout: 120
 
-# Router settings - prefer local Ollama, fallback to OpenAI
 router_settings:
   routing_strategy: simple-shuffle
   num_retries: 2

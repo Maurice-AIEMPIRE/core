@@ -66,7 +66,7 @@ services:
       - LITELLM_URL=http://litellm:4000
       - LITELLM_API_KEY=${LITELLM_API_KEY:-sk-galaxia-local}
       - DEFAULT_MODEL=${DEFAULT_MODEL:-ollama/qwen3:14b}
-      - GALAXIA_FALLBACK_MODELS=${GALAXIA_FALLBACK_MODELS:-ollama/qwen3:8b,ollama/mistral:7b}
+      - GALAXIA_FALLBACK_MODELS=${GALAXIA_FALLBACK_MODELS:-ollama/deepseek-coder:33b,ollama/qwen3:8b,ollama/mistral:7b,ollama/qwen3:4b}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
     networks:
