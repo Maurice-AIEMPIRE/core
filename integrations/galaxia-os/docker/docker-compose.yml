@@ -1,0 +1,109 @@
+version: "3.8"
+
+x-logging: &logging
+  driver: local
+  options:
+    max-size: 10m
+    max-file: "3"
+
+services:
+  # === REDIS: Message Bus for Agent Communication ===
+  redis:
+    container_name: galaxia-redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    logging: *logging
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - galaxia
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # === LITELLM: LLM Proxy Router ===
+  litellm:
+    container_name: galaxia-litellm
+    image: ghcr.io/berriai/litellm:main-latest
+    restart: unless-stopped
+    logging: *logging
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./litellm-config.yaml:/app/config.yaml
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    environment:
+      - OLLAMA_API_BASE=http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - galaxia
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # === JARVIS KERNEL: Master Orchestrator ===
+  jarvis:
+    container_name: galaxia-jarvis
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.jarvis
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - LITELLM_URL=http://litellm:4000
+      - LITELLM_API_KEY=${LITELLM_API_KEY:-sk-galaxia-local}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-ollama/qwen3:14b}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+    networks:
+      - galaxia
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # === PROMETHEUS: Metrics ===
+  prometheus:
+    container_name: galaxia-prometheus
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    logging: *logging
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - galaxia
+
+  # === GRAFANA: Dashboard ===
+  grafana:
+    container_name: galaxia-grafana
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    logging: *logging
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-galaxia2026}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - galaxia
+
+networks:
+  galaxia:
+    name: galaxia
+    driver: bridge
+
+volumes:
+  redis_data:
+  prometheus_data:
+  grafana_data:

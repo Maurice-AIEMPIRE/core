@@ -1,0 +1,34 @@
+model_list:
+  # Ollama Models (local, free)
+  - model_name: qwen3-14b
+    litellm_params:
+      model: ollama/qwen3:14b
+      api_base: http://host.docker.internal:11434
+
+  - model_name: mistral-7b
+    litellm_params:
+      model: ollama/mistral:7b
+      api_base: http://host.docker.internal:11434
+
+  # OpenAI Models (optional, paid)
+  - model_name: gpt-4.1
+    litellm_params:
+      model: openai/gpt-4.1-2025-04-14
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: gpt-4.1-mini
+    litellm_params:
+      model: openai/gpt-4.1-mini
+      api_key: os.environ/OPENAI_API_KEY
+
+# Default model for agents
+litellm_settings:
+  drop_params: true
+  set_verbose: false
+  request_timeout: 120
+
+# Router settings - prefer local Ollama, fallback to OpenAI
+router_settings:
+  routing_strategy: simple-shuffle
+  num_retries: 2
+  timeout: 120
