@@ -34,6 +34,10 @@ yarn-debug.log*
 yarn-error.log*
 benchmarks/
 
+# Python
+__pycache__/
+*.pyc
+
 # Misc
 .DS_Store
 *.pem
