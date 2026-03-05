@@ -43,6 +43,7 @@ docker-compose.dev.yaml
 clickhouse/
 .vscode/
 registry/
+!integrations/galaxia-os/registry/
 
 .cursor
 CLAUDE.md
