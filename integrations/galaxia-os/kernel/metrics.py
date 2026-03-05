@@ -18,7 +18,8 @@ MESSAGES_TOTAL = Counter("galaxia_messages_total", "Total messages processed")
 
 
 async def metrics_handler(request):
-    return web.Response(body=generate_latest(), content_type=CONTENT_TYPE_LATEST)
+    body = generate_latest()
+    return web.Response(body=body, headers={"Content-Type": CONTENT_TYPE_LATEST})
 
 
 async def health_handler(request):
