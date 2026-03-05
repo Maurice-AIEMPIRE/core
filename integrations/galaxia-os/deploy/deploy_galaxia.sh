@@ -404,7 +404,8 @@ if [ -d "$REPO_GALAXIA/kernel" ]; then
     cp -r "$REPO_GALAXIA"/kernel/ "$GALAXIA_DIR/kernel/"
     cp -r "$REPO_GALAXIA"/agents/ "$GALAXIA_DIR/agents/" 2>/dev/null || true
     cp -r "$REPO_GALAXIA"/shared/ "$GALAXIA_DIR/shared/" 2>/dev/null || true
-    cp -r "$REPO_GALAXIA"/queue/ "$GALAXIA_DIR/queue/" 2>/dev/null || true
+    cp -r "$REPO_GALAXIA"/taskqueue/ "$GALAXIA_DIR/taskqueue/" 2>/dev/null || true
+    rm -rf "$GALAXIA_DIR/queue/" 2>/dev/null || true  # cleanup old name that shadows stdlib
     cp -r "$REPO_GALAXIA"/registry/ "$GALAXIA_DIR/registry/" 2>/dev/null || true
     cp -r "$REPO_GALAXIA"/llm/ "$GALAXIA_DIR/llm/" 2>/dev/null || true
     cp -r "$REPO_GALAXIA"/memory/ "$GALAXIA_DIR/memory/" 2>/dev/null || true
