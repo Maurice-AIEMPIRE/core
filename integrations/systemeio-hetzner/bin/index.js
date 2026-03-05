@@ -18896,8 +18896,26 @@ var {
   mergeConfig: mergeConfig2
 } = axios_default;
 var SYSTEME_API_BASE = "https://api.systeme.io/api";
+var REQUEST_TIMEOUT_MS = 15e3;
+var MAX_RETRIES = 2;
+async function requestWithRetry(config) {
+  var _a5, _b;
+  let lastError;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await axios_default({ ...config, timeout: REQUEST_TIMEOUT_MS });
+      return response.data;
+    } catch (error) {
+      lastError = error;
+      const isRetryable = error.code === "ECONNABORTED" || error.code === "ETIMEDOUT" || error.code === "ECONNRESET" || ((_a5 = error == null ? void 0 : error.response) == null ? void 0 : _a5.status) === 429 || ((_b = error == null ? void 0 : error.response) == null ? void 0 : _b.status) >= 500;
+      if (!isRetryable || attempt === MAX_RETRIES) throw error;
+      await new Promise((r) => setTimeout(r, 1e3 * (attempt + 1)));
+    }
+  }
+  throw lastError;
+}
 async function systemeRequest(method, endpoint, apiKey, data) {
-  const response = await axios_default({
+  return requestWithRetry({
     method,
     url: `${SYSTEME_API_BASE}${endpoint}`,
     headers: {
@@ -18906,7 +18924,6 @@ async function systemeRequest(method, endpoint, apiKey, data) {
     },
     data
   });
-  return response.data;
 }
 async function getContacts(apiKey, page = 1, limit = 20) {
   return systemeRequest("GET", `/contacts?page=${page}&limit=${limit}`, apiKey);
@@ -18930,7 +18947,7 @@ async function grantCourseAccess(apiKey, courseId, studentEmail) {
 }
 var HETZNER_API_BASE = "https://api.hetzner.cloud/v1";
 async function hetznerRequest(method, endpoint, apiToken, data) {
-  const response = await axios_default({
+  return requestWithRetry({
     method,
     url: `${HETZNER_API_BASE}${endpoint}`,
     headers: {
@@ -18939,7 +18956,6 @@ async function hetznerRequest(method, endpoint, apiToken, data) {
     },
     data
   });
-  return response.data;
 }
 async function listServers(apiToken) {
   return hetznerRequest("GET", "/servers", apiToken);
@@ -19201,10 +19217,14 @@ function createActivityMessage(text, sourceURL = "") {
   };
 }
 async function handleSchedule(config, state) {
-  var _a5, _b, _c;
+  var _a5, _b, _c, _d, _e, _f;
   try {
     if (!(config == null ? void 0 : config.systeme_api_key) || !(config == null ? void 0 : config.hetzner_api_token)) {
-      return [];
+      return [
+        createActivityMessage(
+          "Sync \xFCbersprungen: Systeme.io API Key oder Hetzner API Token fehlt. Bitte Integration neu konfigurieren."
+        )
+      ];
     }
     const settings = state || {};
     const messages = [];
@@ -19252,7 +19272,12 @@ async function handleSchedule(config, state) {
         }
         settings.lastSaleId = saleId;
       }
-    } catch {
+    } catch (error) {
+      messages.push(
+        createActivityMessage(
+          `Systeme.io API Fehler: ${((_c = error == null ? void 0 : error.response) == null ? void 0 : _c.status) ? `HTTP ${error.response.status}` : (error == null ? void 0 : error.message) || "Unbekannter Fehler"} - wird beim n\xE4chsten Sync erneut versucht`
+        )
+      );
     }
     try {
       const serversData = await listServers(config.hetzner_api_token);
@@ -19269,7 +19294,7 @@ async function handleSchedule(config, state) {
         if (server.status !== "running") {
           messages.push(
             createActivityMessage(
-              `WARNUNG: Server ${server.name} (${(_c = server.labels) == null ? void 0 : _c.customer_email}) Status: ${server.status}`,
+              `WARNUNG: Server ${server.name} (${(_d = server.labels) == null ? void 0 : _d.customer_email}) Status: ${server.status}`,
               `https://console.hetzner.cloud/servers/${server.id}`
             )
           );
@@ -19285,7 +19310,12 @@ async function handleSchedule(config, state) {
           )
         );
       }
-    } catch {
+    } catch (error) {
+      messages.push(
+        createActivityMessage(
+          `Hetzner API Fehler: ${((_e = error == null ? void 0 : error.response) == null ? void 0 : _e.status) ? `HTTP ${error.response.status}` : (error == null ? void 0 : error.message) || "Unbekannter Fehler"} - wird beim n\xE4chsten Sync erneut versucht`
+        )
+      );
     }
     try {
       const contactsData = await getContacts(config.systeme_api_key, 1, 10);
@@ -19302,7 +19332,12 @@ async function handleSchedule(config, state) {
           );
         }
       }
-    } catch {
+    } catch (error) {
+      messages.push(
+        createActivityMessage(
+          `Kontakte-Sync Fehler: ${((_f = error == null ? void 0 : error.response) == null ? void 0 : _f.status) ? `HTTP ${error.response.status}` : (error == null ? void 0 : error.message) || "Unbekannter Fehler"} - wird beim n\xE4chsten Sync erneut versucht`
+        )
+      );
     }
     messages.push({
       type: "state",
@@ -19313,17 +19348,22 @@ async function handleSchedule(config, state) {
       }
     });
     return messages;
-  } catch {
-    return [];
+  } catch (error) {
+    return [
+      createActivityMessage(
+        `Kritischer Sync-Fehler: ${(error == null ? void 0 : error.message) || "Unbekannter Fehler"} - bitte Integration pr\xFCfen`
+      )
+    ];
   }
 }
 
 // src/account-create.ts
 init_cjs_shims();
 async function integrationCreate(data) {
-  const { oauthResponse } = data;
-  const systemeApiKey = oauthResponse.systeme_api_key;
-  const hetznerApiToken = oauthResponse.hetzner_api_token;
+  var _a5, _b;
+  const keys = data.apiKeys || data.oauthResponse || {};
+  const systemeApiKey = keys.systeme_api_key;
+  const hetznerApiToken = keys.hetzner_api_token;
   if (!systemeApiKey || !hetznerApiToken) {
     return [
       {
@@ -19338,11 +19378,14 @@ async function integrationCreate(data) {
   try {
     await getContacts(systemeApiKey, 1, 1);
     systemeValid = true;
-  } catch {
+  } catch (error) {
+    const detail = ((_a5 = error == null ? void 0 : error.response) == null ? void 0 : _a5.status) ? ` (HTTP ${error.response.status})` : (error == null ? void 0 : error.message) ? ` (${error.message})` : "";
     return [
       {
         type: "error",
-        data: { message: "Invalid Systeme.io API Key. Please check and try again." }
+        data: {
+          message: `Invalid Systeme.io API Key${detail}. Please check your key in Settings \u2192 API Keys and try again.`
+        }
       }
     ];
   }
@@ -19350,11 +19393,14 @@ async function integrationCreate(data) {
   try {
     await listServers(hetznerApiToken);
     hetznerValid = true;
-  } catch {
+  } catch (error) {
+    const detail = ((_b = error == null ? void 0 : error.response) == null ? void 0 : _b.status) ? ` (HTTP ${error.response.status})` : (error == null ? void 0 : error.message) ? ` (${error.message})` : "";
     return [
       {
         type: "error",
-        data: { message: "Invalid Hetzner API Token. Please check and try again." }
+        data: {
+          message: `Invalid Hetzner API Token${detail}. Please check your token in Security \u2192 API Tokens and try again.`
+        }
       }
     ];
   }

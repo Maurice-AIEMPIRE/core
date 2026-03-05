@@ -7,6 +7,29 @@ import { randomBytes } from 'crypto';
 // ============================================================================
 
 const SYSTEME_API_BASE = 'https://api.systeme.io/api';
+const REQUEST_TIMEOUT_MS = 15_000; // 15 seconds max per request
+const MAX_RETRIES = 2;
+
+async function requestWithRetry(config: Parameters<typeof axios>[0]) {
+  let lastError: any;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await axios({ ...config, timeout: REQUEST_TIMEOUT_MS });
+      return response.data;
+    } catch (error: any) {
+      lastError = error;
+      const isRetryable =
+        error.code === 'ECONNABORTED' ||
+        error.code === 'ETIMEDOUT' ||
+        error.code === 'ECONNRESET' ||
+        error?.response?.status === 429 ||
+        error?.response?.status >= 500;
+      if (!isRetryable || attempt === MAX_RETRIES) throw error;
+      await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+    }
+  }
+  throw lastError;
+}
 
 export async function systemeRequest(
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
@@ -14,7 +37,7 @@ export async function systemeRequest(
   apiKey: string,
   data?: any,
 ) {
-  const response = await axios({
+  return requestWithRetry({
     method,
     url: `${SYSTEME_API_BASE}${endpoint}`,
     headers: {
@@ -23,7 +46,6 @@ export async function systemeRequest(
     },
     data,
   });
-  return response.data;
 }
 
 // --- Contacts (Leads/Kunden) ---
@@ -97,7 +119,7 @@ export async function hetznerRequest(
   apiToken: string,
   data?: any,
 ) {
-  const response = await axios({
+  return requestWithRetry({
     method,
     url: `${HETZNER_API_BASE}${endpoint}`,
     headers: {
@@ -106,7 +128,6 @@ export async function hetznerRequest(
     },
     data,
   });
-  return response.data;
 }
 
 // --- Servers ---
