@@ -1,10 +1,16 @@
 """Pfeifer Galaxia OS - Main Entrypoint"""
 
+import os
+import sys
+
+# Ensure the galaxia-os root is on sys.path (needed for registry, agents, etc.)
+_galaxia_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _galaxia_root not in sys.path:
+    sys.path.insert(0, _galaxia_root)
+
 import asyncio
 import logging
-import os
 import signal
-import sys
 
 import structlog
 
