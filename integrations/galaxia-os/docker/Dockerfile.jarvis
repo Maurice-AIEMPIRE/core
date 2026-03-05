@@ -11,6 +11,8 @@ COPY agents/ /app/agents/
 COPY registry/ /app/registry/
 COPY queue/ /app/queue/
 COPY llm/ /app/llm/
+COPY memory/ /app/memory/
+COPY tools/ /app/tools/
 
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1

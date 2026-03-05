@@ -7,7 +7,9 @@ import logging
 import time
 
 from agents.base import PlannerAgent, ExecutorAgent, CriticAgent, CoordinatorAgent
+from kernel.execution_engine import ExecutionEngine
 from llm.client import LLMClient
+from memory.memory import MemorySystem
 from queue.task_queue import TaskQueue
 from registry.agent_registry import AgentRegistry
 from shared.models import (
@@ -19,6 +21,7 @@ from shared.models import (
     TaskStatus,
 )
 from shared.redis_bus import CHANNEL_KERNEL, RedisBus
+from tools.tool_manager import ToolManager, register_builtin_tools
 
 logger = logging.getLogger("galaxia.jarvis")
 
@@ -45,6 +48,9 @@ class JarvisKernel:
         self._llm = LLMClient(litellm_url, litellm_api_key, default_model)
         self._registry = AgentRegistry(self._bus)
         self._task_queue = TaskQueue(self._bus)
+        self._memory: MemorySystem | None = None
+        self._tools = ToolManager()
+        self._engine: ExecutionEngine | None = None
         self._agents = []
         self._start_time = 0.0
         self._messages_processed = 0
@@ -66,6 +72,18 @@ class JarvisKernel:
     def llm(self) -> LLMClient:
         return self._llm
 
+    @property
+    def memory(self) -> MemorySystem | None:
+        return self._memory
+
+    @property
+    def tools(self) -> ToolManager:
+        return self._tools
+
+    @property
+    def engine(self) -> ExecutionEngine | None:
+        return self._engine
+
     async def boot(self) -> None:
         """Boot sequence: connect, load state, spawn agents."""
         logger.info("=== JARVIS KERNEL BOOTING ===")
@@ -75,19 +93,33 @@ class JarvisKernel:
         await self._bus.connect()
         logger.info("[1/4] Redis connected")
 
+        # Initialize memory, tools, execution engine
+        self._memory = MemorySystem(self._bus.redis)
+        register_builtin_tools(self._tools)
+        self._engine = ExecutionEngine(self._llm, self._memory, self._tools)
+        logger.info("[2/6] Memory + Tools + Engine initialized")
+
         # Load persisted state
         await self._registry.load_from_redis()
         await self._task_queue.load_from_redis()
-        logger.info("[2/4] State loaded")
+        logger.info("[3/6] State loaded")
 
         # Subscribe to kernel channel
         await self._bus.subscribe(CHANNEL_KERNEL, self._handle_kernel_message)
         await self._bus.start_listening()
-        logger.info("[3/4] Message bus listening")
+        logger.info("[4/6] Message bus listening")
 
         # Spawn default agents
         await self._spawn_agents()
-        logger.info("[4/4] Agents spawned")
+        logger.info("[5/6] Agents spawned")
+
+        # Store boot event in memory
+        await self._memory.remember_long("system", "last_boot", {
+            "time": time.time(),
+            "agents": len(self._agents),
+            "tools": len(self._tools.list_tools()),
+        })
+        logger.info("[6/6] Boot event stored")
 
         self._running = True
         logger.info("=== JARVIS KERNEL ONLINE ===")
