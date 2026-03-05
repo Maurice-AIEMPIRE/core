@@ -8,13 +8,14 @@ Stores task pipeline events as a graph:
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 logger = logging.getLogger("galaxia.neo4j")
 
 # Neo4j driver import (optional - graceful fallback if not installed)
 try:
-    from neo4j import GraphDatabase, AsyncGraphDatabase
+    from neo4j import GraphDatabase
     NEO4J_AVAILABLE = True
 except ImportError:
     NEO4J_AVAILABLE = False
@@ -26,10 +27,13 @@ class Neo4jGraph:
 
     def __init__(
         self,
-        uri: str = "bolt://localhost:7687",
-        user: str = "neo4j",
-        password: str = "Neo4j",
+        uri: str | None = None,
+        user: str | None = None,
+        password: str | None = None,
     ):
+        uri = uri or os.environ.get("NEO4J_URI", "bolt://localhost:7687")
+        user = user or os.environ.get("NEO4J_USER", "neo4j")
+        password = password or os.environ.get("NEO4J_PASSWORD", "")
         self._uri = uri
         self._user = user
         self._password = password
@@ -97,6 +101,10 @@ class Neo4jGraph:
             id=task_id, title=title, stage=stage, revenue=revenue_estimate,
         )
 
+    _ALLOWED_REL_TYPES = frozenset({
+        "PLANNED_BY", "RESEARCHED_BY", "BUILT_BY", "REVIEWED_BY", "PROCESSED_BY",
+    })
+
     def log_agent_action(self, task_id: str, agent_id: str, action: str) -> None:
         """Create relationship between task and agent."""
         rel_type = {
@@ -105,6 +113,10 @@ class Neo4jGraph:
             "built": "BUILT_BY",
             "reviewed": "REVIEWED_BY",
         }.get(action, "PROCESSED_BY")
+
+        if rel_type not in self._ALLOWED_REL_TYPES:
+            logger.error("Invalid relationship type: %s", rel_type)
+            return
 
         self._run(
             f"MATCH (t:Task {{id: $task_id}}) "

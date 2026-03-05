@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import subprocess
+import re
 from collections.abc import Callable, Coroutine
 from typing import Any
 
@@ -132,13 +132,20 @@ async def tool_docker_ps() -> ToolResult:
     return await tool_shell("docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'")
 
 
+_SAFE_CONTAINER_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_.\-]*$")
+
+
 async def tool_docker_logs(container: str, lines: int = 50) -> ToolResult:
     """Get logs from a Docker container."""
-    return await tool_shell(f"docker logs --tail {lines} {container}")
+    if not _SAFE_CONTAINER_RE.match(container):
+        return ToolResult(success=False, error="Invalid container name")
+    return await tool_shell(f"docker logs --tail {int(lines)} {container}")
 
 
 async def tool_docker_restart(container: str) -> ToolResult:
     """Restart a Docker container."""
+    if not _SAFE_CONTAINER_RE.match(container):
+        return ToolResult(success=False, error="Invalid container name")
     return await tool_shell(f"docker restart {container}")
 
 

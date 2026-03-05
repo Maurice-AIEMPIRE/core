@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -82,7 +83,7 @@ class LLMClient:
             temperature=0.3,
         )
 
-        import json
+
         try:
             # Strip markdown code fences if present
             text = response.strip()
@@ -106,7 +107,7 @@ class LLMClient:
             temperature=0.2,
         )
 
-        import json
+
         try:
             text = response.strip()
             if text.startswith("```"):
