@@ -7,6 +7,8 @@ import logging
 import time
 
 from agents.base import PlannerAgent, ExecutorAgent, CriticAgent, CoordinatorAgent
+from agents.teams import create_agent_teams
+from brain.empire_brain import EmpireBrain
 from kernel.execution_engine import ExecutionEngine
 from llm.client import LLMClient
 from memory.memory import MemorySystem
@@ -51,6 +53,7 @@ class JarvisKernel:
         self._memory: MemorySystem | None = None
         self._tools = ToolManager()
         self._engine: ExecutionEngine | None = None
+        self._brain: EmpireBrain | None = None
         self._agents = []
         self._start_time = 0.0
         self._messages_processed = 0
@@ -84,6 +87,10 @@ class JarvisKernel:
     def engine(self) -> ExecutionEngine | None:
         return self._engine
 
+    @property
+    def brain(self) -> EmpireBrain | None:
+        return self._brain
+
     async def boot(self) -> None:
         """Boot sequence: connect, load state, spawn agents."""
         logger.info("=== JARVIS KERNEL BOOTING ===")
@@ -109,9 +116,18 @@ class JarvisKernel:
         await self._bus.start_listening()
         logger.info("[4/6] Message bus listening")
 
-        # Spawn default agents
+        # Spawn default agents + teams
         await self._spawn_agents()
-        logger.info("[5/6] Agents spawned")
+        logger.info("[5/7] Agents spawned (%d total)", len(self._agents))
+
+        # Initialize Empire Brain
+        self._brain = EmpireBrain(
+            llm=self._llm,
+            memory=self._memory,
+            task_submitter=self.submit_task,
+        )
+        await self._brain.start()
+        logger.info("[6/7] Empire Brain initialized")
 
         # Store boot event in memory
         await self._memory.remember_long("system", "last_boot", {
@@ -119,17 +135,17 @@ class JarvisKernel:
             "agents": len(self._agents),
             "tools": len(self._tools.list_tools()),
         })
-        logger.info("[6/6] Boot event stored")
+        logger.info("[7/7] Boot event stored")
 
         self._running = True
         logger.info("=== JARVIS KERNEL ONLINE ===")
 
     async def _spawn_agents(self) -> None:
-        """Create and start the default agent fleet."""
+        """Create and start the default agent fleet + specialized teams."""
+        # Core agents (Planner, Executor, Critic, Coordinator)
         agent_classes = [
             (PlannerAgent, {}),
             (ExecutorAgent, {}),
-            (ExecutorAgent, {}),  # 2 executors for parallelism
             (CriticAgent, {}),
             (CoordinatorAgent, {}),
         ]
@@ -145,12 +161,20 @@ class JarvisKernel:
             await agent.start()
             self._agents.append(agent)
 
-        logger.info("Spawned %d agents", len(self._agents))
+        # Specialized business teams (Revenue, Marketing, Dev, Research, Ops)
+        teams = create_agent_teams(self._bus, self._registry, self._task_queue, self._llm)
+        for agent in teams:
+            await agent.start()
+            self._agents.append(agent)
+
+        logger.info("Spawned %d agents (4 core + 5 teams)", len(self._agents))
 
     async def shutdown(self) -> None:
         """Graceful shutdown."""
         logger.info("Jarvis shutting down...")
         self._running = False
+        if self._brain:
+            await self._brain.stop()
         for agent in self._agents:
             await agent.stop()
         await self._bus.disconnect()

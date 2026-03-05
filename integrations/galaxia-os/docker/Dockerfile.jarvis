@@ -13,6 +13,8 @@ COPY queue/ /app/queue/
 COPY llm/ /app/llm/
 COPY memory/ /app/memory/
 COPY tools/ /app/tools/
+COPY brain/ /app/brain/
+COPY integrations/ /app/integrations/
 
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1

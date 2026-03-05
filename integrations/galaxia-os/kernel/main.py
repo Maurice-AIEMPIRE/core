@@ -70,13 +70,17 @@ async def main():
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, handle_signal)
 
-    # Run dispatch loop until stopped
+    # Run dispatch loop + brain loop concurrently
     dispatch_task = asyncio.create_task(jarvis.dispatch_loop())
+    brain_task = asyncio.create_task(jarvis.brain.run_loop()) if jarvis.brain else None
+    logger.info("Dispatch + Brain loops running")
 
     await stop_event.wait()
 
     # Shutdown
     dispatch_task.cancel()
+    if brain_task:
+        brain_task.cancel()
     if telegram:
         await telegram.stop()
     await jarvis.shutdown()

@@ -39,6 +39,13 @@ class TelegramInterface:
         self._app.add_handler(CommandHandler("run", self._cmd_run))
         self._app.add_handler(CommandHandler("draft", self._cmd_draft))
         self._app.add_handler(CommandHandler("deploy", self._cmd_deploy))
+        self._app.add_handler(CommandHandler("think", self._cmd_think))
+        self._app.add_handler(CommandHandler("brain", self._cmd_brain))
+        self._app.add_handler(CommandHandler("revenue", self._cmd_revenue))
+        self._app.add_handler(CommandHandler("leads", self._cmd_leads))
+        self._app.add_handler(CommandHandler("product", self._cmd_product))
+        self._app.add_handler(CommandHandler("memory", self._cmd_memory))
+        self._app.add_handler(CommandHandler("tools", self._cmd_tools))
         self._app.add_handler(CommandHandler("help", self._cmd_help))
 
         # Natural language fallback
@@ -60,10 +67,19 @@ class TelegramInterface:
             "🌌 *Pfeifer Galaxia OS*\n\n"
             "Jarvis Kernel ist online.\n\n"
             "Befehle:\n"
+            "*System:*\n"
             "/status - Systemstatus\n"
             "/agents - Aktive Agents\n"
             "/tasks - Aufgabenliste\n"
+            "/tools - Verfügbare Tools\n"
+            "/memory - Memory Stats\n\n"
+            "*Business:*\n"
             "/run <Aufgabe> - Aufgabe starten\n"
+            "/think - Brain-Zyklus erzwingen\n"
+            "/brain - Brain-Status\n"
+            "/revenue <Idee> - Revenue-Task\n"
+            "/leads <Zielgruppe> - Lead-Gen starten\n"
+            "/product <Idee> - Produkt entwickeln\n"
             "/draft <Text> - Content erstellen\n"
             "/deploy - System deployen\n"
             "/help - Hilfe",
@@ -156,6 +172,116 @@ class TelegramInterface:
 
     async def _cmd_help(self, update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         await self._cmd_start(update, ctx)
+
+    async def _cmd_think(self, update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+        """Force a brain cycle."""
+        brain = self._jarvis.brain
+        if not brain:
+            await update.message.reply_text("Brain nicht aktiv.")
+            return
+
+        await update.message.reply_text("🧠 Brain denkt nach...")
+        decisions = await brain.force_cycle()
+
+        lines = ["🧠 *Brain-Entscheidungen:*\n"]
+        for d in decisions:
+            lines.append(f"*[{d.domain.upper()}]* {d.action}")
+            lines.append(f"   _{d.reasoning}_")
+            lines.append(f"   Impact: {d.estimated_impact} | Priorität: {d.priority}/10\n")
+        await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+
+    async def _cmd_brain(self, update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+        """Show brain status."""
+        brain = self._jarvis.brain
+        if not brain:
+            await update.message.reply_text("Brain nicht aktiv.")
+            return
+
+        state = brain.get_state()
+        text = (
+            "🧠 *Empire Brain Status*\n\n"
+            f"Zyklen: {state.cycle_count}\n"
+            f"Entscheidungen: {state.decisions_made}\n"
+            f"Tasks generiert: {state.tasks_generated}\n"
+            f"Strategien: {', '.join(state.active_strategies) or 'keine'}"
+        )
+        await update.message.reply_text(text, parse_mode="Markdown")
+
+    async def _cmd_revenue(self, update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+        """Create a revenue task."""
+        text = " ".join(ctx.args) if ctx.args else "Neue Umsatzquelle identifizieren"
+        task = await self._jarvis.submit_task(
+            title=f"[REVENUE] {text}",
+            description=f"Revenue-Aufgabe: {text}\nZiel: Konkreter Umsatz-Plan mit Zahlen.",
+            priority=TaskPriority.HIGH,
+        )
+        await update.message.reply_text(
+            f"💰 Revenue-Task erstellt: `{task.id}`\n*{text}*",
+            parse_mode="Markdown",
+        )
+
+    async def _cmd_leads(self, update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+        """Create a lead generation task."""
+        target = " ".join(ctx.args) if ctx.args else "KMU mit AI-Bedarf"
+        task = await self._jarvis.submit_task(
+            title=f"[MARKETING] Lead Generation: {target}",
+            description=(
+                f"Zielgruppe: {target}\n"
+                "Erstelle eine Lead-Gen Strategie mit:\n"
+                "1. Idealer Kunde (ICP)\n"
+                "2. Kanal-Strategie\n"
+                "3. Systeme.io Funnel Konzept\n"
+                "4. Lead Magnet Idee"
+            ),
+            priority=TaskPriority.HIGH,
+        )
+        await update.message.reply_text(
+            f"🎯 Lead-Gen Task erstellt: `{task.id}`\nZielgruppe: *{target}*",
+            parse_mode="Markdown",
+        )
+
+    async def _cmd_product(self, update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+        """Create a product development task."""
+        text = " ".join(ctx.args) if ctx.args else "AI-Automation Kurs"
+        task = await self._jarvis.submit_task(
+            title=f"[PRODUCT] {text}",
+            description=(
+                f"Produkt-Idee: {text}\n"
+                "Erstelle:\n"
+                "1. Produktbeschreibung\n"
+                "2. Zielgruppe\n"
+                "3. Preismodell\n"
+                "4. MVP-Features\n"
+                "5. Launch-Plan"
+            ),
+            priority=TaskPriority.NORMAL,
+        )
+        await update.message.reply_text(
+            f"🏗 Produkt-Task erstellt: `{task.id}`\n*{text}*",
+            parse_mode="Markdown",
+        )
+
+    async def _cmd_memory(self, update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+        """Show memory stats."""
+        if not self._jarvis.memory:
+            await update.message.reply_text("Memory nicht aktiv.")
+            return
+        stats = await self._jarvis.memory.stats()
+        text = (
+            "🧠 *Memory Status*\n\n"
+            f"Short-term: {stats['short_term_entries']} Einträge\n"
+            f"Long-term: {stats['long_term_namespaces']} Namespaces\n"
+            f"Knowledge: {stats['knowledge_topics']} Topics"
+        )
+        await update.message.reply_text(text, parse_mode="Markdown")
+
+    async def _cmd_tools(self, update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+        """List available tools."""
+        tools = self._jarvis.tools.list_tools()
+        lines = ["🔧 *Verfügbare Tools*\n"]
+        for t in tools:
+            lines.append(f"• `{t.name}` - {t.description}")
+        await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
     async def _handle_text(self, update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle natural language messages as tasks."""
