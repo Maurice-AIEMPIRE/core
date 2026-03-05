@@ -574,6 +574,7 @@ services:
       - "18789:18789"
     volumes:
       - openclaw_data:/home/node/.openclaw
+      - /opt/ki-power/openclaw-config/auth-profiles.json:/root/.openclaw/agents/main/agent/auth-profiles.json:ro
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - core
@@ -590,6 +591,21 @@ volumes:
   n8n_data:
   openclaw_data:
 COMPOSEEOF
+
+# OpenClaw Auth-Profile VOR dem Start erstellen (wird bind-mounted)
+mkdir -p /opt/ki-power/openclaw-config
+cat > /opt/ki-power/openclaw-config/auth-profiles.json << 'AUTHEOF'
+{
+  "profiles": {
+    "ollama": {
+      "provider": "ollama",
+      "baseUrl": "http://host.docker.internal:11434",
+      "apiKey": "ollama-local"
+    }
+  },
+  "default": "ollama"
+}
+AUTHEOF
 
 # Deployen
 echo "  Docker Images werden heruntergeladen..."
@@ -709,24 +725,8 @@ while [ $RETRY -lt 30 ]; do
 done
 
 if docker inspect --format='{{.State.Running}}' openclaw 2>/dev/null | grep -q true; then
-    # Ollama Auth-Profile setzen
-    mkdir -p /opt/ki-power/openclaw-config
-    cat > /opt/ki-power/openclaw-config/auth-profiles.json << 'AUTHEOF'
-{
-  "profiles": {
-    "ollama": {
-      "provider": "ollama",
-      "baseUrl": "http://host.docker.internal:11434",
-      "apiKey": "ollama-local"
-    }
-  },
-  "default": "ollama"
-}
-AUTHEOF
-    docker exec openclaw mkdir -p /root/.openclaw/agents/main/agent 2>/dev/null || true
-    docker exec openclaw mkdir -p /home/node/.openclaw/agents/main/agent 2>/dev/null || true
-    docker cp /opt/ki-power/openclaw-config/auth-profiles.json openclaw:/root/.openclaw/agents/main/agent/auth-profiles.json 2>/dev/null || true
-    docker cp /opt/ki-power/openclaw-config/auth-profiles.json openclaw:/home/node/.openclaw/agents/main/agent/auth-profiles.json 2>/dev/null || true
+    # Auth-Profile wird automatisch via bind-mount geladen (siehe docker-compose volumes)
+    echo -e "${GREEN}  ✓ Ollama Auth-Profile aktiv (bind-mount)${NC}"
 
     # Ollama Modelle
     echo "  Ollama Modelle laden (dauert beim ersten Mal)..."

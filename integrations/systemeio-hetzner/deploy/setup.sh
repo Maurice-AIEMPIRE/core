@@ -369,6 +369,7 @@ services:
       - "18789:18789"
     volumes:
       - openclaw_data:/home/node/.openclaw
+      - /opt/ki-power/openclaw-config/auth-profiles.json:/root/.openclaw/agents/main/agent/auth-profiles.json:ro
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       ollama:
@@ -389,6 +390,21 @@ volumes:
   openclaw_data:
   ollama_data:
 COMPOSEEOF
+
+# OpenClaw Auth-Profile VOR dem Start erstellen (wird bind-mounted)
+mkdir -p /opt/ki-power/openclaw-config
+cat > /opt/ki-power/openclaw-config/auth-profiles.json << 'AUTHEOF'
+{
+  "profiles": {
+    "ollama": {
+      "provider": "ollama",
+      "baseUrl": "http://ollama:11434",
+      "apiKey": "ollama-local"
+    }
+  },
+  "default": "ollama"
+}
+AUTHEOF
 
 # Docker Images pullen und starten
 echo "  Docker Images werden heruntergeladen..."
@@ -498,28 +514,8 @@ done
 if docker inspect --format='{{.State.Running}}' openclaw 2>/dev/null | grep -q true; then
     echo -e "${GREEN}  ✓ OpenClaw Container laeuft${NC}"
 
-    # Auth-Profile fuer Ollama setzen
-    echo "  Ollama Auth-Profile wird konfiguriert..."
-    mkdir -p /opt/ki-power/openclaw-config
-    cat > /opt/ki-power/openclaw-config/auth-profiles.json << 'AUTHEOF'
-{
-  "profiles": {
-    "ollama": {
-      "provider": "ollama",
-      "baseUrl": "http://ollama:11434",
-      "apiKey": "ollama-local"
-    }
-  },
-  "default": "ollama"
-}
-AUTHEOF
-
-    # Auth-Profile in alle Agent-Verzeichnisse kopieren (root UND node Pfade)
-    docker exec openclaw mkdir -p /root/.openclaw/agents/main/agent 2>/dev/null || true
-    docker exec openclaw mkdir -p /home/node/.openclaw/agents/main/agent 2>/dev/null || true
-    docker cp /opt/ki-power/openclaw-config/auth-profiles.json openclaw:/root/.openclaw/agents/main/agent/auth-profiles.json 2>/dev/null || true
-    docker cp /opt/ki-power/openclaw-config/auth-profiles.json openclaw:/home/node/.openclaw/agents/main/agent/auth-profiles.json 2>/dev/null || true
-    echo -e "${GREEN}  ✓ Ollama Auth-Profile gesetzt${NC}"
+    # Auth-Profile ist bereits via bind-mount in docker-compose verfuegbar
+    echo -e "${GREEN}  ✓ Ollama Auth-Profile aktiv (bind-mount aus /opt/ki-power/openclaw-config/)${NC}"
 
     # Ollama Modelle pullen
     echo "  Ollama Modelle werden heruntergeladen (das dauert beim ersten Mal)..."

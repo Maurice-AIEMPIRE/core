@@ -26,8 +26,9 @@ if ! docker inspect --format='{{.State.Running}}' openclaw 2>/dev/null | grep -q
     exit 1
 fi
 
-# Auth-Profiles Pfad im Container
-AUTH_PATH="/root/.openclaw/agents/main/agent"
+# Auth-Profiles: Host-Pfad (bind-mounted) UND Container-Pfad (Fallback)
+HOST_AUTH_DIR="/opt/ki-power/openclaw-config"
+CONTAINER_AUTH_PATH="/root/.openclaw/agents/main/agent"
 
 echo -e "${BOLD}Welchen KI-Provider willst du nutzen?${NC}"
 echo ""
@@ -47,21 +48,31 @@ case "$CHOICE" in
             [ "$FORCE" != "j" ] && exit 1
         fi
 
-        # Auth-Profile fuer Ollama
-        docker exec openclaw mkdir -p "$AUTH_PATH"
-        docker exec openclaw sh -c "cat > $AUTH_PATH/auth-profiles.json << 'AUTHEOF'
+        # Auth-Profile fuer Ollama - auf Host UND im Container
+        # Ollama Base URL: versuche Docker-Netzwerk, Fallback host.docker.internal
+        OLLAMA_URL="http://ollama:11434"
+        if ! docker exec openclaw sh -c "curl -sf $OLLAMA_URL/api/tags" > /dev/null 2>&1; then
+            OLLAMA_URL="http://host.docker.internal:11434"
+        fi
+
+        mkdir -p "$HOST_AUTH_DIR"
+        cat > "$HOST_AUTH_DIR/auth-profiles.json" << AUTHEOF
 {
-  \"profiles\": {
-    \"ollama\": {
-      \"provider\": \"ollama\",
-      \"baseUrl\": \"http://ollama:11434\",
-      \"apiKey\": \"ollama-local\"
+  "profiles": {
+    "ollama": {
+      "provider": "ollama",
+      "baseUrl": "${OLLAMA_URL}",
+      "apiKey": "ollama-local"
     }
   },
-  \"default\": \"ollama\"
+  "default": "ollama"
 }
-AUTHEOF"
-        echo -e "${GREEN}OK - Ollama konfiguriert${NC}"
+AUTHEOF
+
+        # Auch direkt in Container kopieren (fuer den Fall ohne bind-mount)
+        docker exec openclaw mkdir -p "$CONTAINER_AUTH_PATH"
+        docker cp "$HOST_AUTH_DIR/auth-profiles.json" "openclaw:$CONTAINER_AUTH_PATH/auth-profiles.json"
+        echo -e "${GREEN}OK - Ollama konfiguriert (Base URL: ${OLLAMA_URL})${NC}"
 
         # Modell pruefen/pullen
         echo "Pruefe Ollama Modelle..."
@@ -79,18 +90,21 @@ AUTHEOF"
             exit 1
         fi
 
-        docker exec openclaw mkdir -p "$AUTH_PATH"
-        docker exec openclaw sh -c "cat > $AUTH_PATH/auth-profiles.json << AUTHEOF
+        mkdir -p "$HOST_AUTH_DIR"
+        cat > "$HOST_AUTH_DIR/auth-profiles.json" << AUTHEOF
 {
-  \"profiles\": {
-    \"openai\": {
-      \"provider\": \"openai\",
-      \"apiKey\": \"${OPENAI_KEY}\"
+  "profiles": {
+    "openai": {
+      "provider": "openai",
+      "apiKey": "${OPENAI_KEY}"
     }
   },
-  \"default\": \"openai\"
+  "default": "openai"
 }
-AUTHEOF"
+AUTHEOF
+
+        docker exec openclaw mkdir -p "$CONTAINER_AUTH_PATH"
+        docker cp "$HOST_AUTH_DIR/auth-profiles.json" "openclaw:$CONTAINER_AUTH_PATH/auth-profiles.json"
         echo -e "${GREEN}OK - OpenAI konfiguriert${NC}"
 
         # Auch in .env speichern
@@ -107,23 +121,32 @@ AUTHEOF"
             exit 1
         fi
 
-        docker exec openclaw mkdir -p "$AUTH_PATH"
-        docker exec openclaw sh -c "cat > $AUTH_PATH/auth-profiles.json << AUTHEOF
+        # Ollama Base URL ermitteln
+        OLLAMA_URL="http://ollama:11434"
+        if ! docker exec openclaw sh -c "curl -sf $OLLAMA_URL/api/tags" > /dev/null 2>&1; then
+            OLLAMA_URL="http://host.docker.internal:11434"
+        fi
+
+        mkdir -p "$HOST_AUTH_DIR"
+        cat > "$HOST_AUTH_DIR/auth-profiles.json" << AUTHEOF
 {
-  \"profiles\": {
-    \"ollama\": {
-      \"provider\": \"ollama\",
-      \"baseUrl\": \"http://ollama:11434\",
-      \"apiKey\": \"ollama-local\"
+  "profiles": {
+    "ollama": {
+      "provider": "ollama",
+      "baseUrl": "${OLLAMA_URL}",
+      "apiKey": "ollama-local"
     },
-    \"openai\": {
-      \"provider\": \"openai\",
-      \"apiKey\": \"${OPENAI_KEY}\"
+    "openai": {
+      "provider": "openai",
+      "apiKey": "${OPENAI_KEY}"
     }
   },
-  \"default\": \"ollama\"
+  "default": "ollama"
 }
-AUTHEOF"
+AUTHEOF
+
+        docker exec openclaw mkdir -p "$CONTAINER_AUTH_PATH"
+        docker cp "$HOST_AUTH_DIR/auth-profiles.json" "openclaw:$CONTAINER_AUTH_PATH/auth-profiles.json"
         echo -e "${GREEN}OK - Ollama + OpenAI konfiguriert${NC}"
 
         if [ -f /opt/ki-power/.env ]; then
@@ -136,6 +159,16 @@ AUTHEOF"
         exit 1
         ;;
 esac
+
+# Pruefen ob docker-compose bind-mount hat (fuer Restart-Persistenz)
+if [ -f /opt/ki-power/docker-compose.yml ]; then
+    if ! grep -q "auth-profiles.json:/root/.openclaw" /opt/ki-power/docker-compose.yml 2>/dev/null; then
+        echo ""
+        echo -e "${YELLOW}HINWEIS: Fuer Restart-Persistenz fuege dieses Volume zum openclaw Service hinzu:${NC}"
+        echo -e "${CYAN}  - /opt/ki-power/openclaw-config/auth-profiles.json:/root/.openclaw/agents/main/agent/auth-profiles.json:ro${NC}"
+        echo ""
+    fi
+fi
 
 # Container neustarten
 echo ""
