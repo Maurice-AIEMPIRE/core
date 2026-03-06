@@ -251,6 +251,7 @@ export async function applyOllamaEpisodeReranking<
               model: options.model,
               prompt: `query: ${query}\n\npassage: ${episode.episode.originalContent}`,
             }),
+            signal: AbortSignal.timeout(30000), // 30 second timeout
           });
 
           if (!response.ok) {

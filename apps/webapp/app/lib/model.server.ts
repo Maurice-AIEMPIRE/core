@@ -68,8 +68,6 @@ export const getModel = (takeModel?: string) => {
 
   let modelInstance;
   let modelTemperature = Number(process.env.MODEL_TEMPERATURE) || 1;
-  ollamaUrl = undefined;
-
   // First check if Ollama URL exists and use Ollama
   if (ollamaUrl) {
     const ollama = createOllama({
@@ -326,6 +324,7 @@ export async function getEmbedding(text: string) {
         const { embedding } = await embed({
           model: ollamaOpenAI.embedding(model as string),
           value: text,
+          abortSignal: AbortSignal.timeout(30000), // 30 second timeout
         });
         lastEmbedding = embedding;
       }
