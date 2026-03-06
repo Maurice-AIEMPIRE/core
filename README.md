@@ -914,6 +914,7 @@ Building AI agents? CORE gives you memory infrastructure + integrations infrastr
 
 - [API Reference](https://docs.getcore.me/api-reference)
 - [SDK Documentation](https://docs.getcore.me)
+- [CORE on Twitter](https://x.com/juliangoldieseo/status/2029822214686847361)
 - Need a specific integration? [Open a GitHub issue](https://github.com/RedPlanetHQ/core/issues)
 
 ---
