@@ -1,0 +1,58 @@
+version: "3.8"
+
+# ============================================================
+# TELEGRAM MULTI-BOT SYSTEM
+# ============================================================
+# Jeder Bot nutzt ein anderes AI-Modell zum Testen.
+#
+# SETUP:
+# 1. Erstelle 4 Bots bei @BotFather auf Telegram
+# 2. Kopiere die Tokens in die .env Datei
+# 3. docker compose up -d
+#
+# BOTS:
+#   Bot 1 (Haiku)  - Schnell & guenstig, ideal fuer einfache Fragen
+#   Bot 2 (GPT)    - Kreativ & vielseitig
+#   Bot 3 (Sonnet) - Intelligent & gruendlich
+#   Bot 4 (Llama)  - Open Source, lokal, kostenlos
+# ============================================================
+
+x-logging: &logging
+  driver: local
+  options:
+    max-size: 10m
+    max-file: "3"
+
+services:
+  # === ALL BOTS IN ONE CONTAINER ===
+  telegram-bots:
+    container_name: telegram-bots
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    logging: *logging
+    environment:
+      # Bot Tokens (von @BotFather)
+      - BOT_1_TOKEN=${BOT_1_TOKEN:-}
+      - BOT_2_TOKEN=${BOT_2_TOKEN:-}
+      - BOT_3_TOKEN=${BOT_3_TOKEN:-}
+      - BOT_4_TOKEN=${BOT_4_TOKEN:-}
+      # LiteLLM Verbindung
+      - LITELLM_URL=${LITELLM_URL:-http://galaxia-litellm:4000}
+      - LITELLM_API_KEY=${LITELLM_API_KEY:-sk-galaxia-local}
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    networks:
+      - galaxia
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os; os.kill(1, 0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+networks:
+  galaxia:
+    external: true
+    name: galaxia

@@ -36,6 +36,36 @@ model_list:
       api_base: http://host.docker.internal:11434
       timeout: 30
 
+  # === Cloud Models for Multi-Bot Testing ===
+
+  # 6. Claude Haiku 4.5 (schnell, guenstig)
+  - model_name: claude-haiku
+    litellm_params:
+      model: anthropic/claude-haiku-4-5-20251001
+      api_key: os.environ/ANTHROPIC_API_KEY
+      timeout: 60
+
+  # 7. GPT-4o-mini (kreativ, vielseitig)
+  - model_name: gpt-4o-mini
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+      timeout: 60
+
+  # 8. Claude Sonnet 4.6 (intelligent, gruendlich)
+  - model_name: claude-sonnet
+    litellm_params:
+      model: anthropic/claude-sonnet-4-6
+      api_key: os.environ/ANTHROPIC_API_KEY
+      timeout: 120
+
+  # 9. Llama 3.1 8B (lokal via Ollama, kostenlos)
+  - model_name: llama-8b
+    litellm_params:
+      model: ollama/llama3.1:8b
+      api_base: http://host.docker.internal:11434
+      timeout: 60
+
 litellm_settings:
   drop_params: true
   set_verbose: false
