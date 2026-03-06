@@ -74,6 +74,7 @@ export const getModel = (takeModel?: string) => {
       baseURL: ollamaUrl,
     });
     modelInstance = ollama(model || "llama2"); // Default to llama2 if no model specified
+    return modelInstance;
   } else {
     // If no Ollama, check other models
 

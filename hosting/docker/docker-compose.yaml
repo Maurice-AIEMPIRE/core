@@ -51,6 +51,11 @@ services:
       - GRAPH_PROVIDER=${GRAPH_PROVIDER}
       - VECTOR_PROVIDER=${VECTOR_PROVIDER}
       - MODEL_PROVIDER=${MODEL_PROVIDER}
+      - RERANK_PROVIDER=${RERANK_PROVIDER}
+      - COHERE_RERANK_MODEL=${COHERE_RERANK_MODEL}
+      - COHERE_SCORE_THRESHOLD=${COHERE_SCORE_THRESHOLD}
+      - OLLAMA_RERANK_MODEL=${OLLAMA_RERANK_MODEL}
+      - OLLAMA_SCORE_THRESHOLD=${OLLAMA_SCORE_THRESHOLD}
     ports:
       - "3033:3000"
       - "5555:5555"
@@ -59,6 +64,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      ollama:
+        condition: service_healthy
     networks:
       - core
 
@@ -117,25 +124,24 @@ services:
       retries: 10
       start_period: 20s
 
-  # Uncomment this if you want to use a local embedding modal
-  # ollama:
-  #   container_name: core-ollama
-  #   image: ollama/ollama:0.12.6
-  #   ports:
-  #     - "11434:11434"
-  #   volumes:
-  #     - ollama_data:/root/.ollama
-  #     - ./scripts/ollama-init.sh:/usr/local/bin/ollama-init.sh:ro
-  #   networks:
-  #     - core
-  #   entrypoint: ["/bin/bash", "/usr/local/bin/ollama-init.sh"]
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 5
-  #     start_period: 90s
-  #   restart: unless-stopped
+  ollama:
+    container_name: core-ollama
+    image: ollama/ollama:0.12.6
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./scripts/ollama-init.sh:/usr/local/bin/ollama-init.sh:ro
+    networks:
+      - core
+    entrypoint: ["/bin/bash", "/usr/local/bin/ollama-init.sh"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
 
 networks:
   core:
