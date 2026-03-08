@@ -29,23 +29,149 @@ Setup:
 
 import json
 import os
+import re
+import sqlite3
 import subprocess
 import sys
 import time
 import urllib.request
 import urllib.error
+from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-BOT_TOKEN   = os.getenv("TELEGRAM_BOT_TOKEN", "")
-CHAT_ID     = os.getenv("TELEGRAM_CHAT_ID", "")   # optional: restrict to one chat
-POLL_SLEEP  = int(os.getenv("TELEGRAM_POLL_SLEEP", "10"))  # seconds between polls
+BOT_TOKEN      = os.getenv("TELEGRAM_BOT_TOKEN", "")
+CHAT_ID        = os.getenv("TELEGRAM_CHAT_ID", "")     # restrict to one chat
+ADMIN_IDS_RAW  = os.getenv("TELEGRAM_ADMIN_IDS", "")   # comma-separated user IDs
+POLL_SLEEP     = int(os.getenv("TELEGRAM_POLL_SLEEP", "10"))
+RATE_LIMIT_RPM = int(os.getenv("TELEGRAM_RATE_LIMIT", "20"))  # max msgs/min per user
 
 BRAIN_SYSTEM_DIR = Path(__file__).parent
-STATE_FILE = Path(os.path.expanduser("~/.openclaw/brain-system/telegram_offset.json"))
+STATE_FILE   = Path(os.path.expanduser("~/.openclaw/brain-system/telegram_offset.json"))
+SECURITY_DB  = Path(os.path.expanduser("~/.openclaw/brain-system/security_events.db"))
 TELEGRAM_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
+
+# Parsed admin whitelist (empty = alle erlaubt, wenn CHAT_ID gesetzt)
+ADMIN_IDS: set[str] = {x.strip() for x in ADMIN_IDS_RAW.split(",") if x.strip()}
+
+# In-memory rate limiter: user_id -> list[timestamp]
+_rate_buckets: dict[str, list[float]] = defaultdict(list)
+
+
+# ── Prompt-Injection-Guard ────────────────────────────────────────────────────
+
+# Muster die auf Injection-Versuche hinweisen
+_INJECTION_PATTERNS = [
+    # Role/persona override
+    r"\[SYSTEM[_\s]?OVERRIDE",
+    r"\[GODMODE",
+    r"\[AUTONOMY",
+    r"ignore\s+(all\s+)?(previous|prior|above)\s+instructions",
+    r"forget\s+(all\s+)?(previous|prior)\s+instructions",
+    r"you\s+are\s+now\s+(a\s+)?(?:DAN|JAILBREAK|godmode)",
+    r"new\s+persona",
+    r"act\s+as\s+(?:an?\s+)?(?:evil|unrestricted|uncensored)",
+    # Fake system tags
+    r"<\s*/?system\s*>",
+    r"\[\[SYSTEM\]\]",
+    r"###\s*SYSTEM\s*:",
+    r"CRITICAL\s+DIRECTIVE\s*:",
+    r"CORE\s+PROTOCOL",
+    # Privilege escalation keywords
+    r"sudo\s+mode",
+    r"developer\s+mode\s+enabled",
+    r"jailbreak",
+    r"DAN\s+mode",
+    # Data exfiltration attempts
+    r"send\s+(all\s+)?(?:env|environment|credentials|tokens|secrets|api.?keys)",
+    r"print\s+(all\s+)?(?:env|os\.environ)",
+    r"exfiltrate",
+    # Unauthorized deployment
+    r"docker\s+(run|exec|compose)\s.*--rm",
+    r"rm\s+-rf\s+/",
+    r"curl\s+.*\|\s*(?:bash|sh|python)",
+    r"wget\s+.*\|\s*(?:bash|sh)",
+    # Fake authority
+    r"anthropic\s+admin",
+    r"system\s+administrator\s+override",
+    r"master.control.program",
+]
+
+_INJECTION_RE = [re.compile(p, re.IGNORECASE) for p in _INJECTION_PATTERNS]
+
+
+def detect_injection(text: str) -> list[str]:
+    """
+    Prueft text auf Prompt-Injection-Muster.
+    Gibt Liste der gefundenen Muster zurueck (leer = sauber).
+    """
+    hits = []
+    for pattern in _INJECTION_RE:
+        m = pattern.search(text)
+        if m:
+            hits.append(m.group(0)[:60])
+    return hits
+
+
+# ── Rate Limiter ──────────────────────────────────────────────────────────────
+
+def _check_rate_limit(user_id: str) -> bool:
+    """True wenn User unter dem Limit ist, False wenn gedrosselt."""
+    now    = time.time()
+    window = 60.0
+    bucket = _rate_buckets[user_id]
+    # Entferne alte Eintraege
+    _rate_buckets[user_id] = [t for t in bucket if now - t < window]
+    if len(_rate_buckets[user_id]) >= RATE_LIMIT_RPM:
+        return False
+    _rate_buckets[user_id].append(now)
+    return True
+
+
+# ── Sender-Authentifizierung ──────────────────────────────────────────────────
+
+def _is_authorized(user_id: str, chat_id: str) -> bool:
+    """
+    True wenn Absender autorisiert ist.
+    Logik: CHAT_ID-Restriction greift zuerst, dann ADMIN_IDS.
+    Wenn beides leer: alle erlaubt (offener Bot).
+    """
+    if CHAT_ID and str(chat_id) != str(CHAT_ID):
+        return False
+    if ADMIN_IDS and str(user_id) not in ADMIN_IDS:
+        return False
+    return True
+
+
+# ── Security Event Log ────────────────────────────────────────────────────────
+
+def _log_security_event(
+    event_type: str,
+    user_id: str,
+    chat_id: str,
+    text: str,
+    details: str = "",
+) -> None:
+    try:
+        SECURITY_DB.parent.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(str(SECURITY_DB))
+        conn.execute('''CREATE TABLE IF NOT EXISTS events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT, event_type TEXT,
+            user_id TEXT, chat_id TEXT,
+            text TEXT, details TEXT
+        )''')
+        conn.execute(
+            "INSERT INTO events (timestamp,event_type,user_id,chat_id,text,details) VALUES (?,?,?,?,?,?)",
+            (datetime.now(timezone.utc).isoformat(), event_type,
+             str(user_id), str(chat_id), text[:500], details[:500]),
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
 
 
 # ── Telegram HTTP helpers ─────────────────────────────────────────────────────
@@ -196,6 +322,24 @@ def handle_command(text: str, chat_id: int, message_id: int) -> str:
         except Exception as exc:
             return f"❌ amygdala error: {exc}"
 
+    elif cmd == "seclog":
+        # Last N security events
+        n = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 10
+        try:
+            conn = sqlite3.connect(str(SECURITY_DB))
+            rows = conn.execute(
+                "SELECT timestamp,event_type,user_id,chat_id,details FROM events ORDER BY id DESC LIMIT ?", (n,)
+            ).fetchall()
+            conn.close()
+            if not rows:
+                return "Keine Security-Events."
+            lines = [f"🛡️ *Letzte {n} Security-Events:*\n"]
+            for ts, etype, uid, cid, det in rows:
+                lines.append(f"`{ts[11:19]}` `{etype}` user={uid} — {det[:60]}")
+            return "\n".join(lines)
+        except Exception as exc:
+            return f"❌ seclog: {exc}"
+
     elif cmd == "models":
         # Show model registry status
         try:
@@ -236,8 +380,10 @@ def handle_command(text: str, chat_id: int, message_id: int) -> str:
             "/cleanup — Vacuum old synapses\n"
             "/log [n] — Last n lines of today's log\n"
             "/models — Brain → optimal model mapping\n"
-            "/pullmodels [role] [maxB] — Pull models\n\n"
-            "📝 *Freie Notizen*: Einfach schreiben — Fehler werden automatisch erkannt und geloest."
+            "/pullmodels [role] [maxB] — Pull models\n"
+            "/seclog [n] — Letzte Security-Events\n\n"
+            "📝 *Freie Notizen*: Einfach schreiben — Fehler werden vollautomatisch erkannt und geloest.\n"
+            "🛡️ Injection-Schutz, Rate-Limit & Auth aktiv."
         )
 
     else:
@@ -268,11 +414,47 @@ def process_once() -> int:
         message_id = msg["message_id"]
         text       = msg.get("text", "").strip()
 
-        # Restrict to specific chat if configured
-        if CHAT_ID and str(chat_id) != str(CHAT_ID):
+        user_id  = str(msg.get("from", {}).get("id", "unknown"))
+        username = msg.get("from", {}).get("username", "?")
+
+        # ── 1. Sender-Autorisierung ──
+        if not _is_authorized(user_id, str(chat_id)):
+            print(f"[{_now()}] UNAUTHORIZED: user={user_id} chat={chat_id}", file=sys.stderr)
+            _log_security_event("UNAUTHORIZED", user_id, str(chat_id), text)
+            save_offset(offset)
             continue
 
-        print(f"[{_now()}] Message from {chat_id}: {text[:60]!r}")
+        # ── 2. Rate-Limit ──
+        if not _check_rate_limit(user_id):
+            print(f"[{_now()}] RATE_LIMITED: user={user_id}", file=sys.stderr)
+            _log_security_event("RATE_LIMITED", user_id, str(chat_id), text)
+            try:
+                send_message(chat_id, "⏱ Zu viele Nachrichten — bitte kurz warten.", reply_to=message_id)
+            except Exception:
+                pass
+            save_offset(offset)
+            continue
+
+        print(f"[{_now()}] user={user_id}(@{username}) chat={chat_id}: {text[:60]!r}")
+
+        # ── 3. Prompt-Injection-Check ──
+        injection_hits = detect_injection(text)
+        if injection_hits:
+            details = " | ".join(injection_hits)
+            print(f"[{_now()}] INJECTION BLOCKED: {details}", file=sys.stderr)
+            _log_security_event("INJECTION_ATTEMPT", user_id, str(chat_id), text, details)
+            alert = (
+                "🛡️ *Prompt-Injection blockiert*\n\n"
+                f"User: `{user_id}` (@{username})\n"
+                f"Muster: `{details[:200]}`\n\n"
+                "Nachricht wurde verworfen. Event geloggt."
+            )
+            try:
+                send_message(chat_id, alert, reply_to=message_id)
+            except Exception:
+                pass
+            save_offset(offset)
+            continue
 
         if not text.startswith("/"):
             # Free-text note → error handler
