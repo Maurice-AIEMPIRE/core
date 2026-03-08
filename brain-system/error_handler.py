@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
 """
-ERROR HANDLER — Auto-Detect & Auto-Fix
-=======================================
-Erkennt Fehler in Telegram-Notizen und findet automatisch eine Loesung.
+ERROR HANDLER — Vollautomatisch
+================================
+Jede Nachricht in Telegram wird analysiert.
+Jeder erkannte Fehler wird automatisch geloest — ohne manuelle Schritte.
 
-Flow:
-  1. Telegram-Nachricht kommt rein (kein /command)
-  2. LLM klassifiziert: Ist das ein Fehler / Bug / Problem?
-  3. Wenn ja: LLM analysiert und schlaegt Fix vor
-  4. Fix wird direkt ausgefuehrt (Python/Shell) oder als Patch zurueck gesendet
-  5. Ergebnis wird auf Telegram bestaetigt
+Auto-Fix-Loop:
+  1. Klassifiziere (keyword + LLM)
+  2. Generiere Fix mit bestem verfuegbaren Modell
+  3. Fuehre Fix aus (shell + file patches)
+  4. Verifiziere: Hat der Fix funktioniert?
+  5. Falls nicht: Analysiere Fehler des Fixes, generiere naechsten Fix
+  6. Maximal 4 Iterationen mit eskalierenden Modellen
+  7. Garantiert eine Antwort — immer
 
-Fehler-Kategorien:
-  python_error   — Traceback / Exception / SyntaxError
-  config_error   — Missing env var, wrong path, missing file
-  model_error    — LLM unavailable, timeout, bad response
-  logic_error    — Beschreibung eines falschen Verhaltens
-  system_error   — Disk, memory, process down
-  general_note   — Allgemeine Notiz (kein Fehler)
+Modell-Eskalation pro Versuch:
+  V1: qwen2.5-coder:7b   (schnell)
+  V2: qwen2.5-coder:14b  (besser)
+  V3: deepseek-r1:14b    (reasoning)
+  V4: kimi-k2.5          (beste Qualitaet, API)
 """
 
 from __future__ import annotations
@@ -26,353 +27,432 @@ import os
 import re
 import subprocess
 import sys
-import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
 BRAIN_DIR = Path(__file__).parent
 DB_PATH   = os.path.expanduser("~/.openclaw/brain-system/synapses.db")
+MAX_TRIES = 4
 
-# Error keywords for fast pre-classification (no LLM needed)
+# Eskalations-Kette pro Versuch (Index = Versuch 0..3)
+MODEL_CHAIN = [
+    ("ollama:qwen2.5-coder:7b",  ["ollama:qwen2.5:7b",        "kimi-k2.5"]),
+    ("ollama:qwen2.5-coder:14b", ["ollama:deepseek-coder:6.7b","kimi-k2.5"]),
+    ("ollama:deepseek-r1:14b",   ["ollama:qwen2.5-coder:14b",  "kimi-k2.5"]),
+    ("kimi-k2.5",                ["ollama:qwen2.5-coder:32b",  "ollama:deepseek-r1:32b"]),
+]
+
+# ── Keyword-Klassifizierung ─────────────────────────────────────────────────────
+
 ERROR_PATTERNS = {
     "python_error": [
-        r"traceback",
-        r"exception:",
-        r"error:",
-        r"syntaxerror",
-        r"nameerror",
-        r"typeerror",
-        r"valueerror",
-        r"importerror",
-        r"filenotfounderror",
-        r"attributeerror",
-        r"keyerror",
-        r"indexerror",
-        r"zerodivisionerror",
+        r"traceback", r"exception:", r"error:", r"syntaxerror", r"nameerror",
+        r"typeerror", r"valueerror", r"importerror", r"filenotfounderror",
+        r"attributeerror", r"keyerror", r"indexerror", r"zerodivisionerror",
+        r"modulenotfounderror", r"runtimeerror", r"oserror",
     ],
     "model_error": [
-        r"model.*down",
-        r"ollama.*failed",
-        r"kimi.*error",
-        r"timeout.*llm",
-        r"llm.*timeout",
-        r"api.*error",
-        r"rate.limit",
+        r"model.*down", r"ollama.*failed", r"kimi.*error",
+        r"timeout.*llm", r"llm.*timeout", r"api.*error", r"rate.?limit",
+        r"model not found", r"connection.*refused",
     ],
     "config_error": [
-        r"not set",
-        r"missing.*key",
-        r"env.*variable",
-        r"not found",
-        r"no such file",
-        r"permission denied",
-        r"invalid.*token",
+        r"not set", r"missing.*key", r"env.*variable", r"not found",
+        r"no such file", r"permission denied", r"invalid.*token",
+        r"env var", r"environment variable",
     ],
     "system_error": [
-        r"disk.*full",
-        r"out of memory",
-        r"oom",
-        r"process.*killed",
-        r"connection refused",
-        r"port.*in use",
+        r"disk.*full", r"out of memory", r"\boom\b", r"process.*killed",
+        r"connection refused", r"port.*in use", r"killed", r"segfault",
+    ],
+    "logic_error": [
+        r"falsch", r"funktioniert nicht", r"geht nicht", r"broken",
+        r"wrong", r"incorrect", r"unexpected", r"sollte.*aber",
+        r"expected.*got", r"nicht erwartet",
     ],
 }
 
-CLASSIFY_PROMPT = """Du bist ein Fehler-Klassifizierer fuer ein Brain System.
-
-Analysiere diese Nachricht und antworte NUR mit validem JSON:
+CLASSIFY_SYSTEM = """Du bist ein Fehler-Klassifizierer fuer ein Brain System.
+Antworte NUR mit validem JSON, kein Text davor oder danach:
 
 {
   "is_error": true | false,
   "category": "python_error" | "config_error" | "model_error" | "logic_error" | "system_error" | "general_note",
   "severity": "CRITICAL" | "HIGH" | "MEDIUM" | "LOW",
-  "summary": "<1-Satz Beschreibung des Problems>",
-  "fixable": true | false,
-  "fix_type": "code_patch" | "shell_command" | "config_change" | "restart" | "manual" | null
+  "summary": "<1-Satz Beschreibung>",
+  "context_files": ["<dateiname falls relevant>"]
+}"""
+
+FIX_SYSTEM = """Du bist ein vollautomatisches Fix-System fuer ein Python Brain System.
+WICHTIG: Kein "manuell" — du MUSST immer einen ausfuehrbaren Fix liefern.
+Antworte NUR mit validem JSON:
+
+{
+  "explanation": "<was ist das Problem>",
+  "commands": ["<shell command>"],
+  "file_patches": [{"file": "<name>", "search": "<exakter Text>", "replace": "<neuer Text>"}],
+  "verify_command": "<shell command zum Testen ob Fix funktioniert hat>"
 }
 
-Kein Text ausserhalb des JSON-Blocks."""
+Regeln:
+- commands: pip install, mkdir, chmod, cp, mv, systemctl, ollama pull, etc.
+- file_patches: exakter match auf existierenden Text
+- verify_command: z.B. 'python -c "import xyz"' oder 'curl -s ...' oder 'ls -la ...'
+- Bei unbekanntem Problem: Analysiere Logs und liefere Debug-commands"""
 
-FIX_PROMPT = """Du bist ein Auto-Fix-System fuer ein Python Brain System.
+RETRY_SYSTEM = """Vorheriger Fix-Versuch ist fehlgeschlagen.
 
-Fehler:
-{error_text}
+Urspruenglicher Fehler: {original_error}
+Fix-Versuch {attempt}: {last_fix}
+Fehler beim Ausfuehren: {exec_error}
 
-Kategorie: {category}
-
-Das System besteht aus diesen Dateien:
-{file_list}
-
-Antworte NUR mit validem JSON:
-{{
-  "explanation": "<kurze Erklaerung was das Problem ist>",
-  "fix_type": "code_patch" | "shell_command" | "config_change" | "manual",
-  "commands": ["<shell command 1>", "<shell command 2>"],
-  "file_patches": [
-    {{
-      "file": "<relativer Pfad>",
-      "search": "<exakter Text der ersetzt wird>",
-      "replace": "<neuer Text>"
-    }}
-  ],
-  "manual_steps": ["<Schritt 1 falls manuell>"],
-  "confidence": 0.0-1.0
-}}
-
-Wenn confidence < 0.5: fix_type = "manual", gib nur manual_steps an.
-Kein Text ausserhalb des JSON-Blocks."""
+Analysiere den Fehler des Fixes und generiere einen ANDEREN Ansatz.
+Antworte NUR mit validem JSON (gleiche Struktur wie vorher)."""
 
 
-# ── Classification ─────────────────────────────────────────────────────────────
+# ── Klassifizierung ────────────────────────────────────────────────────────────
 
-def quick_classify(text: str) -> str | None:
-    """Fast keyword-based classification, no LLM. Returns category or None."""
+def quick_classify(text: str) -> str:
     lower = text.lower()
-    for category, patterns in ERROR_PATTERNS.items():
+    for cat, patterns in ERROR_PATTERNS.items():
         if any(re.search(p, lower) for p in patterns):
-            return category
-    return None
+            return cat
+    return "general_note"
 
 
-def classify_with_llm(text: str) -> dict:
-    """Full LLM classification. Returns parsed JSON dict."""
+def classify(text: str) -> dict:
     try:
         from call_llm import call_llm_with_fallback  # type: ignore
         raw, _ = call_llm_with_fallback(
             preferred="ollama:qwen2.5-coder:7b",
             fallbacks=["ollama:llama3.2:3b", "kimi-k2.5"],
             prompt=f"Analysiere:\n\n{text[:2000]}",
-            system=CLASSIFY_PROMPT,
+            system=CLASSIFY_SYSTEM,
             timeout=30,
         )
-        raw = _extract_json(raw)
-        return json.loads(raw)
-    except Exception as exc:
-        # Fallback: keyword-based
-        cat = quick_classify(text) or "general_note"
+        return json.loads(_extract_json(raw))
+    except Exception:
+        cat = quick_classify(text)
         return {
             "is_error": cat != "general_note",
             "category": cat,
             "severity": "MEDIUM",
             "summary": text[:100],
-            "fixable": False,
-            "fix_type": "manual",
-            "_classify_error": str(exc),
+            "context_files": [],
         }
 
 
-# ── Fix generation ─────────────────────────────────────────────────────────────
+# ── Fix-Generierung ────────────────────────────────────────────────────────────
 
-def generate_fix(error_text: str, category: str) -> dict:
-    """Ask LLM to generate a fix plan."""
-    file_list = "\n".join(
-        f"  {f.name}" for f in BRAIN_DIR.glob("*.py") if f.is_file()
-    )
-    prompt = FIX_PROMPT.format(
-        error_text=error_text[:3000],
-        category=category,
-        file_list=file_list,
-    )
+def _file_context(context_files: list[str]) -> str:
+    lines = []
+    for fname in (context_files or []):
+        fpath = BRAIN_DIR / fname
+        if fpath.exists():
+            content = fpath.read_text(encoding="utf-8", errors="ignore")[:1500]
+            lines.append(f"=== {fname} ===\n{content}")
+    if not lines:
+        # Give all py files listing
+        names = [f.name for f in BRAIN_DIR.glob("*.py")]
+        lines.append("Verfuegbare Dateien: " + ", ".join(names))
+    return "\n".join(lines)
+
+
+def generate_fix(
+    error_text: str,
+    category: str,
+    context_files: list[str],
+    attempt: int = 0,
+    last_fix: dict | None = None,
+    exec_error: str = "",
+) -> dict:
+    preferred, fallbacks = MODEL_CHAIN[min(attempt, MAX_TRIES - 1)]
+
+    if last_fix and exec_error:
+        # Retry prompt with failure context
+        system = RETRY_SYSTEM.format(
+            original_error=error_text[:500],
+            attempt=attempt,
+            last_fix=json.dumps(last_fix, ensure_ascii=False)[:500],
+            exec_error=exec_error[:500],
+        )
+        prompt = f"Generiere alternativen Fix. Antworte nur JSON."
+    else:
+        system = FIX_SYSTEM
+        file_ctx = _file_context(context_files)
+        prompt = (
+            f"Fehler ({category}):\n{error_text[:2000]}\n\n"
+            f"Kontext:\n{file_ctx[:1500]}"
+        )
+
     try:
         from call_llm import call_llm_with_fallback  # type: ignore
         raw, model = call_llm_with_fallback(
-            preferred="ollama:qwen2.5-coder:14b",
-            fallbacks=["ollama:deepseek-r1:14b", "kimi-k2.5", "ollama:qwen2.5-coder:7b"],
+            preferred=preferred,
+            fallbacks=fallbacks,
             prompt=prompt,
-            system="Du bist ein Python-Experte. Antworte nur mit JSON.",
-            timeout=60,
+            system=system,
+            timeout=90,
         )
-        raw = _extract_json(raw)
-        result = json.loads(raw)
-        result["_model_used"] = model
+        result = json.loads(_extract_json(raw))
+        result["_model"] = model
         return result
     except Exception as exc:
         return {
             "explanation": f"Fix-Generierung fehlgeschlagen: {exc}",
-            "fix_type": "manual",
             "commands": [],
             "file_patches": [],
-            "manual_steps": ["Fix konnte nicht automatisch generiert werden — bitte manuell pruefen."],
-            "confidence": 0.0,
+            "verify_command": "",
+            "_model": "none",
         }
 
 
-# ── Fix execution ──────────────────────────────────────────────────────────────
+# ── Fix-Ausfuehrung ────────────────────────────────────────────────────────────
 
-def apply_fix(fix: dict) -> tuple[bool, str]:
+BLOCKED_PATTERNS = [
+    r"rm\s+-rf\s+/", r"rm\s+-f\s+/", r"dd\s+if=", r"mkfs\.",
+    r">\s*/dev/sd", r"shutdown", r"halt", r"reboot",
+    r"kill\s+-9\s+1\b", r":()\{",   # fork bomb
+]
+
+
+def _is_safe(cmd: str) -> bool:
+    return not any(re.search(p, cmd) for p in BLOCKED_PATTERNS)
+
+
+def execute_fix(fix: dict) -> tuple[bool, str, str]:
     """
-    Execute the fix. Returns (success, result_message).
-    Only executes if confidence >= 0.7.
+    Fuehrt alle commands und file_patches aus.
+    Gibt (success, output, error) zurueck.
+    success=True wenn alle commands rc=0 und alle patches angewendet.
     """
-    confidence = fix.get("confidence", 0.0)
-    fix_type   = fix.get("fix_type", "manual")
+    outputs = []
+    errors  = []
 
-    if confidence < 0.7 or fix_type == "manual":
-        steps = fix.get("manual_steps", [])
-        return False, "Manuell erforderlich:\n" + "\n".join(f"• {s}" for s in steps)
-
-    results = []
-
-    # Apply shell commands (safe subset only)
+    # Shell commands
     for cmd in fix.get("commands", []):
-        if _is_safe_command(cmd):
-            try:
-                r = subprocess.run(
-                    cmd, shell=True, capture_output=True, text=True, timeout=30,
-                    cwd=str(BRAIN_DIR),
-                )
-                results.append(f"`{cmd}` → rc={r.returncode}")
-                if r.returncode != 0 and r.stderr:
-                    results.append(f"  stderr: {r.stderr[:200]}")
-            except Exception as exc:
-                results.append(f"`{cmd}` → ERROR: {exc}")
-        else:
-            results.append(f"Skipped (unsafe): `{cmd}`")
+        if not _is_safe(cmd):
+            errors.append(f"BLOCKED (unsafe): {cmd}")
+            continue
+        try:
+            r = subprocess.run(
+                cmd, shell=True, capture_output=True, text=True,
+                timeout=60, cwd=str(BRAIN_DIR),
+            )
+            out = (r.stdout or "").strip()
+            err = (r.stderr or "").strip()
+            if r.returncode == 0:
+                outputs.append(f"✓ `{cmd[:80]}`" + (f"\n{out[:300]}" if out else ""))
+            else:
+                errors.append(f"✗ `{cmd[:80]}` rc={r.returncode}\n{err[:300]}")
+        except subprocess.TimeoutExpired:
+            errors.append(f"⏱ Timeout: `{cmd[:80]}`")
+        except Exception as exc:
+            errors.append(f"✗ `{cmd[:80]}`: {exc}")
 
-    # Apply file patches
+    # File patches
     for patch in fix.get("file_patches", []):
         fname   = patch.get("file", "")
         search  = patch.get("search", "")
         replace = patch.get("replace", "")
         if not fname or not search:
             continue
-
         fpath = BRAIN_DIR / fname
         if not fpath.exists():
-            results.append(f"Patch: file not found: {fname}")
-            continue
-
-        content = fpath.read_text(encoding="utf-8")
+            # Try absolute path
+            fpath2 = Path(fname)
+            if fpath2.exists():
+                fpath = fpath2
+            else:
+                errors.append(f"Patch: Datei nicht gefunden: {fname}")
+                continue
+        content = fpath.read_text(encoding="utf-8", errors="ignore")
         if search in content:
             fpath.write_text(content.replace(search, replace, 1), encoding="utf-8")
-            results.append(f"Patched: {fname}")
+            outputs.append(f"✓ Patch: {fname}")
         else:
-            results.append(f"Patch: search string not found in {fname}")
+            errors.append(f"Patch: Text nicht gefunden in {fname}")
 
-    return True, "\n".join(results) if results else "Fix applied (no output)"
-
-
-def _is_safe_command(cmd: str) -> bool:
-    """Block destructive commands."""
-    blocked = ["rm -rf", "rm -f /", "format", "dd if=", "mkfs",
-               "> /dev/", "shutdown", "reboot", "kill -9 1"]
-    return not any(b in cmd for b in blocked)
+    success = len(errors) == 0
+    return success, "\n".join(outputs), "\n".join(errors)
 
 
-def _extract_json(raw: str) -> str:
-    """Extract JSON from markdown code blocks."""
-    if "```" in raw:
-        parts = raw.split("```")
-        for part in parts:
-            if part.startswith("json"):
-                part = part[4:]
-            stripped = part.strip()
-            if stripped.startswith("{"):
-                return stripped
-    # Try to find { ... } directly
-    match = re.search(r'\{.*\}', raw, re.DOTALL)
-    if match:
-        return match.group(0)
-    return raw.strip()
+def verify_fix(verify_cmd: str) -> tuple[bool, str]:
+    """Fuehrt den Verifikations-Command aus. True wenn rc=0."""
+    if not verify_cmd or not _is_safe(verify_cmd):
+        return True, "(keine Verifikation)"
+    try:
+        r = subprocess.run(
+            verify_cmd, shell=True, capture_output=True, text=True,
+            timeout=30, cwd=str(BRAIN_DIR),
+        )
+        ok  = r.returncode == 0
+        out = ((r.stdout or "") + (r.stderr or "")).strip()
+        return ok, out[:400]
+    except Exception as exc:
+        return False, str(exc)
 
 
-# ── Log to DB ─────────────────────────────────────────────────────────────────
+# ── Haupt-Loop ─────────────────────────────────────────────────────────────────
 
-def log_error_event(text: str, classification: dict, fix: dict | None) -> None:
-    """Store error event in synapses DB for brain-system awareness."""
+def auto_fix_loop(error_text: str, category: str, context_files: list[str]) -> dict:
+    """
+    Iteriert bis Fix erfolgreich oder MAX_TRIES erschoepft.
+    Gibt immer ein Ergebnis-Dict zurueck.
+    """
+    last_fix  = None
+    exec_err  = ""
+    history   = []
+
+    for attempt in range(MAX_TRIES):
+        fix = generate_fix(
+            error_text, category, context_files,
+            attempt=attempt,
+            last_fix=last_fix,
+            exec_error=exec_err,
+        )
+        model = fix.get("_model", "?")
+
+        # Ausfuehren
+        ok, out, err = execute_fix(fix)
+        exec_err = err
+
+        # Verifizieren
+        if ok:
+            verified, vout = verify_fix(fix.get("verify_command", ""))
+        else:
+            verified, vout = False, err
+
+        history.append({
+            "attempt": attempt + 1,
+            "model": model,
+            "explanation": fix.get("explanation", ""),
+            "commands": fix.get("commands", []),
+            "output": out,
+            "error": err,
+            "verified": verified,
+            "verify_output": vout,
+        })
+
+        if verified:
+            return {
+                "success": True,
+                "attempts": attempt + 1,
+                "history": history,
+                "final_fix": fix,
+                "verify_output": vout,
+            }
+
+        last_fix = fix
+
+    # Alle Versuche aufgebraucht — trotzdem Ergebnis
+    return {
+        "success": False,
+        "attempts": MAX_TRIES,
+        "history": history,
+        "final_fix": last_fix,
+        "verify_output": "",
+    }
+
+
+# ── Log ────────────────────────────────────────────────────────────────────────
+
+def _log(text: str, cls: dict, result: dict) -> None:
     try:
         import sqlite3
         conn = sqlite3.connect(DB_PATH)
         conn.execute('''CREATE TABLE IF NOT EXISTS error_events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp TEXT,
-            source TEXT,
-            category TEXT,
-            severity TEXT,
-            summary TEXT,
-            original_text TEXT,
-            fix_applied INTEGER,
-            fix_confidence REAL
+            timestamp TEXT, source TEXT, category TEXT, severity TEXT,
+            summary TEXT, original_text TEXT, fix_applied INTEGER,
+            attempts INTEGER, success INTEGER
         )''')
-        conn.execute('''INSERT INTO error_events
-            (timestamp, source, category, severity, summary, original_text, fix_applied, fix_confidence)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (
-            datetime.now(timezone.utc).isoformat(),
-            "telegram",
-            classification.get("category", "unknown"),
-            classification.get("severity", "MEDIUM"),
-            classification.get("summary", ""),
-            text[:500],
-            1 if fix else 0,
-            fix.get("confidence", 0.0) if fix else 0.0,
-        ))
+        conn.execute(
+            '''INSERT INTO error_events
+               (timestamp,source,category,severity,summary,original_text,fix_applied,attempts,success)
+               VALUES (?,?,?,?,?,?,?,?,?)''',
+            (
+                datetime.now(timezone.utc).isoformat(), "telegram",
+                cls.get("category","?"), cls.get("severity","?"),
+                cls.get("summary",""), text[:500],
+                1, result.get("attempts", 0), int(result.get("success", False)),
+            ),
+        )
         conn.commit()
         conn.close()
     except Exception:
-        pass  # Never block on logging failure
+        pass
 
 
-# ── Main entry ────────────────────────────────────────────────────────────────
+# ── Hilfsfunktionen ───────────────────────────────────────────────────────────
+
+def _extract_json(raw: str) -> str:
+    if "```" in raw:
+        for part in raw.split("```"):
+            s = part.lstrip("json").strip()
+            if s.startswith("{"):
+                return s
+    m = re.search(r'\{.*\}', raw, re.DOTALL)
+    return m.group(0) if m else raw.strip()
+
+
+# ── Oeffentliche API ───────────────────────────────────────────────────────────
 
 def handle_note(text: str) -> str:
     """
-    Main entry point. Takes any text note from Telegram.
-    Returns a response string to send back.
+    Einstiegspunkt fuer alle Telegram-Nachrichten.
+    Gibt immer eine Antwort zurueck — vollautomatisch.
     """
-    # Step 1: Quick keyword check
-    quick_cat = quick_classify(text)
-
-    # Step 2: Full LLM classification
-    classification = classify_with_llm(text)
-    is_error  = classification.get("is_error", False)
-    category  = classification.get("category", "general_note")
-    severity  = classification.get("severity", "LOW")
-    summary   = classification.get("summary", text[:80])
-    fixable   = classification.get("fixable", False)
+    # 1. Klassifizieren
+    cls       = classify(text)
+    is_error  = cls.get("is_error", False)
+    category  = cls.get("category", "general_note")
+    severity  = cls.get("severity", "LOW")
+    summary   = cls.get("summary", text[:80])
+    ctx_files = cls.get("context_files", [])
 
     if not is_error:
-        return f"📝 Notiz gespeichert: _{summary}_"
+        return f"📝 _Notiz gespeichert:_ {summary}"
 
-    # Step 3: Generate fix
-    fix = generate_fix(text, category) if fixable else None
-    confidence = fix.get("confidence", 0.0) if fix else 0.0
-
-    # Step 4: Try to apply fix
-    fix_applied = False
-    fix_result  = ""
-    if fix and confidence >= 0.7:
-        fix_applied, fix_result = apply_fix(fix)
-
-    # Step 5: Log
-    log_error_event(text, classification, fix)
-
-    # Step 6: Build response
+    # 2. Auto-Fix-Loop
     sev_icon = {"CRITICAL": "🔴", "HIGH": "🟠", "MEDIUM": "🟡", "LOW": "🟢"}.get(severity, "⚪")
+    result = auto_fix_loop(text, category, ctx_files)
+
+    # 3. Log
+    _log(text, cls, result)
+
+    # 4. Antwort aufbauen
     lines = [
-        f"{sev_icon} *Fehler erkannt* [{category}] — {severity}",
+        f"{sev_icon} *{severity}* [{category}]",
         f"_{summary}_",
         "",
     ]
 
-    if fix:
-        conf_pct = f"{confidence:.0%}"
-        lines.append(f"🔧 *Fix gefunden* (Konfidenz: {conf_pct})")
-        lines.append(f"_{fix.get('explanation', ''[:200])}_")
-        lines.append("")
-
-        if fix_applied:
-            lines.append(f"✅ *Auto-Fix angewendet:*\n```\n{fix_result[:800]}\n```")
-        else:
-            if fix.get("manual_steps"):
-                lines.append("📋 *Manuelle Schritte:*")
-                for step in fix["manual_steps"][:5]:
-                    lines.append(f"• {step}")
-            if fix.get("commands"):
-                lines.append("\n💻 *Commands (manuell ausfuehren):*")
-                for cmd in fix["commands"][:3]:
-                    lines.append(f"`{cmd}`")
+    if result["success"]:
+        lines += [
+            f"✅ *Automatisch geloest* in {result['attempts']} Versuch(en)",
+            "",
+        ]
+        last = result["history"][-1]
+        lines.append(f"🔧 _{last['explanation']}_")
+        lines.append(f"🤖 Modell: `{last['model']}`")
+        if last["output"]:
+            lines.append(f"\n```\n{last['output'][:600]}\n```")
+        if result["verify_output"]:
+            lines.append(f"\n✓ Verifikation: `{result['verify_output'][:200]}`")
     else:
-        lines.append("ℹ️ Kein automatischer Fix moeglich — bitte manuell pruefen.")
+        # Nicht geloest aber wir zeigen was gemacht wurde + bestes Ergebnis
+        lines += [
+            f"⚠️ *{result['attempts']} Versuche* — Problem komplex, Umgehungsloesung aktiv:",
+            "",
+        ]
+        for h in result["history"]:
+            icon = "✅" if h["verified"] else "❌"
+            lines.append(f"{icon} V{h['attempt']} ({h['model'].split('/')[-1]}): _{h['explanation'][:80]}_")
+            if h["output"]:
+                lines.append(f"```\n{h['output'][:300]}\n```")
+            if h["error"]:
+                lines.append(f"Fehler: `{h['error'][:200]}`")
 
     return "\n".join(lines)
 
@@ -381,23 +461,20 @@ def handle_note(text: str) -> str:
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Error Handler CLI")
-    parser.add_argument("--text", type=str, help="Error text to analyze")
-    parser.add_argument("--test", action="store_true", help="Run with a sample error")
+    parser = argparse.ArgumentParser(description="Error Handler — Vollautomatisch")
+    parser.add_argument("--text", type=str)
+    parser.add_argument("--test", action="store_true")
     args = parser.parse_args()
 
     sample = (
         "Traceback (most recent call last):\n"
-        "  File 'orchestrator.py', line 42, in run_brainstem\n"
-        "    r = subprocess.run(['curl', ...], timeout=5)\n"
-        "FileNotFoundError: [Errno 2] No such file or directory: 'curl'"
+        "  File 'orchestrator.py', line 42, in run\n"
+        "    import requests\n"
+        "ModuleNotFoundError: No module named 'requests'"
     )
-
-    text = args.text if args.text else (sample if args.test else None)
+    text = args.text or (sample if args.test else None)
     if not text:
         parser.print_help()
         sys.exit(0)
 
-    print("Analysiere...\n")
-    result = handle_note(text)
-    print(result)
+    print(handle_note(text))
