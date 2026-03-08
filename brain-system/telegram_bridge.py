@@ -196,6 +196,33 @@ def handle_command(text: str, chat_id: int, message_id: int) -> str:
         except Exception as exc:
             return f"❌ amygdala error: {exc}"
 
+    elif cmd == "models":
+        # Show model registry status
+        try:
+            result = subprocess.run(
+                [sys.executable, str(BRAIN_SYSTEM_DIR / "model_registry.py"), "--brains"],
+                capture_output=True, text=True, timeout=30,
+                cwd=str(BRAIN_SYSTEM_DIR),
+            )
+            return f"```\n{(result.stdout or result.stderr).strip()[:3000]}\n```"
+        except Exception as exc:
+            return f"❌ model registry error: {exc}"
+
+    elif cmd == "pullmodels":
+        # Pull best models for a role: /pullmodels code 14
+        role      = parts[1] if len(parts) > 1 else "code"
+        max_p     = float(parts[2]) if len(parts) > 2 else 14.0
+        try:
+            result = subprocess.run(
+                [sys.executable, str(BRAIN_SYSTEM_DIR / "model_registry.py"),
+                 "--pull", role, "--max-params", str(max_p)],
+                capture_output=True, text=True, timeout=300,
+                cwd=str(BRAIN_SYSTEM_DIR),
+            )
+            return (result.stdout or result.stderr or "Pull started.").strip()[:2000]
+        except Exception as exc:
+            return f"❌ pull error: {exc}"
+
     elif cmd in ("start", "help"):
         return (
             "🧠 *Brain System Commands*\n\n"
@@ -207,7 +234,10 @@ def handle_command(text: str, chat_id: int, message_id: int) -> str:
             "/status — Synapse queue + model rates\n"
             "/amygdala — Risk scan now\n"
             "/cleanup — Vacuum old synapses\n"
-            "/log [n] — Last n lines of today's log"
+            "/log [n] — Last n lines of today's log\n"
+            "/models — Brain → optimal model mapping\n"
+            "/pullmodels [role] [maxB] — Pull models\n\n"
+            "📝 *Freie Notizen*: Einfach schreiben — Fehler werden automatisch erkannt und geloest."
         )
 
     else:
@@ -242,10 +272,23 @@ def process_once() -> int:
         if CHAT_ID and str(chat_id) != str(CHAT_ID):
             continue
 
-        if not text.startswith("/"):
-            continue  # Only handle commands
+        print(f"[{_now()}] Message from {chat_id}: {text[:60]!r}")
 
-        print(f"[{_now()}] Command from {chat_id}: {text!r}")
+        if not text.startswith("/"):
+            # Free-text note → error handler
+            try:
+                sys.path.insert(0, str(BRAIN_SYSTEM_DIR))
+                from error_handler import handle_note  # type: ignore
+                response = handle_note(text)
+            except Exception as exc:
+                response = f"❌ Fehler-Analyse fehlgeschlagen: {exc}"
+            try:
+                send_message(chat_id, response, reply_to=message_id)
+            except Exception as exc:
+                print(f"[{_now()}] send_message failed: {exc}", file=sys.stderr)
+            save_offset(offset)
+            processed += 1
+            continue
 
         try:
             response = handle_command(text, chat_id, message_id)
