@@ -16,7 +16,7 @@ import os
 import sqlite3
 import urllib.error
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone
 
 # ── Konfiguration ────────────────────────────────────────────────────────────
 
@@ -54,7 +54,7 @@ def track_model_call(model: str, success: bool) -> None:
     conn = _get_conn()
     conn.execute(
         'INSERT INTO model_errors (timestamp, model, success) VALUES (?, ?, ?)',
-        (datetime.utcnow().isoformat(), model, 1 if success else 0),
+        (datetime.now(timezone.utc).isoformat(), model, 1 if success else 0),
     )
     conn.commit()
     conn.close()
@@ -106,7 +106,7 @@ def _call_ollama(model_tag: str, prompt: str, system: str = "", timeout: int = 1
     if system:
         payload["system"] = system
 
-    data = json.dumps(payload).encode()
+    data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     req  = urllib.request.Request(
         url,
         data=data,
@@ -142,7 +142,7 @@ def _call_kimi(model_key: str, prompt: str, system: str = "", timeout: int = 120
         "temperature": 0.3,
     }
 
-    data = json.dumps(payload).encode()
+    data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     req  = urllib.request.Request(
         url,
         data=data,
