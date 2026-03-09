@@ -1,0 +1,173 @@
+# OpenClaw + Tailscale Remote Gateway Setup
+
+This guide sets up CORE with OpenClaw running as a remote client connected to a central gateway server via Tailscale.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Server (Gateway)                                       │
+│  ├─ OpenClaw Gateway (port 18789)                      │
+│  ├─ Ollama Models (qwen2.5-coder, phi4)                │
+│  └─ Tailscale Serve (443 → http://127.0.0.1:18789)   │
+└────────────┬────────────────────────────────────────────┘
+             │ Secure Tailscale Tunnel
+             │
+┌────────────┴────────────────────────────────────────────┐
+│  Mac (Client)                                           │
+│  └─ OpenClaw Client → Server Gateway                   │
+└─────────────────────────────────────────────────────────┘
+```
+
+## Requirements
+
+- **Server**: Ubuntu 24.04+ with OpenClaw 2026.3.7+
+  - Tailscale installed and authenticated
+  - Ollama with models pre-downloaded
+  - 4GB+ RAM
+
+- **Mac Client**: macOS with OpenClaw 2026.3.7+
+  - Tailscale installed and authenticated
+  - Bash/zsh shell
+
+## Step 1: Server Setup
+
+### Automatic Setup (Recommended)
+
+Run the setup script on your server:
+
+```bash
+bash <(curl -fsSL https://your-repo-url/scripts/setup-openclaw-server.sh)
+```
+
+Or manually:
+
+```bash
+TOKEN=$(openssl rand -hex 32)
+echo "$TOKEN" > /root/.openclaw_gateway_token
+chmod 600 /root/.openclaw_gateway_token
+
+openclaw config set gateway.auth.mode "token"
+openclaw config set gateway.auth.token "$TOKEN"
+openclaw config set agents.defaults.model.primary "ollama/qwen2.5-coder:14b-q5_K_M"
+
+openclaw gateway restart
+
+tailscale serve 443 http://127.0.0.1:18789
+
+echo "=== Your Gateway Token (copy this line exactly) ==="
+cat /root/.openclaw_gateway_token
+```
+
+**Save the output token** - you'll need it for the Mac client.
+
+## Step 2: Mac Client Setup
+
+### Automatic Setup (Recommended)
+
+Run the setup script on your Mac:
+
+```bash
+bash <(curl -fsSL https://your-repo-url/scripts/setup-openclaw-mac.sh) --token YOUR_TOKEN --server 100.124.239.46
+```
+
+Or manually:
+
+Replace `YOUR_TOKEN` with the token from step 1, and `100.124.239.46` with your server's Tailscale IP:
+
+```bash
+openclaw gateway stop
+pkill -f "ssh -N -L 18789" || true
+
+openclaw gateway connect --url wss://100.124.239.46:443 --token YOUR_TOKEN
+```
+
+### Expected Output
+
+```
+✓ Connected to remote gateway
+✓ Using models: ollama/qwen2.5-coder:14b-q5_K_M
+✓ Gateway status: active
+```
+
+## Verification
+
+Test the connection:
+
+```bash
+# On Mac
+openclaw gateway status
+
+# Should show:
+# Gateway: connected
+# Server: 100.124.239.46:443
+# Token: ••••••••••••••••
+```
+
+Test model availability:
+
+```bash
+openclaw models list
+```
+
+## Troubleshooting
+
+### Connection Failed
+
+1. **Check Tailscale connection:**
+   ```bash
+   tailscale status
+   ```
+   Both machines should be listed as "connected"
+
+2. **Verify server is running:**
+   ```bash
+   # On server
+   openclaw gateway status
+   ps aux | grep tailscale
+   ```
+
+3. **Check firewall:**
+   Tailscale should handle firewalls automatically, but verify port 443 isn't blocked
+
+### Token Issues
+
+Regenerate the token on the server:
+
+```bash
+TOKEN=$(openssl rand -hex 32)
+echo "$TOKEN" > /root/.openclaw_gateway_token
+openclaw config set gateway.auth.token "$TOKEN"
+openclaw gateway restart
+```
+
+Then reconnect on Mac with the new token.
+
+### Models Not Found
+
+Ensure Ollama is running with required models on the server:
+
+```bash
+ollama ps
+# Should list:
+# qwen2.5-coder:14b-q5_K_M
+# phi4:14b-q5_K_M (optional fallback)
+```
+
+## Security Notes
+
+- **Token**: Store securely, treat like a password
+- **Tailscale**: Only works within your Tailscale network
+- **HTTPS/WSS**: Tailscale automatically handles encryption
+- **No Public Exposure**: This setup is private to your Tailscale network
+
+## Next Steps
+
+1. Test with `/talk` command in Telegram
+2. Verify model inference: `openclaw query "test prompt"`
+3. Enable revenue loop features
+
+## Support
+
+- [OpenClaw Documentation](https://openclaw.ai/docs)
+- [Tailscale Setup Guide](https://tailscale.com/kb/1053/starting)
