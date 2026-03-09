@@ -70,7 +70,7 @@ echo "   Server: $SERVER"
 echo "   URL: wss://$SERVER:443"
 
 # Connect to remote gateway
-if openclaw gateway connect --url "wss://$SERVER:443" --token "$TOKEN"; then
+if openclaw gateway connect "wss://$SERVER:443" --token "$TOKEN"; then
     echo "✓ Connected to remote gateway"
 else
     echo "❌ Connection failed. Check:"
