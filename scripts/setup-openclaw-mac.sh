@@ -65,22 +65,21 @@ sleep 2
 echo "✓ Local gateway stopped"
 
 echo ""
-echo "🔗 Step 2: Connecting to remote gateway..."
+echo "🔗 Step 2: Setting up remote gateway connection..."
 echo "   Server: $SERVER"
-echo "   URL: wss://$SERVER:443"
 
-# Connect to remote gateway
-if openclaw gateway connect "wss://$SERVER:443" --token "$TOKEN"; then
-    echo "✓ Connected to remote gateway"
+# Test connection to remote gateway
+if openclaw gateway health --url "wss://$SERVER:443" --token "$TOKEN" 2>/dev/null; then
+    echo "✓ Remote gateway is reachable"
 else
-    echo "❌ Connection failed. Check:"
+    echo "❌ Cannot reach remote gateway. Check:"
     echo "   1. Server token is correct"
     echo "   2. Server IP is reachable via Tailscale"
-    echo "   3. Server gateway is running: openclaw gateway status"
+    echo "   3. Server gateway is running on the remote machine"
     exit 1
 fi
 
-sleep 2
+sleep 1
 
 echo ""
 echo "✅ Mac Client Setup Complete!"
