@@ -1,0 +1,226 @@
+{
+  "numStartups": 116,
+  "theme": "light",
+  "installMethod": "native",
+  "autoUpdates": false,
+  "hasSeenTasksHint": true,
+  "mcpServers": {
+    "desktop-commander": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--network=host",
+        "-v", "/Users/maurice/ai-empire-core:/workspace",
+        "-v", "/Users/maurice/core/.git:/workspace/.git",
+        "mcp/desktop-commander:latest"
+      ],
+      "env": {
+        "ALLOWED_DIRECTORIES": "/workspace",
+        "BLOCKED_COMMANDS": "rm -rf, sudo, dd, shutdown, format",
+        "FILE_WRITE_LINE_LIMIT": "80"
+      }
+    },
+    "x-sprint-scan": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest"],
+      "env": {
+        "HEADLESS": "true",
+        "X_SCAN_SCRIPT": "/Users/maurice/core/scripts/x-sprint-scan.sh"
+      }
+    },
+    "empire-filesystem": {
+      "command": "npx",
+      "args": ["-y", "fast-filesystem-mcp@latest"]
+    },
+    "empire-git-mcp": {
+      "command": "npx",
+      "args": ["-y", "github-mcp-server@latest"]
+    }
+  },
+  "customApiKeyResponses": {
+    "approved": [
+      "5YDmNOcIGeA-jo4GlwAA"
+    ],
+    "rejected": [
+      "ollama",
+      "anything"
+    ]
+  },
+  "tipsHistory": {
+    "new-user-warmup": 8,
+    "plan-mode-for-complex-tasks": 115,
+    "terminal-setup": 15,
+    "shift-enter-setup": 15,
+    "memory-command": 115,
+    "theme-command": 105,
+    "status-line": 104,
+    "enter-to-steer-in-relatime": 105,
+    "todo-list": 106,
+    "install-github-app": 111,
+    "install-slack-app": 111,
+    "drag-and-drop-images": 104,
+    "paste-images-mac": 104,
+    "double-esc-code-restore": 104,
+    "ide-upsell-external-terminal": 98,
+    "continue": 105,
+    "shift-tab": 105,
+    "image-paste": 110,
+    "custom-agents": 101,
+    "agent-flag": 101,
+    "desktop-app": 101,
+    "web-app": 101,
+    "mobile-app": 101,
+    "default-permission-mode-config": 114,
+    "permissions": 115,
+    "rename-conversation": 101,
+    "custom-commands": 103,
+    "frontend-design-plugin": 103,
+    "shift-enter": 114,
+    "vscode-command-install": 16,
+    "guest-passes": 23,
+    "overage-promo": 23,
+    "git-worktrees": 113,
+    "mcp-x-sprint-scan": 1
+  },
+  "cachedStatsigGates": {
+    "tengu_prompt_suggestion": false,
+    "tengu_session_memory": false
+  },
+  "cachedGrowthBookFeatures": {
+    "tengu_1p_event_batch_config": {
+      "scheduledDelayMillis": 10000,
+      "maxExportBatchSize": 400,
+      "maxQueueSize": 8192
+    },
+    "tengu_mcp_tool_search": true,
+    "tengu_scratch": false,
+    "tengu_brass_pebble": false,
+    "tengu_event_sampling_config": {},
+    "tengu_log_segment_events": false,
+    "tengu_log_datadog_events": true,
+    "tengu_marble_anvil": true,
+    "tengu_tool_pear": false,
+    "tengu_scarf_coffee": false,
+    "tengu_keybinding_customization_release": true,
+    "tengu_claudeai_mcp_connectors": true,
+    "tengu_c4w_usage_limit_notifications_enabled": true,
+    "tengu_marble_kite": false,
+    "tengu_vinteuil_phrase": true,
+    "tengu_system_prompt_global_cache": true,
+    "tengu_coral_fern": false,
+    "tengu_enhanced_telemetry_beta": false,
+    "tengu_cache_plum_violet": true,
+    "tengu_streaming_tool_execution2": true,
+    "tengu_tool_search_unsupported_models": [
+      "haiku"
+    ],
+    "tengu_attribution_header": true,
+    "tengu_workout": false,
+    "tengu_cork_m4q": true,
+    "tengu_file_write_optimization": true,
+    "tengu_session_memory": false,
+    "tengu_sm_compact": false,
+    "tengu_compact_cache_prefix": true,
+    "tengu_compact_streaming_retry": false,
+    "tengu_chrome_auto_enable": false,
+    "tengu_plum_vx3": true,
+    "tengu_plan_mode_interview_phase": false,
+    "tengu_oboe": true,
+    "tengu_chomp_inflection": false,
+    "tengu_copper_lantern": false
+  },
+  "promptQueueUseCount": 695,
+  "toolUsage": {
+    "ListTools": {
+      "usageCount": 5,
+      "lastUsedAt": 1772789253000
+    },
+    "Read": {
+      "usageCount": 142,
+      "lastUsedAt": 1772138708399
+    },
+    "TaskOutput": {
+      "usageCount": 22,
+      "lastUsedAt": 1772119297931
+    },
+    "TaskStop": {
+      "usageCount": 2,
+      "lastUsedAt": 1772028097941
+    },
+    "TodoWrite": {
+      "usageCount": 75,
+      "lastUsedAt": 1772138711290
+    },
+    "AskUserQuestion": {
+      "usageCount": 9,
+      "lastUsedAt": 1772095971608
+    },
+    "Task": {
+      "usageCount": 30,
+      "lastUsedAt": 1772136623981
+    },
+    "Write": {
+      "usageCount": 101,
+      "lastUsedAt": 1772137588123
+    },
+    "WebSearch": {
+      "usageCount": 39,
+      "lastUsedAt": 1772119529741
+    },
+    "TaskCreate": {
+      "usageCount": 6,
+      "lastUsedAt": 1772137371123
+    },
+    "TaskUpdate": {
+      "usageCount": 7,
+      "lastUsedAt": 1772137625930
+    },
+    "Glob": {
+      "usageCount": 14,
+      "lastUsedAt": 1772137379870
+    },
+    "ExitPlanMode": {
+      "usageCount": 7,
+      "lastUsedAt": 1772122790997
+    },
+    "mcp__ai-empire-storage__list_allowed_directories": {
+      "usageCount": 3,
+      "lastUsedAt": 1772119648021
+    },
+    "Skill": {
+      "usageCount": 1,
+      "lastUsedAt": 1772104658130
+    },
+    "Grep": {
+      "usageCount": 5,
+      "lastUsedAt": 1772136068434
+    }
+  },
+  "oauthAccount": {
+    "accountUuid": "86eaca61-c66e-4dfc-89ca-39e374b8c4a7",
+    "emailAddress": "mauricepfeifer@icloud.com",
+    "organizationUuid": "692bd12b-73ab-4a50-9656-4cbde343cac3",
+    "hasExtraUsageEnabled": false,
+    "billingType": "api_evaluation",
+    "accountCreatedAt": "2026-01-04T19:53:51.184926Z",
+    "subscriptionCreatedAt": "2026-02-07T09:51:13.494852Z",
+    "displayName": "Maurice",
+    "organizationRole": "admin",
+    "workspaceRole": null,
+    "organizationName": "Maurice's Individual Org"
+  },
+  "ideHintShownCount": 4,
+  "s1mNonSubscriberAccessCache": {
+    "692bd12b-73ab-4a50-9656-4cbde343cac3": {
+      "hasAccess": false,
+      "timestamp": 1772741513939
+    }
+  },
+  "metricsStatusCache": {
+    "enabled": true,
+    "vcsAccountLinkingEnabled": false,
+    "timestamp": 1772789253419
+  }
+}
