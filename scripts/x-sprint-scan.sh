@@ -112,7 +112,7 @@ Du bist mein 100x AI Empire Engineer mit vollem Desktop Commander Zugriff.
 1. Lese alle Posts aus: $scan_file
 2. Gruppiere die besten 20 Posts nach Themen innerhalb von $topic
 3. Erstelle pro Gruppe einen ultra-starken Implementierungs-Prompt
-4.Speichere alles in: $PROMPTS_DIR/$(date +%Y%m%d)-$topic-pipeline.md
+4. Speichere alles in: $PROMPTS_DIR/$(date +%Y%m%d)-$topic-pipeline.md
 
 ## KEY CRITERIA FOR 10x
 - Liest du direkt aus Desktop Commander MCP?
