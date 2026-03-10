@@ -42,6 +42,20 @@ run() {
     fi
 }
 
+run_sudo() {
+    if [[ "$DRY_RUN" == "1" ]]; then
+        info "[DRY-RUN-SUDO] $*"
+    else
+        # Try running with sudo, but don't fail the whole script if it requires a password
+        if sudo -n true 2>/dev/null; then
+            sudo "$@" >> "$LOG_FILE" 2>&1 && return 0 || return 1
+        else
+            warn "SUDO Zugriff nicht verfügbar für: $*"
+            return 1
+        fi
+    fi
+}
+
 require_macos() {
     if [[ "$(uname)" != "Darwin" ]]; then
         echo "FEHLER: Dieses Skript läuft nur auf macOS." >&2
@@ -87,10 +101,10 @@ fix_hung_processes() {
 # --- 2. DNS-Cache leeren -----------------------------------------------------
 fix_dns_cache() {
     section "DNS-Cache"
-    if run "sudo dscacheutil -flushcache"; then
+    if run_sudo "dscacheutil -flushcache"; then
         success "dscacheutil Cache geleert."
     fi
-    if run "sudo killall -HUP mDNSResponder 2>/dev/null"; then
+    if run_sudo "killall -HUP mDNSResponder"; then
         success "mDNSResponder neugestartet."
     fi
 }
@@ -105,7 +119,7 @@ fix_memory() {
     info "Aktueller Speicher-Druck: ${mem_pressure}% frei"
 
     # Inaktive Seiten aus dem RAM entfernen (benötigt sudo)
-    if run "sudo purge"; then
+    if run_sudo "purge"; then
         success "Inaktive RAM-Seiten freigegeben (purge)."
     fi
 
@@ -171,7 +185,7 @@ fix_spotlight() {
 
     if [[ "$mdworker_count" -gt 20 ]]; then
         warn "Zu viele mdworker-Prozesse ($mdworker_count). Spotlight-Index wird neu aufgebaut..."
-        run "sudo mdutil -E /" || true
+        run_sudo "mdutil -E /" || true
         success "Spotlight-Index wird neu aufgebaut."
     else
         success "Spotlight-Prozesse normal ($mdworker_count)."
@@ -224,8 +238,8 @@ fix_network() {
     # Nur wenn Netzwerkprobleme vorliegen (Ping-Test)
     if ! ping -c 1 -t 2 8.8.8.8 &>/dev/null; then
         warn "Keine Internetverbindung. Versuche Netzwerk-Reset..."
-        run "sudo ifconfig en0 down && sudo ifconfig en0 up" || true
-        run "sudo route flush" || true
+        run_sudo "ifconfig en0 down && ifconfig en0 up" || true
+        run_sudo "route flush" || true
         success "Netzwerk-Interface zurückgesetzt."
     else
         success "Netzwerkverbindung OK."
@@ -242,8 +256,8 @@ fix_kernel_params() {
     info "kern.maxfiles: $current_maxfiles"
 
     if [[ "$current_maxfiles" != "n/a" && "$current_maxfiles" -lt 65536 ]]; then
-        run "sudo sysctl -w kern.maxfiles=65536" || true
-        run "sudo sysctl -w kern.maxfilesperproc=32768" || true
+        run_sudo "sysctl -w kern.maxfiles=65536" || true
+        run_sudo "sysctl -w kern.maxfilesperproc=32768" || true
         success "kern.maxfiles auf 65536 erhöht."
     else
         success "kern.maxfiles bereits ausreichend ($current_maxfiles)."

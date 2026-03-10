@@ -27,14 +27,14 @@ log() {
     local msg="$*"
     local ts
     ts=$(date '+%Y-%m-%d %H:%M:%S')
-    echo "[$ts] [$level] $msg" | tee -a "$LOG_FILE"
+    echo "[$ts] [$level] $msg" >> "$LOG_FILE"
 }
 
 info()    { log "INFO " "$@"; }
 warn()    { log "WARN " "$@"; }
 success() { log "OK   " "$@"; }
 error()   { log "ERROR" "$@"; exit 1; }
-section() { echo ""; log "=====" "--- $* ---"; }
+section() { echo "" >> "$LOG_FILE"; log "=====" "--- $* ---"; }
 
 # --- Themen für 10x-Entwicklung (priorisiert für dein Empire) ---------------
 declare -a TOPICS=(
