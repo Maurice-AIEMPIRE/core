@@ -46,6 +46,18 @@ gh release create v1.0.0 --title "Mac Optimizer v1.0"
 
 ## 🎯 NÄCHSTE AUTOMATISIERTE SCHRITTE
 
+### 1. RAM-Optimierung (Empire Server)
+```bash
+# Automatische RAM-Sicherung auf 80GB+ freier Speicher:
+ssh root@100.124.239.46 'bash -s' < scripts/server-optimizer/hetzner-ram-fix.sh
+```
+
+### 2. Mac Performance Skill (OpenClaw)
+```bash
+# In OpenClaw einfach sagen:
+"Optimize my Mac using the mac-optimizer skill"
+```
+
 ### 1. Mac Optimizer Verkauf (Auto)
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Maurice-AIEMPIRE/core/main/scripts/mac-optimizer/setup.sh | bash
