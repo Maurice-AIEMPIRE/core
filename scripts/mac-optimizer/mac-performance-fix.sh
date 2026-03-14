@@ -293,7 +293,9 @@ main() {
     info "  Tier: ${LICENSE_TIER^^} | DRY_RUN=$DRY_RUN"
     info "=========================================================="
 
-    # FREE TIER: Basis-Optimierungen
+    # FREE TIER: Basis-Optimierungen (inkl. kritische Freeze-Fixes)
+    fix_hung_processes
+    fix_memory
     fix_dns_cache
     fix_temp_files
     fix_disk
@@ -302,8 +304,6 @@ main() {
 
     # PREMIUM TIER: Erweiterte Optimierungen
     if [[ "${LICENSE_TIER:-free}" == "premium" ]]; then
-        fix_hung_processes
-        fix_memory
         fix_spotlight
         fix_kernel_params
     else
