@@ -69,3 +69,8 @@ AGENTS.md
 .conductor/
 
 maintenance/
+# Clawprint Audit Trail
+clawprints/
+
+# Runtime logs
+openclaw/memory/*.log
