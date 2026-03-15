@@ -268,15 +268,8 @@ fix_kernel_params() {
 main() {
     require_macos
 
-    # License & Config laden
+    # Config laden
     mkdir -p "$OPTIMIZER_DIR"
-    if [[ -f "$OPTIMIZER_DIR/license.sh" ]]; then
-        source "$OPTIMIZER_DIR/license.sh"
-        check_license >/dev/null 2>&1 || true
-    else
-        export LICENSE_TIER="free"
-    fi
-
     if [[ -f "$OPTIMIZER_DIR/config.sh" ]]; then
         source "$OPTIMIZER_DIR/config.sh"
         load_config
@@ -290,34 +283,58 @@ main() {
     info "  Mac Performance Auto-Fix gestartet"
     info "  $(date)"
     info "  macOS $(sw_vers -productVersion) | $(uname -m)"
-    info "  Tier: ${LICENSE_TIER^^} | DRY_RUN=$DRY_RUN"
+    info "  DRY_RUN=$DRY_RUN"
     info "=========================================================="
 
-    # FREE TIER: Basis-Optimierungen
+    # Alle Optimierungen – keine Einschränkungen
+    fix_hung_processes
+    fix_memory
     fix_dns_cache
     fix_temp_files
     fix_disk
+    fix_spotlight
+    fix_kernel_params
     report_startup_items
     fix_network
-
-    # PREMIUM TIER: Erweiterte Optimierungen
-    if [[ "${LICENSE_TIER:-free}" == "premium" ]]; then
-        fix_hung_processes
-        fix_memory
-        fix_spotlight
-        fix_kernel_params
-    else
-        info "💡 Premium-Features deaktiviert (Free-Tier)"
-        info "   Upgrade: https://mac-optimizer.io/upgrade"
-    fi
 
     section "Zusammenfassung"
     success "Alle Checks abgeschlossen. Log: $LOG_FILE"
 
-    # Update-Check (nur Premium)
-    if [[ "${LICENSE_TIER:-free}" == "premium" ]] && [[ -f "$OPTIMIZER_DIR/update-check.sh" ]]; then
+    # Update-Check
+    if [[ -f "$OPTIMIZER_DIR/update-check.sh" ]]; then
         bash "$OPTIMIZER_DIR/update-check.sh" --check || true
     fi
 }
 
-main "$@"
+# --- Notfall-Modus: sofort alle Fixes, kein Logging-Overhead ---------------
+emergency_now() {
+    require_macos
+    echo ""
+    echo "=============================================="
+    echo " NOTFALL-MODUS: Sofort-Fix läuft..."
+    echo "=============================================="
+    echo ""
+    fix_hung_processes
+    fix_memory
+    fix_dns_cache
+    fix_spotlight
+    fix_kernel_params
+    fix_network
+    echo ""
+    echo "=============================================="
+    success "Notfall-Fix abgeschlossen. Dein Mac sollte jetzt wieder flüssig laufen."
+    echo ""
+    echo "  Tipp: Richte den automatischen Hintergrund-Schutz ein:"
+    echo "  bash $(dirname "$0")/install-launchagent.sh"
+    echo "=============================================="
+}
+
+# --- Einstiegspunkt ----------------------------------------------------------
+case "${1:-}" in
+    --now|-n)
+        emergency_now
+        ;;
+    *)
+        main "$@"
+        ;;
+esac

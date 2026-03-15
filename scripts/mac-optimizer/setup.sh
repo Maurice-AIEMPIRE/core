@@ -2,12 +2,12 @@
 # =============================================================================
 # setup.sh – Ein-Befehl-Installer für den Mac Performance Auto-Fixer
 # Ausführen mit:
-#   curl -fsSL https://raw.githubusercontent.com/Maurice-AIEMPIRE/core/claude/auto-fix-mac-performance-Tyo8p/scripts/mac-optimizer/setup.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/Maurice-AIEMPIRE/core/claude/fix-mac-performance-HKiqR/scripts/mac-optimizer/setup.sh | bash
 # =============================================================================
 
 set -euo pipefail
 
-BASE_URL="https://raw.githubusercontent.com/Maurice-AIEMPIRE/core/claude/auto-fix-mac-performance-Tyo8p/scripts/mac-optimizer"
+BASE_URL="https://raw.githubusercontent.com/Maurice-AIEMPIRE/core/claude/fix-mac-performance-HKiqR/scripts/mac-optimizer"
 INSTALL_DIR="$HOME/.mac-optimizer"
 PLIST_DEST="$HOME/Library/LaunchAgents/com.core.mac-optimizer.plist"
 LABEL="com.core.mac-optimizer"
@@ -82,10 +82,10 @@ launchctl unload "$PLIST_DEST" 2>/dev/null || true
 launchctl load "$PLIST_DEST"
 ok "LaunchAgent aktiv: läuft beim Login + jede Stunde automatisch"
 
-# --- Sofort ausführen --------------------------------------------------------
-header "3/3 · Erster Fix-Durchlauf..."
+# --- Sofort ausführen (Notfall-Fix) -----------------------------------------
+header "3/3 · Sofort-Fix (alle Optimierungen werden jetzt angewendet)..."
 echo ""
-bash "$INSTALL_DIR/mac-performance-fix.sh"
+bash "$INSTALL_DIR/mac-performance-fix.sh" --now
 
 # --- Fertig ------------------------------------------------------------------
 echo ""
