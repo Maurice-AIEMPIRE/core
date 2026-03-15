@@ -1,6 +1,6 @@
 {
   "version": "2026.3.4",
-  "workspace": "/opt/money-machine",
+  "workspace": "${HOME}/.openclaw/workspace/ai-empire",
   "agent": {
     "id": "main",
     "model": "ollama/glm4:9b-chat",
@@ -26,6 +26,12 @@
       "enabled": true,
       "botToken": "${TELEGRAM_BOT_TOKEN}",
       "adminId": "8531161985"
+    },
+    "allow": {
+      "openclaw-web-search": {
+        "trust": "local",
+        "reason": "First-party web-search plugin, loaded from local extensions path"
+      }
     }
   },
   "optimization": {
