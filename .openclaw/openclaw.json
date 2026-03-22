@@ -100,7 +100,8 @@
       "youtube-studio-uploader": { "enabled": true },
       "x-twitter-browser": { "enabled": true },
       "laser-focus": { "enabled": true },
-      "agent-memory-ultimate": { "enabled": true }
+      "agent-memory-ultimate": { "enabled": true },
+      "content-skill-graph": { "enabled": true, "graphRoot": "skills/content-graph", "skillFile": "skills/SKILL_content_skill_graph.md" }
     }
   },
   "security": {

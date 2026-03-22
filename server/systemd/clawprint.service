@@ -1,0 +1,23 @@
+[Unit]
+Description=Clawprint – OpenClaw Run Recorder (SHA-256 Audit Trail)
+Documentation=https://github.com/cyntrisec/clawprint
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Restart=on-failure
+RestartSec=10s
+Environment=RUST_LOG=warn
+
+ExecStartPre=/bin/sh -c 'mkdir -p /home/user/core/clawprints'
+ExecStart=/usr/local/bin/clawprint record \
+  --gateway ws://127.0.0.1:18789 \
+  --out /home/user/core/clawprints
+
+StandardOutput=append:/var/log/clawprint.log
+StandardError=append:/var/log/clawprint.log
+
+[Install]
+WantedBy=multi-user.target
