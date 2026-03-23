@@ -63,8 +63,6 @@ export const integrationWebhookTask = task({
 
         if (integrationSpec.mcp) {
           mcpEndpoint = `${process.env.API_BASE_URL}/api/v1/mcp/${integrationAccount.integrationDefinition.slug}`;
-        } else if (integrationSpec.mcp.type === "stdio") {
-          mcpEndpoint = `${process.env.API_BASE_URL}/api/v1/mcp/${integrationAccount.integrationDefinition.slug}`;
         }
 
         // Prepare webhook payload

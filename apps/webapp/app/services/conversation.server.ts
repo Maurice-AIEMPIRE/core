@@ -233,8 +233,8 @@ export async function getConversationsList(
   userId: string,
   params: GetConversationsListDto,
 ) {
-  const page = parseInt(params.page);
-  const limit = parseInt(params.limit);
+  const page = parseInt(params.page, 10) || 1;
+  const limit = parseInt(params.limit, 10) || 10;
   const skip = (page - 1) * limit;
 
   const where = {

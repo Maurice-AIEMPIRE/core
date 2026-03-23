@@ -5,14 +5,23 @@ export const useLocalCommonState = <T,>(key: string, initialValue?: T) => {
   const [state, setState] = useState<T>(() => {
     // Try to load from localStorage on initial render
     const savedObject = localStorage?.getItem(path);
-    const parsedObject = savedObject ? JSON.parse(savedObject) : {};
-    return key in parsedObject ? parsedObject[key] : initialValue;
+    try {
+      const parsedObject = savedObject ? JSON.parse(savedObject) : {};
+      return key in parsedObject ? parsedObject[key] : initialValue;
+    } catch {
+      return initialValue;
+    }
   });
 
   // Save to localStorage whenever state changes
   useEffect(() => {
     const savedObject = localStorage.getItem(path);
-    const parsedObject = savedObject ? JSON.parse(savedObject) : {};
+    let parsedObject: Record<string, unknown> = {};
+    try {
+      parsedObject = savedObject ? JSON.parse(savedObject) : {};
+    } catch {
+      // ignore corrupted data
+    }
     localStorage.setItem(
       path,
       JSON.stringify({
