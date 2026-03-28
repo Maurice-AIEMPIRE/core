@@ -79,9 +79,21 @@ ufw default allow outgoing
 ufw allow ssh
 ufw allow 11434/tcp comment 'Ollama'
 ufw allow 8503/tcp comment 'Dashboard'
+ufw allow 3033/tcp comment 'CORE Memory Agent'
 ufw allow from 100.64.0.0/10 comment 'Tailscale'
 echo "y" | ufw --force enable
 echo -e "${GREEN}Firewall Configured${NC}"
+
+# Install Docker if not present
+if ! command -v docker &> /dev/null; then
+    echo -e "${YELLOW}[Extra] Install Docker...${NC}"
+    curl -fsSL https://get.docker.com | sh
+    systemctl enable docker
+    systemctl start docker
+    echo -e "${GREEN}Docker Installed${NC}"
+else
+    echo -e "${GREEN}Docker already installed${NC}"
+fi
 
 echo ""
 echo "================================================================"
@@ -92,4 +104,13 @@ echo "Next Steps:"
 echo "  1. ollama pull glm4:9b-chat  (falls noch nicht fertig)"
 echo "  2. bash server/scripts/start-all.sh"
 echo "  3. streamlit run dashboard/dashboard.py --server.port 8503"
+echo ""
+echo "CORE Memory Agent:"
+echo "  1. Trage Server-IP und OpenAI Key ein:"
+echo "     nano hosting/docker/.env"
+echo "  2. Starte CORE:"
+echo "     cd hosting/docker && docker compose up -d"
+echo "  3. Öffne http://DEINE_SERVER_IP:3033 und erstelle Account"
+echo "  4. Claude Code MCP verbinden:"
+echo "     claude mcp add --transport http --scope user core-memory http://DEINE_SERVER_IP:3033/api/v1/mcp"
 echo ""

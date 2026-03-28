@@ -59,19 +59,24 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      neo4j:
+        condition: service_healthy
     networks:
       - core
+    restart: unless-stopped
+    logging: *logging-config
 
   postgres:
     container_name: core-postgres
     image: pgvector/pgvector:pg18-trixie
-    restart: ${RESTART_POLICY:-unless-stopped}
+    restart: unless-stopped
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      # Port 5432 is used by system PostgreSQL → mapped to 5433 externally
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
     networks:
@@ -82,27 +87,31 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    logging: *logging-config
 
   redis:
     container_name: core-redis
     image: redis:7
+    restart: unless-stopped
     ports:
       - "6379:6379"
     networks:
       - core
+    logging: *logging-config
 
   neo4j:
     container_name: core-neo4j
     image: redplanethq/neo4j:0.1.0
+    restart: unless-stopped
     environment:
       - NEO4J_AUTH=${NEO4J_AUTH}
       - NEO4J_dbms_security_procedures_unrestricted=gds.*,apoc.*
       - NEO4J_dbms_security_procedures_allowlist=gds.*,apoc.*
-      - NEO4J_apoc_export_file_enabled=true # Enable file export
-      - NEO4J_apoc_import_file_enabled=true # Enable file import
+      - NEO4J_apoc_export_file_enabled=true
+      - NEO4J_apoc_import_file_enabled=true
       - NEO4J_apoc_import_file_use_neo4j_config=true
-      - NEO4J_server_memory_heap_initial__size=2G
-      - NEO4J_server_memory_heap_max__size=4G
+      - NEO4J_server_memory_heap_initial__size=1G
+      - NEO4J_server_memory_heap_max__size=2G
     ports:
       - "7474:7474"
       - "7687:7687"
@@ -111,31 +120,12 @@ services:
     networks:
       - core
     healthcheck:
-      test: ["CMD-SHELL", "cypher-shell -u $NEO4J_USERNAME -p $NEO4J_PASSWORD 'RETURN 1'"]
+      test: ["CMD-SHELL", "cypher-shell -u ${NEO4J_USERNAME} -p ${NEO4J_PASSWORD} 'RETURN 1'"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 20s
-
-  # Uncomment this if you want to use a local embedding modal
-  # ollama:
-  #   container_name: core-ollama
-  #   image: ollama/ollama:0.12.6
-  #   ports:
-  #     - "11434:11434"
-  #   volumes:
-  #     - ollama_data:/root/.ollama
-  #     - ./scripts/ollama-init.sh:/usr/local/bin/ollama-init.sh:ro
-  #   networks:
-  #     - core
-  #   entrypoint: ["/bin/bash", "/usr/local/bin/ollama-init.sh"]
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 5
-  #     start_period: 90s
-  #   restart: unless-stopped
+    logging: *logging-config
 
 networks:
   core:
