@@ -156,6 +156,11 @@ async function runSync(): Promise<void> {
       title: "OpenClaw: Revenue Tracking & Goals",
       id: `${runId}-revenue`,
     },
+    {
+      file: "browser-state.json",
+      title: "OpenClaw: Browser Automation State",
+      id: `${runId}-browser`,
+    },
   ];
 
   for (const { file, title, id } of memoryFiles) {

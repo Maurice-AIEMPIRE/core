@@ -1,0 +1,18 @@
+[Unit]
+Description=Galaxia Vector Brain → CORE Memory Bridge (Galaxia Brain)
+After=network-online.target core-app.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/money-machine
+EnvironmentFile=/opt/money-machine/hosting/docker/.env
+ExecStart=/usr/bin/npx tsx galaxia/brain/galaxia-bridge.ts --daemon
+Restart=always
+RestartSec=30
+StandardOutput=append:/tmp/galaxia-bridge.log
+StandardError=append:/tmp/galaxia-bridge.log
+
+[Install]
+WantedBy=multi-user.target

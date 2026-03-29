@@ -1,0 +1,19 @@
+[Unit]
+Description=OpenClaw Brain → CORE Memory Sync (Galaxia Brain)
+After=network-online.target core-app.service
+Wants=network-online.target
+# Wait for CORE to be ready before syncing
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/money-machine
+EnvironmentFile=/opt/money-machine/hosting/docker/.env
+ExecStart=/usr/bin/npx tsx openclaw/brain/sync-to-core.ts --daemon
+Restart=always
+RestartSec=30
+StandardOutput=append:/tmp/openclaw-brain.log
+StandardError=append:/tmp/openclaw-brain.log
+
+[Install]
+WantedBy=multi-user.target

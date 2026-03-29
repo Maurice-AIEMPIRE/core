@@ -181,10 +181,37 @@ else
 fi
 
 # ============================================================
-# 6. Claude Code MCP Setup
+# 6. Systemd Services registrieren (Autostart nach Reboot)
 # ============================================================
 echo ""
-echo -e "${YELLOW}[6/6] Claude Code MCP Konfiguration...${NC}"
+echo -e "${YELLOW}[6/7] Registriere Systemd Services...${NC}"
+
+SYSTEMD_DIR="$REPO_ROOT/server/systemd"
+SYSTEMD_TARGET="/etc/systemd/system"
+
+# Helper: install and enable a service with updated WorkingDirectory
+install_service() {
+    local SERVICE="$1"
+    local SRC="$SYSTEMD_DIR/$SERVICE"
+
+    if [ -f "$SRC" ]; then
+        # Replace placeholder path with actual REPO_ROOT
+        sed "s|/opt/money-machine|$REPO_ROOT|g" "$SRC" > "$SYSTEMD_TARGET/$SERVICE"
+        systemctl daemon-reload
+        systemctl enable "$SERVICE" 2>/dev/null
+        echo -e "${GREEN}  ✓ $SERVICE aktiviert${NC}"
+    fi
+}
+
+install_service "openclaw-brain-sync.service"
+install_service "galaxia-bridge.service"
+install_service "mac-brain.service"
+
+# ============================================================
+# 7. Claude Code MCP Setup
+# ============================================================
+echo ""
+echo -e "${YELLOW}[7/7] Claude Code MCP Konfiguration...${NC}"
 
 echo ""
 echo -e "${BOLD}================================================================${NC}"
@@ -192,7 +219,7 @@ echo -e "${GREEN}${BOLD}  GALAXIA BRAIN SETUP COMPLETE!${NC}"
 echo -e "${BOLD}================================================================${NC}"
 echo ""
 echo -e "  CORE Memory Web-UI:  ${CYAN}http://$SERVER_IP:3033${NC}"
-echo -e "  Mac Brain:           ${CYAN}http://localhost:9001${NC} (nach start-all.sh)"
+echo -e "  Mac Brain:           ${CYAN}http://localhost:9001${NC}"
 echo ""
 echo -e "${BOLD}  Claude Code MCP verbinden (auf deinem Mac ausführen):${NC}"
 echo -e "  ${CYAN}claude mcp add --transport http --scope user core-memory http://$SERVER_IP:3033/api/v1/mcp${NC}"
@@ -200,8 +227,9 @@ echo ""
 echo -e "  Dann in Claude Code:"
 echo -e "  ${CYAN}/mcp${NC} → core-memory → Im Browser authentifizieren"
 echo ""
-echo -e "${BOLD}  Alle Services starten:${NC}"
-echo -e "  ${CYAN}bash server/scripts/start-all.sh${NC}"
+echo -e "${BOLD}  Services starten/stoppen:${NC}"
+echo -e "  ${CYAN}systemctl start openclaw-brain-sync galaxia-bridge mac-brain${NC}"
+echo -e "  ${CYAN}systemctl status openclaw-brain-sync${NC}"
 echo ""
 echo -e "${BOLD}  Brain-Sync Logs:${NC}"
 echo -e "  tail -f /tmp/openclaw-brain.log"

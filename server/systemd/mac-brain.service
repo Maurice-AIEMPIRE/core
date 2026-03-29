@@ -1,0 +1,18 @@
+[Unit]
+Description=Mac Brain iCloud Writer — Galaxia Brain SSH Bridge (Port 9001)
+After=network-online.target core-app.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/money-machine
+EnvironmentFile=/opt/money-machine/hosting/docker/.env
+ExecStart=/usr/bin/npx tsx integrations/mac-brain/webhook-listener.ts
+Restart=always
+RestartSec=10
+StandardOutput=append:/tmp/mac-brain.log
+StandardError=append:/tmp/mac-brain.log
+
+[Install]
+WantedBy=multi-user.target
