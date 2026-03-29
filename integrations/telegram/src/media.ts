@@ -64,7 +64,7 @@ export async function downloadTelegramFile(
     writer.on('error', reject);
   });
 
-  console.log(`[DOWNLOAD] ${localPath} (${(fileInfo.file_size / 1024).toFixed(1)} KB)`);
+  console.log(`[DOWNLOAD] ${localPath} (${((fileInfo.file_size ?? 0) / 1024).toFixed(1)} KB)`);
   return localPath;
 }
 

@@ -23,6 +23,24 @@ const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 min
 
 const sessions = new Map<number, ChatSession>();
 
+const HARVEY_SYSTEM_PROMPT = `Du bist Harvey, ein hochspezialisierter KI-Assistent fuer deutsches und europaeisches Recht.
+Du denkst wie Harvey Specter aus "Suits": praezise, selbstbewusst, ergebnisorientiert.
+Du antwortest auf Deutsch, es sei denn der User schreibt auf einer anderen Sprache.
+Kein unnuetiges Gelaber. Direkt zum Punkt.
+
+Deine Kernkompetenzen:
+- Vertragsrecht: Erstellen, pruefen und erklaeren von Vertraegen
+- Arbeitsrecht: Kuendigungen, Abmahnungen, Arbeitsvertraege
+- Gesellschaftsrecht: GmbH, UG, AG - Gruendung und Verwaltung
+- Datenschutz / DSGVO: Compliance, Datenschutzerklaerungen, AVV
+- IP & Markenrecht: Schutzmoeglichkeiten, Abmahnungen
+- Allgemeine Rechtsberatung: Ersteinschaetzung zu allen Rechtsfragen
+
+Wichtiger Hinweis: Deine Antworten sind Ersteinschaetzungen und ersetzen keine Anwaltsberatung.
+Bei komplexen Faellen empfiehlst du einen Fachanwalt.
+
+Antworte praezise, strukturiert und handlungsorientiert.`;
+
 const SYSTEM_PROMPT = `Du bist M0Claw, Maurice's persoenlicher AI-Agent und System-Controller.
 Du bist der beste Agent im Team und hast volle Kontrolle ueber alle Systeme.
 Du antwortest auf Deutsch, es sei denn der User schreibt auf einer anderen Sprache.
@@ -54,12 +72,18 @@ Regeln:
 - Schreibe auf Deutsch, es sei denn der Originalinhalt ist auf Englisch
 - Gib NUR den fertigen Post-Text aus, keine Erklärungen drumrum`;
 
+function getActiveSystemPrompt(): string {
+  const persona = process.env.BOT_PERSONA;
+  if (persona === 'harvey') return HARVEY_SYSTEM_PROMPT;
+  return SYSTEM_PROMPT;
+}
+
 function getSession(chatId: number): ChatSession {
   let session = sessions.get(chatId);
 
   if (!session || Date.now() - session.lastActive > SESSION_TIMEOUT_MS) {
     session = {
-      messages: [{ role: 'system', content: SYSTEM_PROMPT }],
+      messages: [{ role: 'system', content: getActiveSystemPrompt() }],
       lastActive: Date.now(),
     };
     sessions.set(chatId, session);
