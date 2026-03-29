@@ -1,0 +1,19 @@
+{
+  "name": "@core/galaxia-brain",
+  "version": "1.0.0",
+  "description": "Unified brain client — connects all subsystems to CORE memory",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/node": "^20.0.0"
+  }
+}

@@ -15,6 +15,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 CORE_DOCKER_DIR="$REPO_ROOT/hosting/docker"
 
+# Load env vars for brain services
+[ -f "$CORE_DOCKER_DIR/.env" ] && export $(grep -v '^#' "$CORE_DOCKER_DIR/.env" | grep -E "^(GALAXIA_BRAIN|MAC_)" | xargs) 2>/dev/null || true
+
 echo -e "${YELLOW}[1/5] Start Ollama...${NC}"
 systemctl restart ollama
 sleep 3
@@ -60,7 +63,40 @@ else
     echo -e "${YELLOW}CORE Docker-Compose nicht gefunden oder Docker nicht installiert, skipping${NC}"
 fi
 
-echo -e "${YELLOW}[6/6] Start Clawprint (Audit Trail Daemon)...${NC}"
+echo -e "${YELLOW}[6/8] Start OpenClaw Brain Sync (→ CORE Memory)...${NC}"
+if command -v npx > /dev/null 2>&1 && [ -f "$REPO_ROOT/openclaw/brain/sync-to-core.ts" ]; then
+    pkill -f "sync-to-core" 2>/dev/null || true
+    cd "$REPO_ROOT"
+    nohup npx tsx openclaw/brain/sync-to-core.ts --daemon \
+        >> /tmp/openclaw-brain.log 2>&1 &
+    echo -e "${GREEN}OpenClaw Brain Sync Started (PID $!)${NC}"
+else
+    echo -e "${YELLOW}npx/tsx not found or sync-to-core.ts missing, skipping${NC}"
+fi
+
+echo -e "${YELLOW}[7/8] Start Galaxia Bridge (→ CORE Memory)...${NC}"
+if command -v npx > /dev/null 2>&1 && [ -f "$REPO_ROOT/galaxia/brain/galaxia-bridge.ts" ]; then
+    pkill -f "galaxia-bridge" 2>/dev/null || true
+    cd "$REPO_ROOT"
+    nohup npx tsx galaxia/brain/galaxia-bridge.ts --daemon \
+        >> /tmp/galaxia-bridge.log 2>&1 &
+    echo -e "${GREEN}Galaxia Bridge Started (PID $!)${NC}"
+else
+    echo -e "${YELLOW}npx/tsx not found or galaxia-bridge.ts missing, skipping${NC}"
+fi
+
+echo -e "${YELLOW}[8/8-a] Start Mac Brain iCloud Writer (Port 9001)...${NC}"
+if command -v npx > /dev/null 2>&1 && [ -f "$REPO_ROOT/integrations/mac-brain/webhook-listener.ts" ]; then
+    pkill -f "webhook-listener" 2>/dev/null || true
+    cd "$REPO_ROOT"
+    nohup npx tsx integrations/mac-brain/webhook-listener.ts \
+        >> /tmp/mac-brain.log 2>&1 &
+    echo -e "${GREEN}Mac Brain iCloud Writer Started (PID $!)${NC}"
+else
+    echo -e "${YELLOW}Mac Brain not started (npx not found or file missing)${NC}"
+fi
+
+echo -e "${YELLOW}[8/8-b] Start Clawprint (Audit Trail Daemon)...${NC}"
 if command -v clawprint > /dev/null 2>&1; then
     mkdir -p "$REPO_ROOT/clawprints"
     # Kill any stale instance
@@ -79,21 +115,29 @@ sleep 2
 SERVER_IP=$(hostname -I | awk '{print $1}')
 echo ""
 echo "Services Status:"
-curl -s http://localhost:11434/api/tags > /dev/null 2>&1 && echo "  Ollama:       Running" || echo "  Ollama:       Down"
-curl -s http://localhost:8503 > /dev/null 2>&1 && echo "  Dashboard:    Running" || echo "  Dashboard:    Down"
-pgrep -f "clawprint record" > /dev/null 2>&1 && echo "  Clawprint:    Running" || echo "  Clawprint:    Waiting for gateway"
+curl -s http://localhost:11434/api/tags > /dev/null 2>&1 && echo "  Ollama:            Running" || echo "  Ollama:            Down"
+curl -s http://localhost:8503 > /dev/null 2>&1 && echo "  Dashboard:         Running" || echo "  Dashboard:         Down"
+pgrep -f "clawprint record" > /dev/null 2>&1 && echo "  Clawprint:         Running" || echo "  Clawprint:         Waiting for gateway"
 docker ps --filter "name=core-app" --format "{{.Status}}" 2>/dev/null | grep -q "Up" && \
-    echo "  CORE Memory:  Running" || echo "  CORE Memory:  Down (run: docker compose -f $CORE_DOCKER_DIR/docker-compose.yaml up -d)"
+    echo "  CORE Memory:       Running" || echo "  CORE Memory:       Down"
+pgrep -f "sync-to-core" > /dev/null 2>&1 && echo "  OpenClaw Brain:    Syncing" || echo "  OpenClaw Brain:    Down"
+pgrep -f "galaxia-bridge" > /dev/null 2>&1 && echo "  Galaxia Bridge:    Syncing" || echo "  Galaxia Bridge:    Down"
+pgrep -f "webhook-listener" > /dev/null 2>&1 && echo "  Mac Brain:         Running (Port 9001)" || echo "  Mac Brain:         Down"
 echo ""
 echo "================================================================"
-echo "  ALL SERVICES STARTED!"
+echo "  ALL SERVICES STARTED! — GALAXIA BRAIN ACTIVE"
 echo "================================================================"
 echo ""
-echo "Dashboard:    http://$SERVER_IP:8503"
-echo "CORE Memory:  http://$SERVER_IP:3033"
-echo "MCP Endpoint: http://$SERVER_IP:3033/api/v1/mcp"
+echo "Dashboard:         http://$SERVER_IP:8503"
+echo "CORE Memory:       http://$SERVER_IP:3033"
+echo "MCP Endpoint:      http://$SERVER_IP:3033/api/v1/mcp"
+echo "Mac Brain:         http://localhost:9001"
 echo ""
-echo "Models log:   tail -f /tmp/models.log"
-echo "CORE log:     tail -f /tmp/core-memory.log"
-echo "Clawprint:    tail -f /var/log/clawprint.log"
+echo "Logs:"
+echo "  Models:        tail -f /tmp/models.log"
+echo "  CORE:          tail -f /tmp/core-memory.log"
+echo "  OpenClaw Sync: tail -f /tmp/openclaw-brain.log"
+echo "  Galaxia Sync:  tail -f /tmp/galaxia-bridge.log"
+echo "  Mac Brain:     tail -f /tmp/mac-brain.log"
+echo "  Clawprint:     tail -f /var/log/clawprint.log"
 echo ""
