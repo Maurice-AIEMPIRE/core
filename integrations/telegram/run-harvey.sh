@@ -1,8 +1,7 @@
 #!/bin/bash
 # HarveyHeavyLegalbot – Legal AI Assistant
-# Usage: ./run-harvey.sh
-# Set TELEGRAM_BOT_TOKEN to your Harvey bot token before running,
-# or paste it directly below.
+# Konfiguration: lege eine .env Datei in diesem Verzeichnis an (siehe .env.example)
+# oder setze TELEGRAM_BOT_TOKEN als Umgebungsvariable vor dem Start.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG="/tmp/harvey-bot.log"
@@ -14,33 +13,46 @@ if [ -f "$PID_FILE" ]; then
   rm -f "$PID_FILE"
 fi
 
-# ── CONFIGURATION ──────────────────────────────────────────────
-# Paste your @HarveyHeavyLegalbot token from BotFather here:
-export TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-DEIN_HARVEY_BOT_TOKEN_HIER}"
+# Lade .env wenn vorhanden
+if [ -f "$SCRIPT_DIR/.env" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$SCRIPT_DIR/.env"
+  set +a
+fi
 
-# Ollama must be running locally: `ollama serve`
-export OLLAMA_BASE_URL="http://localhost:11434/v1"
-
-# Best model for legal reasoning — change if you have a different one
-export AI_MODEL="${AI_MODEL:-glm4:9b-chat}"
-
-# Harvey persona — overrides the default M0Claw system prompt
+# Harvey-spezifische Overrides
 export BOT_PERSONA="harvey"
+export TELEGRAM_TARGET_CHANNEL="${TELEGRAM_TARGET_CHANNEL:-}"
 
-export TELEGRAM_TARGET_CHANNEL=""
-# ───────────────────────────────────────────────────────────────
+# Sicherheitscheck: Token muss gesetzt sein
+if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
+  echo "FEHLER: TELEGRAM_BOT_TOKEN ist nicht gesetzt."
+  echo "Lege eine .env Datei an mit:"
+  echo "  TELEGRAM_BOT_TOKEN=dein_token"
+  echo "  OPENAI_API_KEY=gsk_..."
+  echo "  AI_API_BASE=https://api.groq.com/openai/v1"
+  echo "  AI_MODEL=llama-3.3-70b-versatile"
+  exit 1
+fi
 
-if [ "$TELEGRAM_BOT_TOKEN" = "DEIN_HARVEY_BOT_TOKEN_HIER" ]; then
-  echo "FEHLER: Bitte setze TELEGRAM_BOT_TOKEN in run-harvey.sh oder als Umgebungsvariable."
-  echo "  export TELEGRAM_BOT_TOKEN='1234567:ABC...'"
-  echo "  ./run-harvey.sh"
+# Provider anzeigen
+if [ -n "$OLLAMA_BASE_URL" ]; then
+  PROVIDER="Ollama ($OLLAMA_BASE_URL)"
+elif [ -n "$ANTHROPIC_API_KEY" ]; then
+  PROVIDER="Anthropic"
+elif [ -n "$OPENAI_API_KEY" ]; then
+  PROVIDER="OpenAI-compatible (${AI_API_BASE:-openai.com})"
+else
+  echo "FEHLER: Kein AI-Provider konfiguriert."
+  echo "Setze OLLAMA_BASE_URL, ANTHROPIC_API_KEY oder OPENAI_API_KEY in .env"
   exit 1
 fi
 
 echo "Starte HarveyHeavyLegalbot..."
-echo "Model : $AI_MODEL"
-echo "Ollama: $OLLAMA_BASE_URL"
-echo "Log   : $LOG"
+echo "Provider : $PROVIDER"
+echo "Model    : ${AI_MODEL:-standard}"
+echo "Log      : $LOG"
 echo ""
 
 cd "$SCRIPT_DIR"

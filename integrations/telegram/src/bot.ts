@@ -76,27 +76,31 @@ async function handleMessage(botToken: string, message: any) {
     return;
   }
 
-  // --- URL handling → Promo Flow ---
+  const isHarveyPersona = process.env.BOT_PERSONA === 'harvey';
+
+  // --- URL handling → Promo Flow (not for Harvey: legal URLs go to AI) ---
   const urls = extractUrls(message);
-  if (urls.length > 0) {
+  if (urls.length > 0 && !isHarveyPersona) {
     await sendTyping(botToken, chatId);
     await handlePromoFlow(botToken, chatId, urls, text);
     return;
   }
 
-  // --- Forwarded / Long text → Promo Flow ---
-  if (message.forward_from || message.forward_from_chat) {
-    if (text.length > 20) {
+  // --- Forwarded / Long text → Promo Flow (not for Harvey) ---
+  if (!isHarveyPersona) {
+    if (message.forward_from || message.forward_from_chat) {
+      if (text.length > 20) {
+        await sendTyping(botToken, chatId);
+        await handlePromoFlow(botToken, chatId, [], text);
+        return;
+      }
+    }
+    if (text.length > 100 && !text.endsWith('?')) {
+      // Long text that's not a question → treat as content for promo
       await sendTyping(botToken, chatId);
       await handlePromoFlow(botToken, chatId, [], text);
       return;
     }
-  }
-  if (text.length > 100 && !text.endsWith('?')) {
-    // Long text that's not a question → treat as content for promo
-    await sendTyping(botToken, chatId);
-    await handlePromoFlow(botToken, chatId, [], text);
-    return;
   }
 
   // --- Contact ---
@@ -197,22 +201,28 @@ async function handleCommand(botToken: string, chatId: number, text: string, use
       return true;
 
     case '/status': {
+      const isHarvey = process.env.BOT_PERSONA === 'harvey';
       const uptime = process.uptime();
       const h = Math.floor(uptime / 3600);
       const m = Math.floor((uptime % 3600) / 60);
       const stats = getStorageStats();
-      const model = process.env.AI_MODEL || 'openclaw-qwen3-8b:20k';
-      const ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1';
+      const model = process.env.AI_MODEL || 'unbekannt';
+      const provider = process.env.OLLAMA_BASE_URL
+        ? `Ollama (${process.env.OLLAMA_BASE_URL})`
+        : process.env.ANTHROPIC_API_KEY
+          ? 'Anthropic'
+          : process.env.OPENAI_API_KEY
+            ? `OpenAI-compatible (${process.env.AI_API_BASE || 'openai'})`
+            : 'kein Provider';
 
       await callTelegramApi(botToken, 'sendMessage', {
         chat_id: chatId,
         text: [
-          'M0Claw Status',
+          isHarvey ? 'Harvey Status' : 'M0Claw Status',
           `Uptime: ${h}h ${m}m`,
           `Model: ${model}`,
-          `Ollama: ${ollamaUrl}`,
+          `Provider: ${provider}`,
           `Dateien: ${stats.totalFiles} (${stats.totalSizeMB} MB)`,
-          `Sessions: ${(globalThis as any).__sessions_count ?? 'N/A'}`,
         ].join('\n'),
       });
       return true;
@@ -240,6 +250,10 @@ async function handleCommand(botToken: string, chatId: number, text: string, use
     }
 
     case '/exec': {
+      if (ADMIN_ID && userId !== ADMIN_ID) {
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: 'Nicht autorisiert.' });
+        return true;
+      }
       if (!args) {
         await callTelegramApi(botToken, 'sendMessage', {
           chat_id: chatId,
@@ -288,26 +302,40 @@ async function handleCommand(botToken: string, chatId: number, text: string, use
       return true;
     }
 
-    case '/help':
+    case '/help': {
+      const isHarvey = process.env.BOT_PERSONA === 'harvey';
       await callTelegramApi(botToken, 'sendMessage', {
         chat_id: chatId,
-        text: [
-          'M0Claw Befehle:',
-          '',
-          '/start - Willkommen',
-          '/clear - Chat loeschen',
-          '/status - Bot-Status',
-          '/ping - Pong',
-          '/models - Ollama Models',
-          '/exec <cmd> - Shell ausfuehren',
-          '/system - System-Info',
-          '/help - Diese Hilfe',
-          '',
-          'Oder einfach schreiben - KI antwortet!',
-          'Links → Promo-Post mit Freigabe',
-        ].join('\n'),
+        text: isHarvey
+          ? [
+              'Harvey Befehle:',
+              '',
+              '/start - Willkommen',
+              '/clear - Chat zuruecksetzen',
+              '/status - Bot-Status',
+              '/ping - Verbindungstest',
+              '/help - Diese Hilfe',
+              '',
+              'Einfach deine Rechtsfrage schreiben!',
+            ].join('\n')
+          : [
+              'M0Claw Befehle:',
+              '',
+              '/start - Willkommen',
+              '/clear - Chat loeschen',
+              '/status - Bot-Status',
+              '/ping - Pong',
+              '/models - Ollama Models',
+              '/exec <cmd> - Shell ausfuehren',
+              '/system - System-Info',
+              '/help - Diese Hilfe',
+              '',
+              'Oder einfach schreiben - KI antwortet!',
+              'Links → Promo-Post mit Freigabe',
+            ].join('\n'),
       });
       return true;
+    }
 
     default:
       return false; // not a known command, pass to AI
@@ -479,9 +507,17 @@ async function pollUpdates(botToken: string) {
     }
   } catch (_) {}
 
-  console.log(`[${new Date().toISOString()}] M0Claw bot polling (offset=${offset})`);
-  console.log(`Model: ${process.env.AI_MODEL || 'openclaw-qwen3-8b:20k'}`);
-  console.log(`Ollama: ${process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1'}`);
+  const botName = process.env.BOT_PERSONA === 'harvey' ? 'HarveyHeavyLegalbot' : 'M0Claw';
+  const providerInfo = process.env.OLLAMA_BASE_URL
+    ? `Ollama @ ${process.env.OLLAMA_BASE_URL}`
+    : process.env.ANTHROPIC_API_KEY
+      ? 'Anthropic'
+      : process.env.OPENAI_API_KEY
+        ? `Groq/OpenAI @ ${process.env.AI_API_BASE || 'openai'}`
+        : 'KEIN PROVIDER';
+  console.log(`[${new Date().toISOString()}] ${botName} polling (offset=${offset})`);
+  console.log(`Model   : ${process.env.AI_MODEL || 'standard'}`);
+  console.log(`Provider: ${providerInfo}`);
 
   while (true) {
     try {
@@ -524,7 +560,8 @@ if (!botToken) {
   process.exit(1);
 }
 
-console.log('Starting M0Claw Telegram bot...');
+const botName = process.env.BOT_PERSONA === 'harvey' ? 'HarveyHeavyLegalbot' : 'M0Claw';
+console.log(`Starting ${botName}...`);
 pollUpdates(botToken).catch((err) => {
   console.error('Fatal:', err);
   process.exit(1);
