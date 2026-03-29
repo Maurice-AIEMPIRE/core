@@ -153,23 +153,40 @@ async function handleCommand(botToken: string, chatId: number, text: string, use
   const args = text.slice(cmd.length).trim();
 
   switch (cmd) {
-    case '/start':
+    case '/start': {
+      const isHarvey = process.env.BOT_PERSONA === 'harvey';
       await callTelegramApi(botToken, 'sendMessage', {
         chat_id: chatId,
-        text: [
-          'M0Claw - Dein KI-Agent',
-          '',
-          'Schreib mir einfach - ich antworte mit KI.',
-          'Links/Content → automatischer Promo-Post',
-          '',
-          '/clear - Chat zuruecksetzen',
-          '/status - System-Status',
-          '/models - Ollama Models',
-          '/exec <cmd> - Shell Command',
-          '/help - Alle Befehle',
-        ].join('\n'),
+        text: isHarvey
+          ? [
+              'Harvey – Dein KI-Rechtsassistent',
+              '',
+              'Ich helfe dir bei Rechtsfragen rund um:',
+              '• Vertraege & Vertragsrecht',
+              '• Arbeitsrecht (Kuendigung, Abmahnung)',
+              '• DSGVO & Datenschutz',
+              '• GmbH / UG Gruendung',
+              '• Marken & IP-Recht',
+              '',
+              'Einfach deine Frage schreiben.',
+              '/clear - Neues Gespraech starten',
+              '/help - Alle Befehle',
+            ].join('\n')
+          : [
+              'M0Claw - Dein KI-Agent',
+              '',
+              'Schreib mir einfach - ich antworte mit KI.',
+              'Links/Content → automatischer Promo-Post',
+              '',
+              '/clear - Chat zuruecksetzen',
+              '/status - System-Status',
+              '/models - Ollama Models',
+              '/exec <cmd> - Shell Command',
+              '/help - Alle Befehle',
+            ].join('\n'),
       });
       return true;
+    }
 
     case '/clear':
       clearSession(chatId);
