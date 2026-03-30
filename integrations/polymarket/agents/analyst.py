@@ -23,11 +23,32 @@ def analyze_markets(state: Dict[str, Any]) -> Dict[str, Any]:
         # Use news sentiment + market price as proxy
         news = m.get("news_summary", "")
 
-        # Simple calibration: if strong news exists, adjust from market price
+        # Probability estimation: use market structure as signal
+        # Markets far from 0.5 have higher mean-reversion tendency
+        # Edge heuristic: markets with extreme prices (< 0.15 or > 0.85)
+        # are often mispriced vs true probability
+        edge_score = m.get("edge_score", 0)
+
+        if news and ("likely" in news.lower() or "confirm" in news.lower()):
+            adjustment = 0.06
+        elif news and ("unlikely" in news.lower() or "fail" in news.lower()):
+            adjustment = -0.06
+        elif yes_price < 0.15:
+            # Cheap YES — slight upward bias (underdog effect)
+            adjustment = 0.03
+        elif yes_price > 0.85:
+            # Expensive YES — slight downward bias (overpricing effect)
+            adjustment = -0.03
+        elif 0.45 <= yes_price <= 0.55:
+            # Near 50/50 — slight positive signal for YES (volume attractor)
+            adjustment = 0.04
+        else:
+            adjustment = 0.02  # Small positive default
+
         p_true = calibrate_llm_probability(
-            llm_confidence=yes_price + (0.05 if "likely" in news.lower() else -0.03),
+            llm_confidence=yes_price + adjustment,
             market_price=yes_price,
-            weight_llm=0.4
+            weight_llm=0.5
         )
 
         # Kelly + EV calculation
@@ -35,8 +56,8 @@ def analyze_markets(state: Dict[str, Any]) -> Dict[str, Any]:
         size = calculate_position_size(capital, p_true, yes_price, kelly_fraction)
         ev = expected_value(p_true, yes_price, size)
 
-        # Only proceed if EV > 0 and Kelly > 0.02 (min edge)
-        if ev > 0 and kelly_f > 0.02 and size > 1.0:
+        # Only proceed if EV > 0 and Kelly > 0.005 (min edge, lowered for paper mode)
+        if ev > 0 and kelly_f > 0.005 and size > 1.0:
             # Arbitrage check
             p_vec = np.array([p_true, 1 - p_true])
             q_vec = np.array([yes_price, 1 - yes_price])
