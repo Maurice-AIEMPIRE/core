@@ -1,0 +1,44 @@
+{
+  "id": "harvey",
+  "name": "Harvey",
+  "role": "Quant Trader",
+  "description": "Quantitative Polymarket Trading System — Kelly Criterion + LangGraph + CLOB",
+  "model": "ollama/qwen3:14b",
+  "provider": "ollama",
+  "device": "server",
+  "capabilities": [
+    "polymarket_trading",
+    "probability_calibration",
+    "kelly_sizing",
+    "arbitrage_detection",
+    "backtesting",
+    "risk_management"
+  ],
+  "maxSteps": 200,
+  "reasoningMode": "high",
+  "memoryEnabled": true,
+  "trading": {
+    "platform": "polymarket",
+    "network": "polygon",
+    "paperMode": true,
+    "cycleInterval": 15,
+    "kellyFraction": 0.25,
+    "maxDrawdown": 0.20,
+    "maxPositionPct": 0.05,
+    "sdkPath": "integrations/polymarket/main.py"
+  },
+  "commands": {
+    "/harvey-status": "python integrations/polymarket/main.py --status",
+    "/harvey-paper": "PAPER_MODE=true SINGLE_CYCLE=true python integrations/polymarket/main.py",
+    "/harvey-backtest": "python -c \"import sys; sys.path.insert(0,'integrations/polymarket'); from core.backtester import run_backtest, monte_carlo_simulation; print(monte_carlo_simulation(0.65, 8.0, 5.0, 600.0))\"",
+    "/harvey-live": "PAPER_MODE=false python integrations/polymarket/main.py",
+    "/harvey-logs": "tail -f integrations/polymarket/logs/$(date +%Y%m%d).jsonl"
+  },
+  "safetyRules": [
+    "NEVER set PAPER_MODE=false without explicit user confirmation",
+    "NEVER exceed MAX_DRAWDOWN=0.20",
+    "ALWAYS run backtest before live trading",
+    "ALWAYS check system_audit.sh before live start",
+    "Quarter-Kelly only (fraction=0.25)"
+  ]
+}

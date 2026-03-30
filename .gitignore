@@ -69,3 +69,14 @@ AGENTS.md
 .conductor/
 
 maintenance/
+
+# QPTS - Polymarket Trading System
+integrations/polymarket/.env
+integrations/polymarket/logs/
+integrations/polymarket/backtests/*.json
+integrations/polymarket/__pycache__/
+integrations/polymarket/core/__pycache__/
+integrations/polymarket/agents/__pycache__/
+integrations/polymarket/tools/__pycache__/
+integrations/polymarket/backtests/__pycache__/
+*.pyc

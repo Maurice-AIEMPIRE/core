@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 60s
+
+scrape_configs:
+  - job_name: 'qpts'
+    static_configs:
+      - targets: ['qpts-agent:8000']

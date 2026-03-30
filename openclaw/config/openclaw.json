@@ -53,6 +53,18 @@
         "schedule": "0 22 * * *",
         "agent": "monica",
         "command": "Starte Daily Review"
+      },
+      {
+        "id": "qpts-paper-cycle",
+        "schedule": "*/15 * * * *",
+        "agent": "harvey",
+        "command": "PAPER_MODE=true SINGLE_CYCLE=true python integrations/polymarket/main.py"
+      },
+      {
+        "id": "qpts-daily-backtest",
+        "schedule": "0 6 * * *",
+        "agent": "harvey",
+        "command": "python integrations/polymarket/backtests/run_backtest.py"
       }
     ]
   }
