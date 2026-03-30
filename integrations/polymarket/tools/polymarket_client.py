@@ -31,7 +31,10 @@ class PolymarketClient:
         params = {"limit": limit, "active": active_only, "closed": False}
         resp = requests.get(f"{self.gamma_host}/markets", params=params, timeout=10)
         resp.raise_for_status()
-        return resp.json().get("markets", resp.json() if isinstance(resp.json(), list) else [])
+        data = resp.json()
+        if isinstance(data, list):
+            return data[:limit]
+        return data.get("markets", [])
 
     def get_market(self, condition_id: str) -> Dict:
         import requests
