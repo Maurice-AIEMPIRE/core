@@ -5,10 +5,10 @@
 
 set -euo pipefail
 
-WORKSPACE="/opt/money-machine"
+WORKSPACE="${OPENCLAW_DIR:-$HOME/core}"
 CONFIG_DIR="$WORKSPACE/openclaw/config"
 MEMORY_DIR="$WORKSPACE/openclaw/memory"
-LOG_FILE="$WORKSPACE/openclaw/memory/discovery.log"
+LOG_FILE="${HOME}/.openclaw/workspace/ai-empire/discovery.log"
 OLLAMA_URL="${OLLAMA_BASE_URL:-http://localhost:11434}"
 MODEL="${AI_MODEL:-glm4:9b-chat}"
 

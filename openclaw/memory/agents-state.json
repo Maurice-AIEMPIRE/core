@@ -35,6 +35,12 @@
       "lastRun": null,
       "totalRuns": 0,
       "lastTask": null
+    },
+    "pam": {
+      "status": "idle",
+      "lastRun": null,
+      "totalRuns": 0,
+      "lastTask": null
     }
   },
   "queue": [],

@@ -5,9 +5,9 @@
 
 set -euo pipefail
 
-WORKSPACE="/opt/money-machine"
+WORKSPACE="${OPENCLAW_DIR:-$HOME/core}"
 MEMORY_DIR="$WORKSPACE/openclaw/memory"
-LOG_FILE="$WORKSPACE/openclaw/memory/review.log"
+LOG_FILE="${HOME}/.openclaw/workspace/ai-empire/review.log"
 OLLAMA_URL="${OLLAMA_BASE_URL:-http://localhost:11434}"
 MODEL="${AI_MODEL:-glm4:9b-chat}"
 TELEGRAM_TOKEN="${TELEGRAM_BOT_TOKEN:-}"

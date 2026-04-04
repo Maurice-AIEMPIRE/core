@@ -1,14 +1,16 @@
 # OpenClaw Cron Jobs
 # Install with: crontab openclaw/cron/crontab.txt
+# Requires OPENCLAW_DIR to be set in /etc/environment or ~/.profile, e.g.:
+#   export OPENCLAW_DIR="$HOME/core"
 
 # Discovery Sprint - Dwight (Research) - taeglich 09:00
-0 9 * * * /opt/money-machine/openclaw/cron/discovery-sprint.sh >> /opt/money-machine/openclaw/memory/cron.log 2>&1
+0 9 * * * bash "$OPENCLAW_DIR/openclaw/cron/discovery-sprint.sh" >> "$HOME/.openclaw/workspace/ai-empire/cron.log" 2>&1
 
 # Daily Review - Monica (CEO) - taeglich 22:00
-0 22 * * * /opt/money-machine/openclaw/cron/daily-review.sh >> /opt/money-machine/openclaw/memory/cron.log 2>&1
+0 22 * * * bash "$OPENCLAW_DIR/openclaw/cron/daily-review.sh" >> "$HOME/.openclaw/workspace/ai-empire/cron.log" 2>&1
 
 # Health Check - alle 30 Minuten
-*/30 * * * * /opt/money-machine/server/scripts/health-check.sh >> /opt/money-machine/openclaw/memory/health.log 2>&1
+*/30 * * * * bash "$OPENCLAW_DIR/server/scripts/health-check.sh" >> "$HOME/.openclaw/workspace/ai-empire/health.log" 2>&1
 
 # Auto-Deploy - alle 2 Minuten
-*/2 * * * * /opt/money-machine/server/scripts/auto-deploy.sh >> /opt/money-machine/openclaw/memory/deploy.log 2>&1
+*/2 * * * * bash "$OPENCLAW_DIR/server/scripts/auto-deploy.sh" >> "$HOME/.openclaw/workspace/ai-empire/deploy.log" 2>&1
