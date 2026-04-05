@@ -15,7 +15,7 @@ interface AIProvider {
   apiBase: string;
   apiKey: string;
   model: string;
-  maxTokensKey: string; // 'max_tokens' for both, but Anthropic also needs other fields
+  maxTokensKey?: string;
 }
 
 const MAX_HISTORY = 30;
@@ -111,145 +111,78 @@ export function getSessionInfo(chatId: number): { messageCount: number; active: 
   return { messageCount: Math.max(0, session.messages.length - 1), active: true };
 }
 
+// ── Ollama-Konfiguration (kein API-Key noetig) ───────────────────────────────
+const LOCAL_OLLAMA  = (process.env.OLLAMA_BASE_URL  || 'http://localhost:11434').replace(/\/v1$/, '');
+const SERVER_OLLAMA = (process.env.SERVER_OLLAMA_URL || 'http://65.21.203.174:11434').replace(/\/v1$/, '');
+
+// Standard-Modelle: gemma4 oder glm4 je nach Verfuegbarkeit auf dem Server
+const DEFAULT_MODEL = process.env.AI_MODEL || 'gemma3:27b';
+
 /**
- * Detect which AI provider is available
+ * Detect which AI provider is available — nur Ollama
  */
 function detectProvider(): AIProvider | null {
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  const openaiKey   = process.env.OPENAI_API_KEY;   // Groq or OpenAI
-  const zhipuKey    = process.env.ZHIPU_API_KEY;    // GLM-5 cloud
-  const gemmaKey    = process.env.GEMMA_API_KEY;    // Google AI / Gemma 4
-  const ollamaBase  = process.env.OLLAMA_BASE_URL;
-  const model       = process.env.AI_MODEL;
+  return {
+    name: 'ollama',
+    apiBase: `${LOCAL_OLLAMA}/v1`,
+    apiKey:  'ollama',
+    model:   DEFAULT_MODEL,
+    maxTokensKey: 'max_tokens',
+  };
+}
 
-  // Priority 1: Groq / OpenAI-compatible (Gemma 4, Llama 4, ...)
-  if (openaiKey) {
-    const base = process.env.AI_API_BASE ?? 'https://api.openai.com/v1';
-    return {
-      name: 'openai',
-      apiBase: base,
-      apiKey: openaiKey,
-      model: model ?? 'gemma2-9b-it',
-      maxTokensKey: 'max_tokens',
-    };
+/** Pruefe ob ein Ollama-Endpunkt erreichbar ist */
+async function checkOllama(base: string): Promise<boolean> {
+  try {
+    await axios.get(`${base}/api/tags`, { timeout: 3000 });
+    return true;
+  } catch {
+    return false;
   }
+}
 
-  // Priority 2: ZHIPU AI — GLM-5 cloud
-  if (zhipuKey) {
-    return {
-      name: 'openai',
-      apiBase: 'https://open.bigmodel.cn/api/paas/v4',
-      apiKey: zhipuKey,
-      model: model ?? 'glm-4-flash',
-      maxTokensKey: 'max_tokens',
-    };
-  }
-
-  // Priority 3: Google AI — Gemma 4
-  if (gemmaKey) {
-    return {
-      name: 'openai',
-      apiBase: 'https://generativelanguage.googleapis.com/v1beta/openai',
-      apiKey: gemmaKey,
-      model: model ?? 'gemma-4-27b-it',
-      maxTokensKey: 'max_tokens',
-    };
-  }
-
-  // Priority 4: Anthropic
-  if (anthropicKey) {
-    const base = process.env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com';
-    return {
-      name: 'anthropic',
-      apiBase: base,
-      apiKey: anthropicKey,
-      model: model ?? 'claude-sonnet-4-20250514',
-      maxTokensKey: 'max_tokens',
-    };
-  }
-
-  // Priority 5: Ollama (local fallback)
-  if (ollamaBase) {
-    return {
-      name: 'ollama',
-      apiBase: ollamaBase,
-      apiKey: 'ollama',
-      model: model ?? 'glm4:9b-chat',
-      maxTokensKey: 'max_tokens',
-    };
-  }
-
-  return null;
+/** Gibt die beste verfuegbare Ollama-URL zurueck */
+async function getBestOllamaBase(): Promise<string> {
+  if (await checkOllama(LOCAL_OLLAMA)) return LOCAL_OLLAMA;
+  // Fallback: Server-Ollama
+  return SERVER_OLLAMA;
 }
 
 /** Currently active provider name for /status */
 export function getProviderName(): string {
-  const p = detectProvider();
-  if (!p) return 'keiner (kein API-Key)';
-  return `${p.name} / ${p.model}`;
+  return `Ollama / ${DEFAULT_MODEL}`;
 }
 
 /**
- * Call Anthropic Messages API
- */
-async function callAnthropic(provider: AIProvider, messages: ChatMessage[]): Promise<string> {
-  // Anthropic wants system as a top-level param, not in messages
-  const system = messages.find((m) => m.role === 'system')?.content ?? '';
-  const chatMessages = messages.filter((m) => m.role !== 'system');
-
-  const response = await axios.post(
-    `${provider.apiBase}/v1/messages`,
-    {
-      model: provider.model,
-      max_tokens: 2048,
-      system,
-      messages: chatMessages.map((m) => ({ role: m.role, content: m.content })),
-    },
-    {
-      headers: {
-        'x-api-key': provider.apiKey,
-        'anthropic-version': '2023-06-01',
-        'Content-Type': 'application/json',
-      },
-      timeout: 60000,
-    },
-  );
-
-  const content = response.data.content;
-  if (Array.isArray(content)) {
-    return content
-      .filter((b: any) => b.type === 'text')
-      .map((b: any) => b.text)
-      .join('')
-      .trim();
-  }
-
-  return '';
-}
-
-/**
- * Call OpenAI-compatible Chat Completions API
+ * Call Ollama OpenAI-compatible API — automatischer Server-Fallback
  */
 async function callOpenAI(provider: AIProvider, messages: ChatMessage[]): Promise<string> {
-  const isLocal = provider.name === 'ollama';
-  const response = await axios.post(
-    `${provider.apiBase}/chat/completions`,
-    {
-      model: provider.model,
-      messages,
-      max_tokens: 2048,
-      temperature: 0.7,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${provider.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      timeout: isLocal ? 120000 : 60000,
-    },
-  );
+  const body = {
+    model: provider.model,
+    messages,
+    max_tokens: 2048,
+    temperature: 0.7,
+    stream: false,
+  };
+  const headers = { 'Content-Type': 'application/json' };
 
-  return response.data.choices?.[0]?.message?.content?.trim() ?? '';
+  // Erst lokales Ollama versuchen
+  const ollamaBase = await getBestOllamaBase();
+  const url = `${ollamaBase}/v1/chat/completions`;
+
+  try {
+    const response = await axios.post(url, body, { headers, timeout: 120000 });
+    return response.data.choices?.[0]?.message?.content?.trim() ?? '';
+  } catch (firstErr: any) {
+    // Wenn lokales Ollama fehlschlug, Server-Ollama probieren
+    if (ollamaBase === LOCAL_OLLAMA) {
+      const serverUrl = `${SERVER_OLLAMA}/v1/chat/completions`;
+      console.log(`[AI] Lokales Ollama fehlgeschlagen (${firstErr.message?.substring(0, 60)}), versuche Server...`);
+      const response2 = await axios.post(serverUrl, body, { headers, timeout: 180000 });
+      return response2.data.choices?.[0]?.message?.content?.trim() ?? '';
+    }
+    throw firstErr;
+  }
 }
 
 /**
@@ -279,32 +212,20 @@ export async function chat(chatId: number, userMessage: string): Promise<string>
   }
 
   try {
-    let reply: string;
+    const reply = await callOpenAI(provider, session.messages);
 
-    if (provider.name === 'anthropic') {
-      reply = await callAnthropic(provider, session.messages);
-    } else {
-      // OpenAI and Ollama both use the OpenAI-compatible API
-      reply = await callOpenAI(provider, session.messages);
-    }
-
-    if (!reply) {
-      return 'Keine Antwort vom AI-Modell erhalten.';
-    }
+    if (!reply) return 'Keine Antwort vom Modell erhalten.';
 
     session.messages.push({ role: 'assistant', content: reply });
     return reply;
   } catch (err: any) {
-    const status = err.response?.status;
     const errMsg = err.response?.data?.error?.message ?? err.message;
+    console.error(`[AI/Ollama] Error: ${errMsg}`);
 
-    console.error(`[AI/${provider.name}] Error (${status}): ${errMsg}`);
-
-    if (status === 401) return `API-Key ungültig. Bitte ${provider.name === 'anthropic' ? 'ANTHROPIC_API_KEY' : 'OPENAI_API_KEY'} prüfen.`;
-    if (status === 429) return 'Rate Limit erreicht — bitte kurz warten.';
-    if (status === 503) return 'AI-Service gerade nicht erreichbar — bitte gleich nochmal.';
-
-    return `AI-Fehler (${provider.name}): ${errMsg}`;
+    if (errMsg?.includes('model') && errMsg?.includes('not found')) {
+      return `Modell "${provider.model}" nicht gefunden.\nVerfuegbare Modelle: ollama list\nModell aendern: AI_MODEL=<name> in .env`;
+    }
+    return `Ollama-Fehler: ${errMsg}\n\nLokales Ollama: ${LOCAL_OLLAMA}\nServer-Ollama: ${SERVER_OLLAMA}`;
   }
 }
 
@@ -333,14 +254,7 @@ export async function generatePromo(scrapedContent: string, feedback?: string): 
   }
 
   try {
-    let reply: string;
-
-    if (provider.name === 'anthropic') {
-      reply = await callAnthropic(provider, messages);
-    } else {
-      reply = await callOpenAI(provider, messages);
-    }
-
+    const reply = await callOpenAI(provider, messages);
     return reply || 'Konnte keinen Promo-Post generieren.';
   } catch (err: any) {
     const errMsg = err.response?.data?.error?.message ?? err.message;
