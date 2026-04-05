@@ -21,6 +21,8 @@ try {
 import { callTelegramApi, formatUser } from './utils';
 import { extractMedia, downloadTelegramFile, extractUrls, classifyUrl, getStorageStats } from './media';
 import { chat, clearSession, generatePromo } from './chat';
+import { runAgentTask } from './agentic';
+import { getSystemStatus } from './tools';
 import { execSync, exec } from 'child_process';
 import { promisify } from 'util';
 const execAsync = promisify(exec);
@@ -175,18 +177,23 @@ async function handleCommand(botToken: string, chatId: number, text: string, use
         chat_id: chatId,
         text: isHarvey
           ? [
-              'Harvey – Dein KI-Rechtsassistent',
+              '⚡ JARVIS — Pfeifer Galaxia OS',
               '',
-              'Ich helfe dir bei Rechtsfragen rund um:',
-              '• Vertraege & Vertragsrecht',
-              '• Arbeitsrecht (Kuendigung, Abmahnung)',
-              '• DSGVO & Datenschutz',
-              '• GmbH / UG Gruendung',
-              '• Marken & IP-Recht',
+              'Vollzugriff auf alle Systeme:',
+              '🖥  Hetzner-Server (65.21.203.174)',
+              '💻  Mac (lokale Shell & Dateien)',
+              '🤖  Agenten: Monica, Dwight, Kelly, Ryan...',
+              '🧠  Claude Code & OpenClaw',
+              '⚖️  Recht: Vertraege, DSGVO, GmbH, IP',
               '',
-              'Einfach deine Frage schreiben.',
-              '/clear - Neues Gespraech starten',
-              '/help - Alle Befehle',
+              '/task <Aufgabe> — Autonome Multi-Step-Ausfuehrung',
+              '/server <cmd>  — Hetzner SSH',
+              '/mac <cmd>     — Mac Shell',
+              '/agents        — Agenten-Status',
+              '/galaxia       — Vollstaendiger System-Status',
+              '/help          — Alle Befehle',
+              '',
+              'Oder einfach schreiben — ich handle alles.',
             ].join('\n')
           : [
               'M0Claw - Dein KI-Agent',
@@ -430,18 +437,21 @@ async function handleCommand(botToken: string, chatId: number, text: string, use
         chat_id: chatId,
         text: isHarvey
           ? [
-              '🤖 JARVIS — Befehle:',
+              '⚡ JARVIS — Alle Befehle:',
               '',
-              '🖥  /server <cmd>  — Hetzner Server',
-              '💻  /mac <cmd>     — Mac lokal',
+              '🧠  /task <Aufgabe> — Autonomer Multi-Step Agent',
+              '🌌  /galaxia        — Vollstaendiger System-Status',
+              '🖥  /server <cmd>  — Hetzner Server SSH',
+              '💻  /mac <cmd>     — Mac Shell',
               '🤖  /agents        — Agenten-Status',
               '⚙️   /services      — Server-Services',
-              '🚀  /deploy        — Deployment',
-              '📋  /logs [name]   — Logs (harvey/ollama/...)',
-              '📊  /status        — System-Uebersicht',
+              '🚀  /deploy        — Git Pull & Deploy',
+              '📋  /logs [name]   — Logs (harvey/ollama/openclaw)',
+              '📊  /status        — Bot-Status',
               '🔄  /clear         — Chat zuruecksetzen',
               '',
-              'Oder einfach schreiben — ich handle alles.',
+              'Einfach schreiben — JARVIS antwortet direkt.',
+              'Fuer komplexe Tasks: /task <Beschreibung>',
             ].join('\n')
           : [
               'M0Claw Befehle:',
@@ -459,6 +469,57 @@ async function handleCommand(botToken: string, chatId: number, text: string, use
               'Links → Promo-Post mit Freigabe',
             ].join('\n'),
       });
+      return true;
+    }
+
+    case '/task':
+    case '/do': {
+      if (ADMIN_ID && userId !== ADMIN_ID) {
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: 'Nicht autorisiert.' });
+        return true;
+      }
+      if (!args) {
+        await callTelegramApi(botToken, 'sendMessage', {
+          chat_id: chatId,
+          text: 'Usage: /task <Aufgabe>\nBeispiel: /task Prüfe Server-Status und starte Ollama neu falls nötig',
+        });
+        return true;
+      }
+      await sendTyping(botToken, chatId);
+      await callTelegramApi(botToken, 'sendMessage', {
+        chat_id: chatId,
+        text: `⚙️ Starte Agentic Task...\n${args}`,
+      });
+      try {
+        const result = await runAgentTask(args, async (step: string) => {
+          // Send step updates for tool calls (short ones)
+          if (step.startsWith('⚡')) {
+            await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: step }).catch(() => {});
+          }
+        });
+        const chunks = splitMessage(result, 4000);
+        for (const chunk of chunks) {
+          await callTelegramApi(botToken, 'sendMessage', {
+            chat_id: chatId,
+            text: chunk,
+            parse_mode: 'Markdown',
+          }).catch(() => callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: chunk }));
+        }
+      } catch (err: any) {
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: `Task-Fehler: ${err.message.substring(0, 1000)}` });
+      }
+      return true;
+    }
+
+    case '/galaxia':
+    case '/fullstatus': {
+      await sendTyping(botToken, chatId);
+      try {
+        const status = await getSystemStatus();
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: status });
+      } catch (err: any) {
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: `Status-Fehler: ${err.message.substring(0, 500)}` });
+      }
       return true;
     }
 

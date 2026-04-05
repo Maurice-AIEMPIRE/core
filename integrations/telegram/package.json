@@ -34,9 +34,10 @@
     ]
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.52.0",
+    "@redplanethq/sdk": "0.1.9",
     "axios": "^1.7.9",
-    "commander": "^12.0.0",
-    "@redplanethq/sdk": "0.1.9"
+    "commander": "^12.0.0"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.26.0",
