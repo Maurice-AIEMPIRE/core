@@ -116,7 +116,7 @@ const LOCAL_OLLAMA  = (process.env.OLLAMA_BASE_URL  || 'http://localhost:11434')
 const SERVER_OLLAMA = (process.env.SERVER_OLLAMA_URL || 'http://65.21.203.174:11434').replace(/\/v1$/, '');
 
 // Standard-Modelle: gemma4 oder glm4 je nach Verfuegbarkeit auf dem Server
-const DEFAULT_MODEL = process.env.AI_MODEL || 'gemma3:27b';
+const DEFAULT_MODEL = process.env.AI_MODEL || 'gemma4';
 
 /**
  * Detect which AI provider is available — nur Ollama

@@ -15,13 +15,9 @@ function getOllamaBase(): string {
   return base.endsWith('/v1') ? base : `${base}/v1`;
 }
 
-/** Welches Modell hat Tool-Support? Bevorzuge grosse Modelle. */
+/** Modell fuer agentic Tool-Use */
 function getAgentModel(): string {
-  const m = process.env.AGENT_MODEL || process.env.AI_MODEL || '';
-  // Modelle mit bekanntem Tool-Support in Ollama
-  const toolModels = ['qwen3:32b', 'qwen2.5:32b', 'llama4', 'llama3.3:70b', 'llama3.1:70b', 'qwen2.5:14b', 'qwen3:14b'];
-  if (m && toolModels.some((t) => m.toLowerCase().includes(t.split(':')[0]))) return m;
-  return m || 'qwen3:32b';
+  return process.env.AGENT_MODEL || process.env.AI_MODEL || 'gemma4';
 }
 
 /** Konvertiere Anthropic-Format → OpenAI/Ollama-Format */
