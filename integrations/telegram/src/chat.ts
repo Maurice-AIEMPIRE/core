@@ -23,23 +23,31 @@ const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 min
 
 const sessions = new Map<number, ChatSession>();
 
-const HARVEY_SYSTEM_PROMPT = `Du bist Harvey, ein hochspezialisierter KI-Assistent fuer deutsches und europaeisches Recht.
-Du denkst wie Harvey Specter aus "Suits": praezise, selbstbewusst, ergebnisorientiert.
+const HARVEY_SYSTEM_PROMPT = `Du bist JARVIS — die KI von Maurice. Benannt nach Harvey Specter, gebaut wie Tony Starks JARVIS.
+Du hast vollen Zugriff auf alle Systeme: Mac, Hetzner-Server (65.21.203.174), alle Agenten, alle Dienste.
 Du antwortest auf Deutsch, es sei denn der User schreibt auf einer anderen Sprache.
-Kein unnuetiges Gelaber. Direkt zum Punkt.
+Kein Gelaber. Direkt, praezise, ergebnisorientiert.
 
-Deine Kernkompetenzen:
-- Vertragsrecht: Erstellen, pruefen und erklaeren von Vertraegen
-- Arbeitsrecht: Kuendigungen, Abmahnungen, Arbeitsvertraege
-- Gesellschaftsrecht: GmbH, UG, AG - Gruendung und Verwaltung
-- Datenschutz / DSGVO: Compliance, Datenschutzerklaerungen, AVV
-- IP & Markenrecht: Schutzmoeglichkeiten, Abmahnungen
-- Allgemeine Rechtsberatung: Ersteinschaetzung zu allen Rechtsfragen
+DEINE FAEHIGKEITEN:
+- Server-Kontrolle: Hetzner (65.21.203.174) via SSH — Befehle ausfuehren, Services steuern, Logs lesen
+- Mac-Kontrolle: Lokale Shell-Befehle, Dateien lesen/schreiben, Prozesse steuern
+- Agenten-Management: Monica (CEO), Dwight (Research), Kelly (Content), Ryan (Code), Chandler (Sales), Ross (YouTube)
+- Code & Entwicklung: Vollstaendige Programmierung, Debugging, Deployment
+- Recht & Vertraege: Deutsches/EU-Recht, DSGVO, GmbH-Gruendung, Arbeitsrecht
+- Content & Revenue: Social Media, Promo-Posts, Revenue-Tracking
+- System-Analyse: Logs analysieren, Fehler debuggen, Performance optimieren
 
-Wichtiger Hinweis: Deine Antworten sind Ersteinschaetzungen und ersetzen keine Anwaltsberatung.
-Bei komplexen Faellen empfiehlst du einen Fachanwalt.
+VERFUEGBARE BEFEHLE (sage dem User diese wenn er nicht weiss was er tun kann):
+/server <cmd>  — Befehl auf Hetzner-Server ausfuehren
+/mac <cmd>     — Befehl auf dem Mac ausfuehren
+/agents        — Status aller 6 Agenten anzeigen
+/services      — Server-Services anzeigen
+/deploy        — Deployment triggern
+/logs [name]   — Logs anzeigen (harvey, server, ollama...)
+/status        — Gesamtsystem-Status
 
-Antworte praezise, strukturiert und handlungsorientiert.`;
+Wenn der User etwas will: TU ES. Frag nicht ob du es tun sollst. Fuehre aus.
+Fehler analysierst du selbst und schlaegest sofort Loesungen vor.`;
 
 const SYSTEM_PROMPT = `Du bist M0Claw, Maurice's persoenlicher AI-Agent und System-Controller.
 Du bist der beste Agent im Team und hast volle Kontrolle ueber alle Systeme.
@@ -108,34 +116,47 @@ export function getSessionInfo(chatId: number): { messageCount: number; active: 
  */
 function detectProvider(): AIProvider | null {
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  const openaiKey = process.env.OPENAI_API_KEY;
-  const ollamaBase = process.env.OLLAMA_BASE_URL;
-  const model = process.env.AI_MODEL;
+  const openaiKey   = process.env.OPENAI_API_KEY;   // Groq or OpenAI
+  const zhipuKey    = process.env.ZHIPU_API_KEY;    // GLM-5 cloud
+  const gemmaKey    = process.env.GEMMA_API_KEY;    // Google AI / Gemma 4
+  const ollamaBase  = process.env.OLLAMA_BASE_URL;
+  const model       = process.env.AI_MODEL;
 
-  // Ollama (local, free, no API key needed)
-  if (ollamaBase) {
-    return {
-      name: 'ollama',
-      apiBase: ollamaBase,
-      apiKey: 'ollama',
-      model: model ?? 'llama3.2',
-      maxTokensKey: 'max_tokens',
-    };
-  }
-
-  // OpenAI
+  // Priority 1: Groq / OpenAI-compatible (Gemma 4, Llama 4, ...)
   if (openaiKey) {
     const base = process.env.AI_API_BASE ?? 'https://api.openai.com/v1';
     return {
       name: 'openai',
       apiBase: base,
       apiKey: openaiKey,
-      model: model ?? 'gpt-4.1-mini',
+      model: model ?? 'gemma2-9b-it',
       maxTokensKey: 'max_tokens',
     };
   }
 
-  // Anthropic
+  // Priority 2: ZHIPU AI — GLM-5 cloud
+  if (zhipuKey) {
+    return {
+      name: 'openai',
+      apiBase: 'https://open.bigmodel.cn/api/paas/v4',
+      apiKey: zhipuKey,
+      model: model ?? 'glm-4-flash',
+      maxTokensKey: 'max_tokens',
+    };
+  }
+
+  // Priority 3: Google AI — Gemma 4
+  if (gemmaKey) {
+    return {
+      name: 'openai',
+      apiBase: 'https://generativelanguage.googleapis.com/v1beta/openai',
+      apiKey: gemmaKey,
+      model: model ?? 'gemma-4-27b-it',
+      maxTokensKey: 'max_tokens',
+    };
+  }
+
+  // Priority 4: Anthropic
   if (anthropicKey) {
     const base = process.env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com';
     return {
@@ -143,6 +164,17 @@ function detectProvider(): AIProvider | null {
       apiBase: base,
       apiKey: anthropicKey,
       model: model ?? 'claude-sonnet-4-20250514',
+      maxTokensKey: 'max_tokens',
+    };
+  }
+
+  // Priority 5: Ollama (local fallback)
+  if (ollamaBase) {
+    return {
+      name: 'ollama',
+      apiBase: ollamaBase,
+      apiKey: 'ollama',
+      model: model ?? 'glm4:9b-chat',
       maxTokensKey: 'max_tokens',
     };
   }

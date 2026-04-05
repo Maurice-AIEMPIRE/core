@@ -21,7 +21,19 @@ try {
 import { callTelegramApi, formatUser } from './utils';
 import { extractMedia, downloadTelegramFile, extractUrls, classifyUrl, getStorageStats } from './media';
 import { chat, clearSession, generatePromo } from './chat';
-import { execSync } from 'child_process';
+import { execSync, exec } from 'child_process';
+import { promisify } from 'util';
+const execAsync = promisify(exec);
+
+const SERVER_HOST = process.env.SERVER_SSH_HOST || '65.21.203.174';
+const SERVER_USER = process.env.SERVER_SSH_USER || 'root';
+const SERVER_KEY  = process.env.SERVER_SSH_KEY  || `${process.env.HOME}/.ssh/id_ed25519`;
+
+async function sshExec(cmd: string): Promise<string> {
+  const ssh = `ssh -i ${SERVER_KEY} -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${SERVER_USER}@${SERVER_HOST}`;
+  const { stdout, stderr } = await execAsync(`${ssh} "${cmd.replace(/"/g, '\\"')}"`, { timeout: 30000 });
+  return (stdout + (stderr ? `\nSTDERR: ${stderr}` : '')).trim();
+}
 
 const ADMIN_ID = process.env.TELEGRAM_ADMIN_ID ? Number(process.env.TELEGRAM_ADMIN_ID) : undefined;
 const TARGET_CHANNEL = process.env.TELEGRAM_TARGET_CHANNEL || '';
@@ -249,6 +261,116 @@ async function handleCommand(botToken: string, chatId: number, text: string, use
       return true;
     }
 
+    case '/server': {
+      if (ADMIN_ID && userId !== ADMIN_ID) {
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: 'Nicht autorisiert.' });
+        return true;
+      }
+      if (!args) {
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: `Usage: /server <command>\nServer: ${SERVER_USER}@${SERVER_HOST}` });
+        return true;
+      }
+      await sendTyping(botToken, chatId);
+      try {
+        const out = await sshExec(args);
+        const result = out.substring(0, 3500) || '(keine Ausgabe)';
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: `🖥 ${SERVER_HOST}\n$ ${args}\n\n${result}` });
+      } catch (err: any) {
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: `SSH-Fehler: ${err.message.substring(0, 1000)}` });
+      }
+      return true;
+    }
+
+    case '/mac': {
+      if (ADMIN_ID && userId !== ADMIN_ID) {
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: 'Nicht autorisiert.' });
+        return true;
+      }
+      if (!args) {
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: 'Usage: /mac <command>' });
+        return true;
+      }
+      try {
+        const out = execSync(args, { timeout: 30000, maxBuffer: 1024 * 1024 }).toString().trim();
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: `💻 Mac\n$ ${args}\n\n${out.substring(0, 3500) || '(keine Ausgabe)'}` });
+      } catch (err: any) {
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: `Mac-Fehler:\n${(err.stderr?.toString() || err.message).substring(0, 2000)}` });
+      }
+      return true;
+    }
+
+    case '/agents': {
+      await sendTyping(botToken, chatId);
+      try {
+        const stateFile = `${process.env.HOME}/.openclaw/workspace/ai-empire/../../../.openclaw/workspace/ai-empire/../../openclaw/memory/agents-state.json`;
+        let status = '🤖 Agenten-Status:\n\n';
+        try {
+          const raw = require('fs').readFileSync(stateFile.replace(/\.\.\//g, ''), 'utf-8');
+          const state = JSON.parse(raw);
+          const agents = ['monica', 'dwight', 'kelly', 'ryan', 'chandler', 'ross'];
+          for (const name of agents) {
+            const a = state[name] || {};
+            const emoji = a.status === 'running' ? '🟢' : a.status === 'error' ? '🔴' : '⚪';
+            status += `${emoji} ${name.toUpperCase()}: ${a.status || 'idle'} (${a.totalRuns || 0} runs)\n`;
+          }
+        } catch {
+          status += 'Monica ⚪ Kelly ⚪ Dwight ⚪\nRyan ⚪ Chandler ⚪ Ross ⚪\n(State-Datei nicht lesbar)';
+        }
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: status });
+      } catch (err: any) {
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: `Agenten-Fehler: ${err.message}` });
+      }
+      return true;
+    }
+
+    case '/services': {
+      await sendTyping(botToken, chatId);
+      try {
+        const out = await sshExec('systemctl is-active ollama telegram-bot.service webhook.service 2>/dev/null; echo "---"; systemctl status ollama --no-pager -l | tail -3');
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: `🖥 Server Services:\n\n${out.substring(0, 3000)}` });
+      } catch (err: any) {
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: `Services nicht erreichbar: ${err.message.substring(0, 500)}` });
+      }
+      return true;
+    }
+
+    case '/deploy': {
+      if (ADMIN_ID && userId !== ADMIN_ID) {
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: 'Nicht autorisiert.' });
+        return true;
+      }
+      await sendTyping(botToken, chatId);
+      try {
+        const out = await sshExec('cd /opt/money-machine && git pull origin main 2>&1 | tail -5 && echo "Deploy OK"');
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: `🚀 Deploy:\n\n${out.substring(0, 2000)}` });
+      } catch (err: any) {
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: `Deploy-Fehler: ${err.message.substring(0, 1000)}` });
+      }
+      return true;
+    }
+
+    case '/logs': {
+      await sendTyping(botToken, chatId);
+      const logName = args || 'harvey';
+      const logMap: Record<string, string> = {
+        harvey: '/tmp/harvey-bot.log',
+        ollama: '/tmp/ollama.log',
+        openclaw: `${process.env.HOME}/.openclaw/workspace/ai-empire/../../openclaw/memory/main.log`,
+      };
+      try {
+        if (logMap[logName]) {
+          const out = execSync(`tail -30 ${logMap[logName]} 2>/dev/null || echo "(Log leer oder nicht gefunden)"`, { timeout: 5000 }).toString();
+          await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: `📋 ${logName} logs:\n\n${out.substring(0, 3500)}` });
+        } else {
+          const out = await sshExec(`tail -30 /opt/money-machine/openclaw/memory/${logName}.log 2>/dev/null || journalctl -u ${logName} -n 30 --no-pager 2>/dev/null || echo "Log nicht gefunden"`);
+          await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: `📋 Server/${logName}:\n\n${out.substring(0, 3500)}` });
+        }
+      } catch (err: any) {
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: `Log-Fehler: ${err.message.substring(0, 500)}` });
+      }
+      return true;
+    }
+
     case '/exec': {
       if (ADMIN_ID && userId !== ADMIN_ID) {
         await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: 'Nicht autorisiert.' });
@@ -308,15 +430,18 @@ async function handleCommand(botToken: string, chatId: number, text: string, use
         chat_id: chatId,
         text: isHarvey
           ? [
-              'Harvey Befehle:',
+              '🤖 JARVIS — Befehle:',
               '',
-              '/start - Willkommen',
-              '/clear - Chat zuruecksetzen',
-              '/status - Bot-Status',
-              '/ping - Verbindungstest',
-              '/help - Diese Hilfe',
+              '🖥  /server <cmd>  — Hetzner Server',
+              '💻  /mac <cmd>     — Mac lokal',
+              '🤖  /agents        — Agenten-Status',
+              '⚙️   /services      — Server-Services',
+              '🚀  /deploy        — Deployment',
+              '📋  /logs [name]   — Logs (harvey/ollama/...)',
+              '📊  /status        — System-Uebersicht',
+              '🔄  /clear         — Chat zuruecksetzen',
               '',
-              'Einfach deine Rechtsfrage schreiben!',
+              'Oder einfach schreiben — ich handle alles.',
             ].join('\n')
           : [
               'M0Claw Befehle:',
