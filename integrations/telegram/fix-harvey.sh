@@ -42,12 +42,18 @@ echo "[3/5] Prüfe .env..."
 
 ENV_FILE="$TELEGRAM_DIR/.env"
 
-# Angle-Bracket-Fehler automatisch beheben
+# Angle-Bracket-Fehler automatisch beheben (via Python — zuverlässiger als sed)
 if [ -f "$ENV_FILE" ] && grep -q '<http' "$ENV_FILE"; then
   echo "      ⚠ Angle-Brackets gefunden — werden entfernt..."
-  sed -i '' 's|=<\(https\?://[^>]*\)>|=\1|g' "$ENV_FILE"
-  sed -i '' 's|=<\(https\?://[^>]*\)$|=\1|g' "$ENV_FILE"
-  echo "      ✓ Repariert"
+  python3 - "$ENV_FILE" << 'PYEOF'
+import sys, re
+f = sys.argv[1]
+txt = open(f).read()
+txt = re.sub(r'=<(https?://[^>\s]+)>', r'=\1', txt)
+txt = re.sub(r'=<(https?://[^>\s\n]+)$', r'=\1', txt, flags=re.MULTILINE)
+open(f, 'w').write(txt)
+print("      ✓ Repariert")
+PYEOF
 fi
 
 # Prüfe ob Pflichtfelder vorhanden sind
@@ -103,6 +109,11 @@ fi
 echo ""
 echo "[5/5] Starte HarveyHeavyLegalbot..."
 cd "$TELEGRAM_DIR" || exit 1
+
+# Dependencies installieren (sichtbar, damit Fehler erkennbar sind)
+echo "      Installing dependencies..."
+npm install 2>&1 | tail -3
+echo ""
 
 npx tsx src/bot.ts >> "$LOG_FILE" 2>&1 &
 BOT_PID=$!
