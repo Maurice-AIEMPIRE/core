@@ -1,2 +1,3 @@
-# preserve the .env symlink
-!.env
+.env
+.env.local
+._.env
