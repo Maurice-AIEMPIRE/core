@@ -63,6 +63,8 @@ class TaskRouter:
         try:
             self.kg.conn.execute("PRAGMA journal_mode=WAL")
             self.kg.conn.execute("PRAGMA synchronous=NORMAL")
+            # busy_timeout: wait up to 10s before raising "database is locked"
+            self.kg.conn.execute("PRAGMA busy_timeout=10000")
             self.kg.conn.commit()
         except Exception as e:
             self._log(f"WAL-Aktivierung fehlgeschlagen: {e}", level="WARN")

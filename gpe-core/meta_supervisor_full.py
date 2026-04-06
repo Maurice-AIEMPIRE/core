@@ -9,6 +9,7 @@ Fixes:
   - Graceful Shutdown
 """
 import subprocess
+import threading
 import time
 import sys
 import json
@@ -57,7 +58,8 @@ class MetaSupervisorFull:
     def __init__(self):
         self.kg           = BlackHoleGraph()
         self.check_interval = 30          # Sekunden zwischen Checks
-        self._running     = True
+        self._stop_event  = threading.Event()
+        self._running     = True  # kept for backwards-compat
         self._crash_count: dict[str, int] = {s: 0 for s in SERVICES}
 
         self._setup_signal_handlers()
@@ -67,6 +69,8 @@ class MetaSupervisorFull:
         try:
             self.kg.conn.execute("PRAGMA journal_mode=WAL")
             self.kg.conn.execute("PRAGMA synchronous=NORMAL")
+            # busy_timeout: wait up to 10s before raising "database is locked"
+            self.kg.conn.execute("PRAGMA busy_timeout=10000")
             self.kg.conn.commit()
         except Exception as e:
             log.warning(f"WAL-Aktivierung: {e}")
@@ -74,7 +78,8 @@ class MetaSupervisorFull:
     def _setup_signal_handlers(self):
         def _stop(sig, frame):
             log.info(f"Signal {sig} — Supervisor Shutdown")
-            self._running = False
+            self._stop_event.set()
+            self._running = False  # legacy flag
         signal.signal(signal.SIGTERM, _stop)
         signal.signal(signal.SIGINT,  _stop)
 
@@ -119,13 +124,20 @@ class MetaSupervisorFull:
         logfile = LOG_DIR / f"{name}.log"
         pidfile = PID_DIR / f"{name}.pid"
 
-        env = {
-            "PATH": "/usr/local/bin:/usr/bin:/bin",
-            "PYTHONPATH": f"{BASE_DIR}:{BASE_DIR}/analyzer:{BASE_DIR}/dispatcher",
-            "OLLAMA_URL": "http://localhost:11434",
-        }
         import os
-        env.update(os.environ)
+        # Security: only pass explicitly safe env vars to child processes.
+        # Never call env.update(os.environ) — that leaks secrets (API keys,
+        # tokens, passwords) into every spawned subprocess.
+        _safe_keys = {"HOME", "USER", "LANG", "LC_ALL", "LC_CTYPE", "TERM", "TZ", "TMPDIR"}
+        env = {
+            # Safe keys from parent first
+            **{k: v for k, v in os.environ.items() if k in _safe_keys},
+            # Then our controlled values (override any conflicts)
+            "PATH":        "/usr/local/bin:/usr/bin:/bin",
+            "PYTHONPATH":  f"{BASE_DIR}:{BASE_DIR}/analyzer:{BASE_DIR}/dispatcher",
+            "OLLAMA_URL":  os.environ.get("OLLAMA_URL", "http://localhost:11434"),
+            "ENABLE_SELF_IMPROVEMENT": "0",
+        }
 
         try:
             with open(logfile, "a") as lf:
@@ -243,7 +255,7 @@ class MetaSupervisorFull:
     def run(self):
         log.info(f"Meta-Supervisor gestartet — Check-Interval: {self.check_interval}s")
 
-        while self._running:
+        while not self._stop_event.is_set():
             try:
                 statuses = self.monitor_services()
                 metrics  = self.auto_optimize_napoleon()
@@ -255,7 +267,9 @@ class MetaSupervisorFull:
             except Exception as e:
                 log.error(f"Supervisor-Fehler: {e}")
 
-            time.sleep(self.check_interval)
+            # Event.wait() wakes immediately on SIGTERM instead of sleeping
+            # the full interval, enabling faster graceful shutdown.
+            self._stop_event.wait(timeout=self.check_interval)
 
         log.info("Meta-Supervisor beendet")
         self.kg.close()

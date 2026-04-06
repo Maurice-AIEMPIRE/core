@@ -12,6 +12,7 @@ Fixes & Improvements:
 import sys
 import json
 import signal
+import threading
 import time
 import logging
 from pathlib import Path
@@ -131,7 +132,11 @@ class NapoleonCore:
         self.brain_agent = brain_agent
         self.scorer      = ActionScorer()
         self.history: deque = deque(maxlen=20)
-        self._running    = True
+        # Use threading.Event for signal-safe shutdown signaling — a plain
+        # boolean assignment is not guaranteed atomic across all Python
+        # implementations and can race with DB operations mid-transaction.
+        self._stop_event = threading.Event()
+        self._running    = True  # kept for backwards-compat reads
 
         self._enable_wal()
         self._setup_signal_handlers()
@@ -147,6 +152,9 @@ class NapoleonCore:
             self.kg.conn.execute("PRAGMA journal_mode=WAL")
             self.kg.conn.execute("PRAGMA synchronous=NORMAL")
             self.kg.conn.execute("PRAGMA cache_size=-65536")  # 64MB Cache
+            # busy_timeout: wait up to 10s instead of raising "database is
+            # locked" immediately when another writer holds the WAL lock.
+            self.kg.conn.execute("PRAGMA busy_timeout=10000")
             self.kg.conn.commit()
             log.info("SQLite WAL-Mode aktiviert")
         except Exception as e:
@@ -155,8 +163,12 @@ class NapoleonCore:
     def _setup_signal_handlers(self):
         """Graceful Shutdown bei SIGTERM / SIGINT."""
         def _shutdown(signum, frame):
+            # threading.Event.set() is async-signal-safe in CPython and
+            # coordinates cleanly with the main loop's is_set() check,
+            # avoiding races with in-progress DB transactions.
             log.info(f"Signal {signum} — Shutdown...")
-            self._running = False
+            self._stop_event.set()
+            self._running = False  # legacy flag
 
         signal.signal(signal.SIGTERM, _shutdown)
         signal.signal(signal.SIGINT,  _shutdown)
@@ -280,7 +292,7 @@ class NapoleonCore:
         log.info(f"NAPOLEON BRAIN LOOP — {iterations} Iterationen")
 
         for i in range(iterations):
-            if not self._running:
+            if self._stop_event.is_set():
                 log.info("Shutdown-Signal — Loop unterbrochen")
                 break
 
@@ -343,9 +355,10 @@ if __name__ == "__main__":
     try:
         if args.daemon:
             log.info("Napoleon Daemon gestartet")
-            while napoleon._running:
+            while not napoleon._stop_event.is_set():
                 napoleon.run_brain_loop(iterations=1)
-                time.sleep(60)
+                # Use Event.wait() so SIGTERM wakes the sleep immediately
+                napoleon._stop_event.wait(timeout=60)
         else:
             napoleon.run_brain_loop(iterations=args.iterations)
     finally:
