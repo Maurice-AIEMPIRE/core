@@ -4,6 +4,7 @@
  * Features:
  * - PDF/DOCX/TXT text extraction (pdftotext + python fallbacks)
  * - Claude-powered legal document analysis
+ * - Black Hole knowledge graph context enrichment
  * - Per-user usage tracking (JSON files, no DB required)
  * - Free tier: 2 reviews, then paywall with Stripe Payment Link
  */
@@ -12,6 +13,7 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import axios from 'axios';
+import { buildBlackHoleContext } from './blackhole_client';
 
 // ── Config ──────────────────────────────────────────────────────────────────
 
@@ -218,14 +220,23 @@ KI-Ersteinschätzung — kein Ersatz für Anwaltsberatung. Bei hohem Streitwert:
 
 /** Main entry point: analyze a legal document with Claude. */
 export async function analyzeLegalDocument(text: string, filename: string): Promise<string> {
-  // Cap at ~20k chars to stay within token limits
-  const maxChars = 20000;
+  // Cap at ~18k chars, leaving room for Black Hole context
+  const maxChars = 18000;
   const truncated =
     text.length > maxChars
-      ? text.substring(0, maxChars) + '\n\n[... Dokument auf 20.000 Zeichen gekürzt ...]'
+      ? text.substring(0, maxChars) + '\n\n[... Dokument auf 18.000 Zeichen gekürzt ...]'
       : text;
 
-  const userMessage = `Analysiere dieses Rechtsdokument:\n\nDateiname: ${filename}\n\n---\n${truncated}`;
+  // Enrich with Black Hole knowledge graph context (silent if unreachable)
+  // Use filename + first 200 chars of text as search query
+  const bhQuery = `${filename} ${text.substring(0, 200)}`;
+  const bhContext = await buildBlackHoleContext(bhQuery);
+
+  const contextBlock = bhContext
+    ? `\n\nZusätzlicher Kontext aus dem Wissensgraphen:\n${bhContext}\n`
+    : '';
+
+  const userMessage = `Analysiere dieses Rechtsdokument:\n\nDateiname: ${filename}${contextBlock}\n---\n${truncated}`;
 
   // Prefer Anthropic (best legal reasoning)
   const anthropicKey = process.env.ANTHROPIC_API_KEY;

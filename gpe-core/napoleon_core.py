@@ -15,6 +15,8 @@ import signal
 import threading
 import time
 import logging
+import urllib.request
+import urllib.error
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
@@ -23,9 +25,11 @@ from collections import deque
 sys.path.insert(0, str(Path(__file__).parent / "analyzer"))
 from knowledge_graph_v2 import BlackHoleGraph
 
-BASE_DIR     = Path("/root/gpe-core")
-MISSIONS_DIR = BASE_DIR / "missions"
-LOG_DIR      = BASE_DIR / "logs"
+BASE_DIR       = Path("/root/gpe-core")
+MISSIONS_DIR   = BASE_DIR / "missions"
+LOG_DIR        = BASE_DIR / "logs"
+# Black Hole API — enriches Napoleon's metrics with the live knowledge graph
+BLACK_HOLE_URL = "http://localhost:8001"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -177,13 +181,42 @@ class NapoleonCore:
     #  Analyse                                                             #
     # ------------------------------------------------------------------ #
 
-    def analyze_graph(self) -> Dict:
-        """Analysiert aktuellen Graph-Zustand — fehler-tolerant."""
+    def _fetch_blackhole_api_metrics(self) -> Optional[Dict]:
+        """Fetch live metrics from the Black Hole API (port 8001).
+        Returns None silently if API is unreachable — fallback to local graph."""
         try:
-            metrics = self.kg.get_black_hole_metrics()
-        except Exception as e:
-            log.warning(f"Metrics-Fehler: {e}")
-            metrics = {"entropy": 0.5, "legal_cohesion": 0.5, "black_hole_score": 0.5, "nodes": 0}
+            req = urllib.request.Request(
+                f"{BLACK_HOLE_URL}/stats",
+                headers={"Accept": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                data = json.loads(resp.read())
+            # Normalize API stats to Napoleon metric keys
+            total = data.get("total", 0)
+            gold  = data.get("gold_items", 0)
+            return {
+                "nodes":            total,
+                "black_hole_score": min(1.0, gold / max(total, 1)),
+                "entropy":          1.0 - min(1.0, total / 50000),
+                "legal_cohesion":   min(1.0, data.get("skills", 0) / max(total * 0.01, 1)),
+                "_source":          "blackhole_api",
+            }
+        except Exception:
+            return None
+
+    def analyze_graph(self) -> Dict:
+        """Analysiert aktuellen Graph-Zustand — Black Hole API bevorzugt, SQLite als Fallback."""
+        # Prefer live Black Hole API metrics (richer, always current)
+        api_metrics = self._fetch_blackhole_api_metrics()
+        if api_metrics:
+            metrics = api_metrics
+            log.info(f"[BH-API] nodes={metrics['nodes']} score={metrics['black_hole_score']:.2f}")
+        else:
+            try:
+                metrics = self.kg.get_black_hole_metrics()
+            except Exception as e:
+                log.warning(f"Metrics-Fehler: {e}")
+                metrics = {"entropy": 0.5, "legal_cohesion": 0.5, "black_hole_score": 0.5, "nodes": 0}
 
         try:
             top_nodes = self.kg.conn.execute(
