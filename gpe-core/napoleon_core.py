@@ -1,3 +1,4 @@
+import os
 #!/usr/bin/env python3
 """
 Napoleon Core v2 — Yang Agent (10x Upgrade)
@@ -25,7 +26,7 @@ from collections import deque
 sys.path.insert(0, str(Path(__file__).parent / "analyzer"))
 from knowledge_graph_v2 import BlackHoleGraph
 
-BASE_DIR       = Path("/root/gpe-core")
+BASE_DIR       = Path(os.environ.get("GPE_CORE_DIR", str(Path(__file__).parent if 'dispatcher' not in str(Path(__file__)) else Path(__file__).parent.parent)))
 MISSIONS_DIR   = BASE_DIR / "missions"
 LOG_DIR        = BASE_DIR / "logs"
 # Black Hole API — enriches Napoleon's metrics with the live knowledge graph

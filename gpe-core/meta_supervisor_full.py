@@ -1,3 +1,4 @@
+import os
 #!/usr/bin/env python3
 """
 Meta-Supervisor FULL v2 — Anti-Zombie, PID-basiertes Process Management
@@ -21,7 +22,7 @@ from datetime import datetime, timezone
 sys.path.insert(0, str(Path(__file__).parent / "analyzer"))
 from knowledge_graph_v2 import BlackHoleGraph
 
-BASE_DIR  = Path("/root/gpe-core")
+BASE_DIR  = Path(os.environ.get("GPE_CORE_DIR", str(Path(__file__).parent if 'dispatcher' not in str(Path(__file__)) else Path(__file__).parent.parent)))
 LOG_DIR   = BASE_DIR / "logs"
 PID_DIR   = BASE_DIR / "pids"
 
