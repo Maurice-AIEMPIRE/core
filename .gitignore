@@ -38,6 +38,12 @@ benchmarks/
 .DS_Store
 *.pem
 
+# macOS metadata files (never commit these)
+._*
+._.*
+**/._.*
+**/._*
+
 docker-compose.dev.yaml
 
 clickhouse/

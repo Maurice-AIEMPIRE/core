@@ -1,3 +1,4 @@
 node_modules
-# Ensure the .env symlink is not removed by accident
-!.env
+.env
+.env.local
+._.env

@@ -3,7 +3,7 @@
   "workspace": "${HOME}/.openclaw/workspace/ai-empire",
   "agent": {
     "id": "main",
-    "model": "ollama/glm4:9b-chat",
+    "model": "ollama/qwen3:32b",
     "maxSteps": 100,
     "provider": "ollama",
     "temperature": 0.7

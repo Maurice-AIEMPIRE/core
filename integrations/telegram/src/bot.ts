@@ -21,6 +21,14 @@ try {
 import { callTelegramApi, formatUser } from './utils';
 import { extractMedia, downloadTelegramFile, extractUrls, classifyUrl, getStorageStats } from './media';
 import { chat, clearSession, generatePromo } from './chat';
+import {
+  checkAccess,
+  recordReview,
+  markPaid,
+  getUserStats,
+  extractTextFromFile,
+  analyzeLegalDocument,
+} from './legal_review';
 import { execSync } from 'child_process';
 
 const ADMIN_ID = process.env.TELEGRAM_ADMIN_ID ? Number(process.env.TELEGRAM_ADMIN_ID) : undefined;
@@ -56,6 +64,14 @@ async function handleMessage(botToken: string, message: any) {
     try {
       const localPath = await downloadTelegramFile(botToken, media.fileId, media.fileName, media.type);
       const sizeKB = media.fileSize ? (media.fileSize / 1024).toFixed(1) : '?';
+
+      const isHarveyPersona = process.env.BOT_PERSONA === 'harvey';
+
+      // Harvey: documents → Legal Review
+      if (isHarveyPersona && media.type === 'document') {
+        await handleLegalReview(botToken, chatId, userId, localPath, media.fileName, media.mimeType);
+        return;
+      }
 
       await callTelegramApi(botToken, 'sendMessage', {
         chat_id: chatId,
@@ -165,16 +181,25 @@ async function handleCommand(botToken: string, chatId: number, text: string, use
           ? [
               'Harvey – Dein KI-Rechtsassistent',
               '',
-              'Ich helfe dir bei Rechtsfragen rund um:',
-              '• Vertraege & Vertragsrecht',
-              '• Arbeitsrecht (Kuendigung, Abmahnung)',
-              '• DSGVO & Datenschutz',
-              '• GmbH / UG Gruendung',
-              '• Marken & IP-Recht',
+              'Ich analysiere Verträge, AGBs und Rechtsdokumente.',
               '',
-              'Einfach deine Frage schreiben.',
-              '/clear - Neues Gespraech starten',
-              '/help - Alle Befehle',
+              'So geht\'s:',
+              '1. Schick mir ein PDF, DOCX oder TXT',
+              '2. Ich analysiere Risiken, Klauseln, Empfehlung',
+              '3. Du bekommst deine Rechtsanalyse in Sekunden',
+              '',
+              'Rechtsbereiche:',
+              '• Vertrags- & Arbeitsrecht',
+              '• DSGVO / Datenschutz',
+              '• GmbH / UG Gründung',
+              '• IP & Markenrecht',
+              '',
+              '/review    - Dokument analysieren',
+              '/credits   - Kostenlose Analysen anzeigen',
+              '/subscribe - Premium freischalten',
+              '/help      - Alle Befehle',
+              '',
+              '2 kostenlose Analysen. Dann /subscribe.',
             ].join('\n')
           : [
               'M0Claw - Dein KI-Agent',
@@ -302,21 +327,107 @@ async function handleCommand(botToken: string, chatId: number, text: string, use
       return true;
     }
 
+    case '/credits': {
+      if (process.env.BOT_PERSONA === 'harvey' && userId) {
+        const stats = getUserStats(userId);
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: stats });
+      } else {
+        await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: 'Nur für Harvey verfügbar.' });
+      }
+      return true;
+    }
+
+    case '/subscribe': {
+      if (process.env.BOT_PERSONA !== 'harvey') return false;
+      const link = process.env.STRIPE_PAYMENT_LINK ?? '';
+      const monthly = process.env.LEGAL_MONTHLY_PRICE ?? '49€';
+      const perDoc = process.env.LEGAL_PER_DOC_PRICE ?? '9€';
+      const lines = [
+        'Harvey Premium freischalten:',
+        '',
+        `• ${perDoc} / Dokument (Einmalig)`,
+        `• ${monthly} / Monat (Unbegrenzt)`,
+        '',
+        'Was du bekommst:',
+        '• Unbegrenzte Dokument-Analysen',
+        '• Vollständige Risikoanalyse',
+        '• Klausel-Empfehlungen',
+        '• Priority-Antwortzeit',
+        '',
+      ];
+      if (link) {
+        lines.push(`Jetzt upgraden:\n${link}`);
+        lines.push('');
+        lines.push('Nach Zahlung: /paid eingeben.');
+      } else {
+        lines.push('Schreib "Premium anfragen" und wir melden uns.');
+      }
+      await callTelegramApi(botToken, 'sendMessage', { chat_id: chatId, text: lines.join('\n') });
+      return true;
+    }
+
+    case '/paid': {
+      // Simple self-serve confirmation — user claims to have paid.
+      // For production: verify via Stripe webhook. For MVP: trust + confirm manually.
+      if (process.env.BOT_PERSONA !== 'harvey' || !userId) return false;
+      markPaid(userId);
+      await callTelegramApi(botToken, 'sendMessage', {
+        chat_id: chatId,
+        text: [
+          'Harvey Premium aktiviert!',
+          '',
+          'Du hast jetzt unbegrenzte Dokument-Analysen.',
+          'Schick einfach ein PDF, DOCX oder TXT.',
+          '',
+          '/credits - Status anzeigen',
+        ].join('\n'),
+      });
+      return true;
+    }
+
+    case '/review': {
+      if (process.env.BOT_PERSONA !== 'harvey') return false;
+      await callTelegramApi(botToken, 'sendMessage', {
+        chat_id: chatId,
+        text: [
+          'Dokument zur Analyse einschicken:',
+          '',
+          'Unterstützte Formate:',
+          '• PDF (empfohlen)',
+          '• DOCX / Word',
+          '• TXT',
+          '',
+          'Einfach die Datei hier anhängen.',
+          '',
+          '/credits - Verbleibende Analysen',
+          '/subscribe - Premium freischalten',
+        ].join('\n'),
+      });
+      return true;
+    }
+
     case '/help': {
       const isHarvey = process.env.BOT_PERSONA === 'harvey';
       await callTelegramApi(botToken, 'sendMessage', {
         chat_id: chatId,
         text: isHarvey
           ? [
-              'Harvey Befehle:',
+              'Harvey – KI-Rechtsassistent',
               '',
-              '/start - Willkommen',
-              '/clear - Chat zuruecksetzen',
-              '/status - Bot-Status',
-              '/ping - Verbindungstest',
-              '/help - Diese Hilfe',
+              'Dokument-Analyse:',
+              '  Einfach PDF / DOCX / TXT schicken',
+              '  → Vollständige Rechtsanalyse in Sekunden',
               '',
-              'Einfach deine Rechtsfrage schreiben!',
+              'Befehle:',
+              '/review    - Anleitung zur Dokument-Analyse',
+              '/credits   - Verbleibende Analysen anzeigen',
+              '/subscribe - Harvey Premium freischalten',
+              '/paid      - Premium nach Zahlung aktivieren',
+              '/clear     - Chat zurücksetzen',
+              '/status    - Bot-Status',
+              '/help      - Diese Hilfe',
+              '',
+              'Oder einfach deine Rechtsfrage schreiben!',
             ].join('\n')
           : [
               'M0Claw Befehle:',
@@ -339,6 +450,109 @@ async function handleCommand(botToken: string, chatId: number, text: string, use
 
     default:
       return false; // not a known command, pass to AI
+  }
+}
+
+// ── Harvey Legal Review Flow ──────────────────────────────────────────────────
+
+async function handleLegalReview(
+  botToken: string,
+  chatId: number,
+  userId: number | undefined,
+  localPath: string,
+  fileName: string,
+  mimeType?: string,
+) {
+  if (!userId) {
+    await callTelegramApi(botToken, 'sendMessage', {
+      chat_id: chatId,
+      text: 'Benutzer-ID nicht erkannt. Bitte erneut senden.',
+    });
+    return;
+  }
+
+  // Check free tier / paid access
+  const access = checkAccess(userId);
+  if (!access.canReview) {
+    await callTelegramApi(botToken, 'sendMessage', {
+      chat_id: chatId,
+      text: access.paywallMessage ?? 'Limit erreicht. /subscribe für Premium.',
+    });
+    return;
+  }
+
+  // Notify user — analysis takes a moment
+  const freeNote = !access.paid && access.freeRemaining > 0
+    ? `\n\n(${access.freeRemaining - 1} kostenlose Analysen danach verbleibend)`
+    : '';
+
+  await callTelegramApi(botToken, 'sendMessage', {
+    chat_id: chatId,
+    text: `Analysiere "${fileName}"... Das dauert 10-30 Sekunden.${freeNote}`,
+  });
+
+  await sendTyping(botToken, chatId);
+
+  try {
+    // Extract text
+    const rawText = await extractTextFromFile(localPath, mimeType);
+
+    if (rawText.startsWith('[') && rawText.endsWith(']')) {
+      // Extraction failed — inform user
+      await callTelegramApi(botToken, 'sendMessage', {
+        chat_id: chatId,
+        text: rawText,
+      });
+      return;
+    }
+
+    if (rawText.trim().length < 50) {
+      await callTelegramApi(botToken, 'sendMessage', {
+        chat_id: chatId,
+        text: 'Das Dokument enthält zu wenig Text für eine Analyse. Bitte PDF mit Textlayer einsenden (kein Scan).',
+      });
+      return;
+    }
+
+    // Run legal analysis
+    const analysis = await analyzeLegalDocument(rawText, fileName);
+
+    // Record usage
+    recordReview(userId);
+
+    // Send analysis (split if too long)
+    const chunks = splitMessage(analysis, 4000);
+    for (const chunk of chunks) {
+      await callTelegramApi(botToken, 'sendMessage', {
+        chat_id: chatId,
+        text: chunk,
+        parse_mode: 'Markdown',
+      }).catch(() =>
+        callTelegramApi(botToken, 'sendMessage', {
+          chat_id: chatId,
+          text: chunk,
+        }),
+      );
+    }
+
+    // Upsell after free reviews
+    const updatedAccess = checkAccess(userId);
+    if (!updatedAccess.paid && updatedAccess.freeRemaining === 0) {
+      await callTelegramApi(botToken, 'sendMessage', {
+        chat_id: chatId,
+        text: [
+          'Das war deine letzte kostenlose Analyse.',
+          '',
+          'Für weitere Analysen → /subscribe',
+        ].join('\n'),
+      });
+    }
+  } catch (err: any) {
+    console.error('[LegalReview] Error:', err.message);
+    await callTelegramApi(botToken, 'sendMessage', {
+      chat_id: chatId,
+      text: `Analyse fehlgeschlagen: ${err.message}\n\nBitte erneut versuchen oder Text direkt einfügen.`,
+    });
   }
 }
 
