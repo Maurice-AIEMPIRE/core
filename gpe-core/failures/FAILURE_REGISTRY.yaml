@@ -1,0 +1,33 @@
+# FAILURE_REGISTRY.yaml
+# GPE CORE FAILURE REGISTRY
+# Every system error, routing failure, or hallucination must be logged here.
+# Failures are data, not bugs. We learn from them.
+
+registry_version: "1.0"
+last_updated: "2026-04-16"
+
+entries:
+  - id: FAIL-2026-04-16-001
+    timestamp: "2026-04-16"
+    task_type: legal-consistency-check
+    skill: legal-consistency
+    failure_type: evidence_gap
+    description: "Execution blocked — mandatory inputs (EVIDENCE_MAP.md, CLAIM_MATRIX.md) not found at expected static paths."
+    impact: HIGH
+    root_cause: "Skills and RESOLVER assume static file paths. Real file locations are dynamic and vary per case/project."
+    fix_applied: "Added required_context field to legal-contradiction-analysis intent. Skills must include active search/validation phase before execution."
+    resolver_change_required: true
+    skill_change_required: true
+    status: resolved
+
+# Entry format:
+# - id: FAIL-[YYYYMMDD]-[SEQ]
+#   timestamp: "YYYY-MM-DD HH:MM"
+#   intent: "[What the user requested]"
+#   routed_to: "[Which skill/agent was triggered]"
+#   failure_type: "[routing_error | hallucination | evidence_gap | brief_incomplete | skill_missing]"
+#   description: "[What went wrong]"
+#   impact: "[HIGH | MEDIUM | LOW]"
+#   root_cause: "[Why it happened]"
+#   fix_applied: "[What was changed to prevent recurrence]"
+#   status: "[open | resolved]"

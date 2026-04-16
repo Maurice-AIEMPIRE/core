@@ -1,0 +1,161 @@
+# LEARNING_QUEUE.yaml
+# GPE CORE - LEARNING PIPELINE
+# Insights extracted from repo analysis waiting to be implemented.
+# Status flow: discovered → validated → approved → implemented → archived
+
+version: "1.0"
+last_updated: "2026-04-16"
+last_run: "2026-04-16"
+
+queue:
+  - id: LEARN-2026-04-16-001
+    source_repo: microsoft/autogen
+    discovered_at: 2026-04-16
+    domain: ai_agents
+    insight_type: pattern
+    title: "Agent-as-Tool wrapping — skills invoking other skills"
+    description: >
+      AutoGen's AgentTool class wraps any agent as a callable tool, allowing higher-order agents
+      to orchestrate lower-order ones transparently. GPE skills currently operate as isolated
+      invocations with no inter-skill calling; adopting this pattern in the nucleus skill would
+      allow, for example, legal-claims to invoke data-ops as a sub-tool, enabling composable
+      skill pipelines without modifying RESOLVER routing.
+    target_skill: gpe-core/skills/nucleus/SKILL.md
+    implementation_effort: LOW
+    expected_impact: HIGH
+    review_gate_passed: false
+    status: discovered
+    implemented_in_commit: null
+
+  - id: LEARN-2026-04-16-002
+    source_repo: microsoft/autogen
+    discovered_at: 2026-04-16
+    domain: ai_agents
+    insight_type: implementation
+    title: "Max-iterations circuit breaker for evolution-loop"
+    description: >
+      AutoGen's max_tool_iterations parameter caps recursive tool invocations, preventing runaway
+      loops. GPE's evolution-loop skill has no explicit iteration limit, creating a risk of
+      unbounded self-patching cycles if review gates malfunction. Adding a configurable
+      MAX_LOOP_ITERATIONS constant to the evolution-loop SKILL.md with hard-stop logic would
+      prevent this failure mode.
+    target_skill: gpe-core/skills/evolution/evolution-loop/SKILL.md
+    implementation_effort: LOW
+    expected_impact: HIGH
+    review_gate_passed: false
+    status: discovered
+    implemented_in_commit: null
+
+  - id: LEARN-2026-04-16-003
+    source_repo: microsoft/autogen
+    discovered_at: 2026-04-16
+    domain: ai_agents
+    insight_type: architecture
+    title: "Layered skill routing — Core vs Skill vs Extension tiers"
+    description: >
+      AutoGen organizes its API into three layers (Core, AgentChat, Extensions) with deliberate
+      escalation rules. GPE's RESOLVER.yaml routes all skills at a flat priority level, making
+      it harder to distinguish system-critical routes (nucleus, evolution) from domain skills
+      (legal, trading). Introducing a tier field (core | skill | extension) in RESOLVER routes
+      would allow priority ordering and prevent domain skill conflicts from shadowing core
+      operations.
+    target_skill: gpe-core/RESOLVER.yaml
+    implementation_effort: MEDIUM
+    expected_impact: HIGH
+    review_gate_passed: false
+    status: discovered
+    implemented_in_commit: null
+
+  - id: LEARN-2026-04-16-004
+    source_repo: freqtrade/freqtrade
+    discovered_at: 2026-04-16
+    domain: self_improvement
+    insight_type: architecture
+    title: "Dry-run staging mode for self-patcher before live apply"
+    description: >
+      Freqtrade separates dry-run (in-memory DB) from live (production DB) via an explicit
+      config gate, preventing accidental real-money trades. GPE's self-patcher applies patches
+      directly to skill files with no staging step. Adding a DRY_RUN mode to the self-patcher
+      that writes proposed changes to a gpe-core/staging/ directory for human review before
+      committing would eliminate the risk of a bad patch corrupting a production skill.
+    target_skill: gpe-core/skills/evolution/self-patcher/SKILL.md
+    implementation_effort: MEDIUM
+    expected_impact: HIGH
+    review_gate_passed: false
+    status: discovered
+    implemented_in_commit: null
+
+  - id: LEARN-2026-04-16-005
+    source_repo: freqtrade/freqtrade
+    discovered_at: 2026-04-16
+    domain: self_improvement
+    insight_type: implementation
+    title: "Explicit opt-in flag required for HIGH_IMPACT patch application"
+    description: >
+      Freqtrade requires explicit CLI flags (--enable-protections, --enable-position-stacking)
+      for any risky feature; defaults are always safe. GPE's self-patcher has no equivalent
+      gating for HIGH_IMPACT patches — a bad insight could auto-apply a destructive change.
+      Adding a required APPLY_HIGH_IMPACT=true environment flag (or YAML field in the patch
+      manifest) that must be explicitly set before any HIGH expected_impact patch is applied
+      directly mirrors this proven safety pattern.
+    target_skill: gpe-core/skills/evolution/self-patcher/SKILL.md
+    implementation_effort: LOW
+    expected_impact: HIGH
+    review_gate_passed: false
+    status: discovered
+    implemented_in_commit: null
+
+  - id: LEARN-2026-04-16-006
+    source_repo: freqtrade/freqtrade
+    discovered_at: 2026-04-16
+    domain: self_improvement
+    insight_type: pattern
+    title: "Domain-specific _process_* validation methods per review gate"
+    description: >
+      Freqtrade's configuration validation uses dedicated _process_runmode(), _process_exchange(),
+      _process_stake_amount() methods rather than a single monolithic validator. GPE's review
+      gates are binary pass/fail checks with no domain awareness. Splitting gpe-core/gates/ into
+      per-domain gate modules (gate_legal.yaml, gate_trading.yaml, gate_evolution.yaml) with
+      domain-specific required fields would catch invalid patches earlier and give clearer
+      failure messages in FAILURE_REGISTRY entries.
+    target_skill: gpe-core/gates/
+    implementation_effort: MEDIUM
+    expected_impact: MEDIUM
+    review_gate_passed: false
+    status: discovered
+    implemented_in_commit: null
+
+  - id: LEARN-2026-04-16-007
+    source_repo: freqtrade/freqtrade
+    discovered_at: 2026-04-16
+    domain: self_improvement
+    insight_type: architecture
+    title: "Split LEARNING_QUEUE into discovered-staging vs approved tiers"
+    description: >
+      Freqtrade's dual database architecture (dry-run in-memory vs production SQLite) enforces
+      a hard boundary between test state and live state. GPE's LEARNING_QUEUE mixes unvalidated
+      discovered items with approved ones in a single file, risking accidental promotion. Adding
+      a STAGING_QUEUE.yaml for discovered/validated items and keeping LEARNING_QUEUE.yaml only
+      for approved items ready for self-patcher pickup would make the pipeline safer and auditable.
+    target_skill: gpe-core/evolution/LEARNING_QUEUE.yaml
+    implementation_effort: LOW
+    expected_impact: MEDIUM
+    review_gate_passed: false
+    status: discovered
+    implemented_in_commit: null
+
+# Entry format:
+# - id: LEARN-[YYYYMMDD]-[SEQ]
+#   source_repo: "owner/repo"
+#   discovered_at: "YYYY-MM-DD"
+#   domain: "[ai_agents | legal_tech | trading | automation_empire | self_improvement]"
+#   insight_type: "[pattern | implementation | architecture | template | tool]"
+#   title: "[Short title of what was found]"
+#   description: >
+#     [2-4 sentences: what was found, why it matters, how it improves GPE]
+#   target_skill: "[Which GPE skill or file this improves]"
+#   implementation_effort: "[LOW (< 1h) | MEDIUM (1-4h) | HIGH (> 4h)]"
+#   expected_impact: "[HIGH | MEDIUM | LOW]"
+#   review_gate_passed: false
+#   status: "discovered"  # discovered | validated | approved | implemented | archived
+#   implemented_in_commit: null

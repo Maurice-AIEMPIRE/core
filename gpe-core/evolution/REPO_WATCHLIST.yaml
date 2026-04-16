@@ -1,0 +1,125 @@
+# REPO_WATCHLIST.yaml
+# GPE CORE - GITHUB INTELLIGENCE WATCHLIST
+# These repos are scanned automatically for implementable improvements.
+# Each repo maps to a GPE domain and an analysis priority.
+
+version: "1.0"
+last_updated: "2026-04-16"
+scan_frequency: weekly
+
+domains:
+
+  ai_agents:
+    description: "Self-improving agent frameworks, orchestration, memory, tooluse"
+    repos:
+      - repo: "crewAIInc/crewAI"
+        focus: ["multi-agent coordination", "role-based agents", "task delegation"]
+        extract_for: ["nucleus skill", "evolution-loop", "RESOLVER patterns"]
+        priority: CRITICAL
+
+      - repo: "microsoft/autogen"
+        focus: ["agent conversation patterns", "tool calling", "human-in-loop"]
+        extract_for: ["brief templates", "skill orchestration"]
+        priority: CRITICAL
+
+      - repo: "Significant-Gravitas/AutoGPT"
+        focus: ["self-improvement loops", "memory management", "plugin system"]
+        extract_for: ["evolution-loop", "SKILL_INDEX patterns", "self-patcher"]
+        priority: HIGH
+
+      - repo: "princeton-nlp/SWE-agent"
+        focus: ["autonomous code editing", "bug detection", "self-repair"]
+        extract_for: ["self-patcher skill", "FAILURE_REGISTRY patterns"]
+        priority: HIGH
+
+      - repo: "langchain-ai/langchain"
+        focus: ["chain patterns", "retrieval", "tool use abstractions"]
+        extract_for: ["brief templates", "context pack builder"]
+        priority: MEDIUM
+
+      - repo: "OpenDevin/OpenDevin"
+        focus: ["autonomous software dev", "code execution loops"]
+        extract_for: ["evolution-loop", "self-patcher"]
+        priority: MEDIUM
+
+  legal_tech:
+    description: "Legal document analysis, NLP for legal, court data pipelines"
+    repos:
+      - repo: "freelawproject/courtlistener"
+        focus: ["court document parsing", "legal data structures", "opinion analysis"]
+        extract_for: ["legal-evidence skill", "legal-consistency skill"]
+        priority: HIGH
+
+      - repo: "lexpredict/lexnlp"
+        focus: ["legal NLP", "entity extraction from contracts", "date/amount parsing"]
+        extract_for: ["legal-claims skill", "data-ops skill"]
+        priority: HIGH
+
+      - repo: "openlawteam/openlaw-core"
+        focus: ["legal document automation", "contract templates", "clause detection"]
+        extract_for: ["legal-settlement skill", "brief_legal template"]
+        priority: MEDIUM
+
+      - repo: "smashew/NameChanger"
+        focus: ["document processing patterns"]
+        extract_for: ["data-ops skill"]
+        priority: LOW
+
+  trading:
+    description: "Algorithmic trading, risk management, backtesting engines"
+    repos:
+      - repo: "freqtrade/freqtrade"
+        focus: ["bot architecture", "risk management", "strategy framework", "live vs paper mode"]
+        extract_for: ["risk-monitor skill", "brief_trading template", "TRADING_BRAIN patterns"]
+        priority: CRITICAL
+
+      - repo: "jesse-ai/jesse"
+        focus: ["backtesting precision", "1% risk implementation", "trade logging"]
+        extract_for: ["risk-monitor skill", "FAILURE_REGISTRY trading entries"]
+        priority: HIGH
+
+      - repo: "nautechsystems/nautilus_trader"
+        focus: ["high-frequency patterns", "portfolio risk", "execution engine"]
+        extract_for: ["risk-monitor skill", "brief_trading template"]
+        priority: HIGH
+
+      - repo: "kernc/backtesting.py"
+        focus: ["simple backtesting", "PnL calculation", "drawdown analysis"]
+        extract_for: ["brief_trading template", "review gates"]
+        priority: MEDIUM
+
+  automation_empire:
+    description: "Revenue automation, workflow engines, lead generation, affiliate systems"
+    repos:
+      - repo: "n8n-io/n8n"
+        focus: ["workflow automation patterns", "trigger/action model", "node architecture"]
+        extract_for: ["evolution-loop skill", "empire automation skills"]
+        priority: HIGH
+
+      - repo: "activepieces/activepieces"
+        focus: ["automation building blocks", "webhook patterns", "integration patterns"]
+        extract_for: ["revenue-audit skill", "empire automation"]
+        priority: MEDIUM
+
+      - repo: "PostHog/posthog"
+        focus: ["analytics pipeline", "funnel tracking", "revenue metrics"]
+        extract_for: ["revenue-audit skill", "empire KPI tracking"]
+        priority: MEDIUM
+
+  self_improvement:
+    description: "Systems that improve themselves — the meta-layer"
+    repos:
+      - repo: "noahshinn/reflexion"
+        focus: ["verbal reinforcement learning", "self-critique loops", "failure reflection"]
+        extract_for: ["FAILURE_REGISTRY patterns", "self-patcher skill", "evolution-loop"]
+        priority: CRITICAL
+
+      - repo: "MineDojo/Voyager"
+        focus: ["skill library building", "self-driven exploration", "curriculum learning"]
+        extract_for: ["SKILL_INDEX patterns", "evolution-loop", "repo-analyzer"]
+        priority: HIGH
+
+      - repo: "AbanteAI/mentat"
+        focus: ["autonomous code improvement", "codebase understanding"]
+        extract_for: ["self-patcher skill", "system-audit skill"]
+        priority: HIGH
