@@ -6,7 +6,19 @@
 registry_version: "1.0"
 last_updated: "2026-04-16"
 
-entries: []
+entries:
+  - id: FAIL-2026-04-16-001
+    timestamp: "2026-04-16"
+    task_type: legal-consistency-check
+    skill: legal-consistency
+    failure_type: evidence_gap
+    description: "Execution blocked — mandatory inputs (EVIDENCE_MAP.md, CLAIM_MATRIX.md) not found at expected static paths."
+    impact: HIGH
+    root_cause: "Skills and RESOLVER assume static file paths. Real file locations are dynamic and vary per case/project."
+    fix_applied: "Added required_context field to legal-contradiction-analysis intent. Skills must include active search/validation phase before execution."
+    resolver_change_required: true
+    skill_change_required: true
+    status: resolved
 
 # Entry format:
 # - id: FAIL-[YYYYMMDD]-[SEQ]

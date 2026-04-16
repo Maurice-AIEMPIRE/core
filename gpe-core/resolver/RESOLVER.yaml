@@ -85,6 +85,24 @@ precision_routes:
     primary_context: "/root/gpe-legal-central/"
     priority: MEDIUM
 
+  - intent_id: legal-contradiction-analysis
+    trigger_phrases:
+      - "find contradictions"
+      - "widerspruch analysieren"
+      - "logischer bruch"
+      - "contradiction check"
+      - "widersprüche finden"
+      - "gegner widerspruch"
+    skill: legal-consistency
+    skill_path: "fort-knox/icloud-sync/.claude/skills/legal-consistency/SKILL.md"
+    primary_context: "/root/gpe-legal-central/"
+    required_context:
+      - timeline
+      - evidence_map
+      - claims_matrix
+    output_type: contradiction_report
+    priority: HIGH
+
   - intent_id: legal-consistency
     trigger_phrases:
       - "check contradictions"
