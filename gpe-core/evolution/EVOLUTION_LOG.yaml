@@ -23,6 +23,26 @@ system_version_history:
 
 applied_improvements: []
 
+daily_runs:
+  - date: "2026-04-16"
+    triggered_by: "cron-daily"
+    repos_attempted:
+      - repo: "noahshinn/reflexion"
+        priority: CRITICAL
+        domain: self_improvement
+        result: SKIPPED
+        reason: "GitHub API (gh CLI) and WebFetch both require permissions not granted in this session"
+      - repo: "crewAIInc/crewAI"
+        priority: CRITICAL
+        domain: ai_agents
+        result: SKIPPED
+        reason: "GitHub API (gh CLI) and WebFetch both require permissions not granted in this session"
+    repos_analyzed: []
+    insights_discovered: 0
+    open_failures: 0
+    pending_learning_queue: 0
+    notes: "No repo data could be fetched. Both top-2 CRITICAL repos skipped due to missing GitHub access permissions. Re-run after granting 'gh api' or WebFetch permissions."
+
 # Improvement entry format:
 # - id: EVOL-[YYYYMMDD]-[SEQ]
 #   learn_queue_id: "LEARN-[ID]"
