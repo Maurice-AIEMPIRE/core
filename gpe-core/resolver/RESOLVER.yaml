@@ -1,0 +1,153 @@
+# RESOLVER.yaml
+# GPE CORE ROUTING TABLE
+# Intent-based mapping for the entire agent ecosystem.
+# Every entry must map a specific user intent to a specialized skill.
+
+version: "1.0"
+last_updated: "2026-04-16"
+
+precision_routes:
+  - intent_id: legal-opponent-analysis
+    trigger_phrases:
+      - "analyze opponent"
+      - "gegnerverhalten"
+      - "opponent behavior"
+      - "opponent strategy"
+      - "gegner analysieren"
+    skill: legal-opponent
+    skill_path: "fort-knox/icloud-sync/.claude/skills/legal-opponent/SKILL.md"
+    primary_context: "/root/gpe-legal-central/"
+    priority: HIGH
+
+  - intent_id: legal-settlement
+    trigger_phrases:
+      - "settlement strategy"
+      - "vergleich bewerten"
+      - "settlement negotiation"
+      - "vergleichsstrategie"
+    skill: legal-settlement
+    skill_path: "fort-knox/icloud-sync/.claude/skills/legal-settlement/SKILL.md"
+    primary_context: "/root/gpe-legal-central/"
+    priority: HIGH
+
+  - intent_id: legal-claims
+    trigger_phrases:
+      - "claims matrix"
+      - "forderungsliste"
+      - "claims analysis"
+      - "forderungen"
+    skill: legal-claims
+    skill_path: "fort-knox/icloud-sync/.claude/skills/legal-claims/SKILL.md"
+    primary_context: "/root/gpe-legal-central/"
+    priority: HIGH
+
+  - intent_id: legal-evidence
+    trigger_phrases:
+      - "evidence map"
+      - "exhibit index"
+      - "beweisliste"
+      - "beweismittel"
+    skill: legal-evidence
+    skill_path: "fort-knox/icloud-sync/.claude/skills/legal-evidence/SKILL.md"
+    primary_context: "/root/gpe-legal-central/"
+    priority: HIGH
+
+  - intent_id: legal-warroom
+    trigger_phrases:
+      - "coordinate legal"
+      - "legal pipeline"
+      - "legal warroom"
+      - "rechtsstrategie koordinieren"
+    skill: legal-warroom
+    skill_path: "fort-knox/icloud-sync/.claude/skills/legal-warroom/SKILL.md"
+    primary_context: "/root/gpe-legal-central/"
+    priority: HIGH
+
+  - intent_id: system-orchestration
+    trigger_phrases:
+      - "system orchestration"
+      - "chief of staff"
+      - "nucleus"
+      - "system koordinierung"
+    skill: nucleus
+    skill_path: "fort-knox/icloud-sync/.claude/skills/nucleus/SKILL.md"
+    primary_context: "/root/AGENTS.md"
+    priority: HIGH
+
+  - intent_id: data-normalization
+    trigger_phrases:
+      - "normalize data"
+      - "ingest raw files"
+      - "daten normalisieren"
+      - "data ingest"
+    skill: data-ops
+    skill_path: "fort-knox/icloud-sync/.claude/skills/data-ops/SKILL.md"
+    primary_context: "/root/gpe-legal-central/"
+    priority: MEDIUM
+
+  - intent_id: legal-consistency
+    trigger_phrases:
+      - "check contradictions"
+      - "konsistenzprüfung"
+      - "legal consistency"
+      - "widersprüche prüfen"
+    skill: legal-consistency
+    skill_path: "fort-knox/icloud-sync/.claude/skills/legal-consistency/SKILL.md"
+    primary_context: "/root/gpe-legal-central/"
+    priority: MEDIUM
+
+  - intent_id: sales-leadgen
+    trigger_phrases:
+      - "lead generation"
+      - "sales pipeline"
+      - "leads generieren"
+      - "verkaufspipeline"
+    skill: sales-leadgen
+    skill_path: "fort-knox/icloud-sync/.claude/skills/sales-leadgen/SKILL.md"
+    primary_context: "/root/aiempire/"
+    priority: MEDIUM
+
+  - intent_id: system-audit
+    trigger_phrases:
+      - "reachability audit"
+      - "audit skills"
+      - "system audit"
+      - "skill-inventar"
+    skill: system-audit
+    skill_path: "/root/.claude/skills/system-audit/SKILL.md"
+    primary_context: "/root/AGENTS.md"
+    priority: MEDIUM
+
+domain_fallbacks:
+  - domain: legal
+    agent: legal
+    entrypoint: "/root/gpe-legal-central/"
+    trigger_keywords: ["Kammertermin", "gericht", "Klage", "Beweis", "Timeline"]
+
+  - domain: trading
+    agent: xrp
+    entrypoint: "/root/TRADING_BRAIN.md"
+    trigger_keywords: ["Trading", "XRP", "Risk 1%", "Backtesting", "Chart"]
+
+  - domain: empire
+    agent: empire_control
+    entrypoint: "/root/aiempire/"
+    trigger_keywords: ["Revenue", "Affiliate", "Lead Gen", "Empire Status"]
+
+  - domain: system
+    agent: codex
+    entrypoint: "/root/AGENTS.md"
+    trigger_keywords: ["Agent rules", "Skill setup", "Workflow", "Config"]
+
+  - domain: memory
+    agent: memory_ops
+    entrypoint: "/root/.claude/projects/-root/memory/"
+    trigger_keywords: ["Remember", "Forget", "Who am I", "Preference"]
+
+escalation:
+  - step: 1
+    action: "Search AGENTS.md for secondary roles"
+  - step: 2
+    action: "Route to jarvis (Control Plane) for strategic clarification"
+  - step: 3
+    action: "Never guess a path. If resolver is silent, ask the user."
