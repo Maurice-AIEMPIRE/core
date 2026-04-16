@@ -43,6 +43,16 @@ daily_runs:
     pending_learning_queue: 0
     notes: "No repo data could be fetched. Both top-2 CRITICAL repos skipped due to missing GitHub access permissions. Re-run after granting 'gh api' or WebFetch permissions."
 
+  - date: "2026-04-16"
+    triggered_by: "cron-daily"
+    repos_analyzed:
+      - microsoft/autogen
+      - freqtrade/freqtrade
+    insights_discovered: 7
+    open_failures: 0
+    pending_learning_queue: 7
+    notes: "Successfully analyzed next 2 CRITICAL repos (autogen + freqtrade). 3 insights from autogen (agent-as-tool, circuit breaker, layered routing), 4 from freqtrade (dry-run staging, opt-in flag, domain gates, split queue). All status=discovered, no patches applied."
+
 # Improvement entry format:
 # - id: EVOL-[YYYYMMDD]-[SEQ]
 #   learn_queue_id: "LEARN-[ID]"
