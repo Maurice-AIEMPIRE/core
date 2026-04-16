@@ -3,7 +3,7 @@
 # Intent-based mapping for the entire agent ecosystem.
 # Every entry must map a specific user intent to a specialized skill.
 
-version: "1.0"
+version: "1.1"
 last_updated: "2026-04-16"
 
 precision_routes:
@@ -117,6 +117,88 @@ precision_routes:
     skill_path: "/root/.claude/skills/system-audit/SKILL.md"
     primary_context: "/root/AGENTS.md"
     priority: MEDIUM
+
+  # ── EVOLUTION DOMAIN ──────────────────────────────────────────────────────
+
+  - intent_id: evolution-loop
+    trigger_phrases:
+      - "run evolution loop"
+      - "system verbessern"
+      - "selbst verbessern"
+      - "improve system"
+      - "evolution loop starten"
+      - "gpe verbessern"
+    skill: evolution-loop
+    skill_path: "gpe-core/skills/evolution/evolution-loop/SKILL.md"
+    primary_context: "gpe-core/evolution/"
+    priority: CRITICAL
+
+  - intent_id: repo-scout
+    trigger_phrases:
+      - "scout repos"
+      - "find best repos"
+      - "github scout"
+      - "neue repos finden"
+      - "repos suchen"
+    skill: repo-scout
+    skill_path: "gpe-core/skills/evolution/repo-scout/SKILL.md"
+    primary_context: "gpe-core/evolution/REPO_WATCHLIST.yaml"
+    priority: HIGH
+
+  - intent_id: repo-analyzer
+    trigger_phrases:
+      - "analyze repo"
+      - "repo analysieren"
+      - "extract from repo"
+      - "was können wir von X lernen"
+      - "repo teardown"
+    skill: repo-analyzer
+    skill_path: "gpe-core/skills/evolution/repo-analyzer/SKILL.md"
+    primary_context: "gpe-core/evolution/LEARNING_QUEUE.yaml"
+    priority: HIGH
+
+  - intent_id: self-patcher
+    trigger_phrases:
+      - "self patch"
+      - "fix failures"
+      - "selbst reparieren"
+      - "auto fix"
+      - "patch system"
+      - "fehler beheben"
+    skill: self-patcher
+    skill_path: "gpe-core/skills/evolution/self-patcher/SKILL.md"
+    primary_context: "gpe-core/failures/FAILURE_REGISTRY.yaml"
+    priority: HIGH
+
+  # ── TRADING DOMAIN ────────────────────────────────────────────────────────
+
+  - intent_id: trading-risk-monitor
+    trigger_phrases:
+      - "risk check"
+      - "bot status"
+      - "1% check"
+      - "trading audit"
+      - "risiko prüfen"
+      - "welche bots laufen"
+    skill: risk-monitor
+    skill_path: "gpe-core/skills/trading/risk-monitor/SKILL.md"
+    primary_context: "/root/TRADING_BRAIN.md"
+    priority: CRITICAL
+
+  # ── EMPIRE DOMAIN ─────────────────────────────────────────────────────────
+
+  - intent_id: revenue-audit
+    trigger_phrases:
+      - "revenue audit"
+      - "empire status"
+      - "was verdienen wir"
+      - "income check"
+      - "affiliate audit"
+      - "revenue check"
+    skill: revenue-audit
+    skill_path: "gpe-core/skills/empire/revenue-audit/SKILL.md"
+    primary_context: "/root/aiempire/"
+    priority: HIGH
 
 domain_fallbacks:
   - domain: legal

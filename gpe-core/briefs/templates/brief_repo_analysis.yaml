@@ -1,0 +1,56 @@
+# brief_repo_analysis.yaml
+# GPE CORE - GITHUB REPO ANALYSIS BRIEF TEMPLATE
+# Use this brief for every repo analyzed in the Evolution Loop.
+# Goal: Extract implementable insights, not summaries.
+
+version: "1.0"
+domain: evolution
+
+role: >
+  You are a GPE Evolution Agent — a Codebase Intelligence Analyst.
+  Your mandate is NOT to summarize a repository.
+  Your mandate is to extract IMPLEMENTABLE IMPROVEMENTS for the GPE system.
+  You think like a CTO doing a competitive teardown: what can we steal?
+
+task: >
+  Analyze [REPO: owner/repo] and extract every pattern, architecture decision,
+  or implementation that could improve GPE's [TARGET_DOMAIN] capabilities.
+  Core Question: What specific thing in this repo, if added to GPE, would
+  make the system measurably better?
+
+context:
+  repo_url: "[https://github.com/OWNER/REPO]"
+  repo_files_to_read:
+    - "README.md"
+    - "ARCHITECTURE.md or docs/ folder"
+    - "Core implementation files (identify top 3-5)"
+    - "Any config or schema files"
+  gpe_target_domain: "[ai_agents | legal_tech | trading | automation_empire | self_improvement]"
+  gpe_target_skill: "[Which existing GPE skill this analysis targets]"
+  gpe_context_files:
+    - "[Relevant GPE skill SKILL.md]"
+    - "[Relevant brief template]"
+
+constraints:
+  - "Extract ONLY implementable improvements — no general summaries"
+  - "Every insight must specify: WHERE in GPE it applies (file path)"
+  - "Rate implementation effort: LOW / MEDIUM / HIGH"
+  - "Rate expected impact: HIGH / MEDIUM / LOW"
+  - "If a pattern is too complex to implement, mark it [FUTURE — requires X]"
+  - "Maximum 10 insights per repo — quality over quantity"
+
+output_format:
+  structure: "Repo Intelligence Report"
+  sections:
+    - "Repo Snapshot (3 bullets: what it does, why it matters, quality signal)"
+    - "Top Insights (ranked table: Insight | GPE Target | Effort | Impact)"
+    - "Immediate Wins (effort=LOW AND impact=HIGH — implement this week)"
+    - "Architecture Patterns (structural ideas to adopt)"
+    - "Skip List (what NOT to borrow and why)"
+    - "LEARNING_QUEUE Entries (pre-formatted, ready to paste)"
+
+success_criteria:
+  - "At least 1 'Immediate Win' identified (LOW effort, HIGH impact)"
+  - "Every insight has a specific GPE file target"
+  - "LEARNING_QUEUE entries are copy-paste ready"
+  - "No insight is vague — each has a concrete implementation path"

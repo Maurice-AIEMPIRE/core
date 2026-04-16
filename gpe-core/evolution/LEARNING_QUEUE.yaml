@@ -1,0 +1,25 @@
+# LEARNING_QUEUE.yaml
+# GPE CORE - LEARNING PIPELINE
+# Insights extracted from repo analysis waiting to be implemented.
+# Status flow: discovered → validated → approved → implemented → archived
+
+version: "1.0"
+last_updated: "2026-04-16"
+
+queue: []
+
+# Entry format:
+# - id: LEARN-[YYYYMMDD]-[SEQ]
+#   source_repo: "owner/repo"
+#   discovered_at: "YYYY-MM-DD"
+#   domain: "[ai_agents | legal_tech | trading | automation_empire | self_improvement]"
+#   insight_type: "[pattern | implementation | architecture | template | tool]"
+#   title: "[Short title of what was found]"
+#   description: >
+#     [2-4 sentences: what was found, why it matters, how it improves GPE]
+#   target_skill: "[Which GPE skill or file this improves]"
+#   implementation_effort: "[LOW (< 1h) | MEDIUM (1-4h) | HIGH (> 4h)]"
+#   expected_impact: "[HIGH | MEDIUM | LOW]"
+#   review_gate_passed: false
+#   status: "discovered"  # discovered | validated | approved | implemented | archived
+#   implemented_in_commit: null

@@ -1,0 +1,39 @@
+# EVOLUTION_LOG.yaml
+# GPE CORE - SYSTEM EVOLUTION HISTORY
+# Every improvement applied to the system is logged here.
+# This is the system's "growth record" — proof it gets better over time.
+
+version: "1.0"
+last_updated: "2026-04-16"
+
+system_version_history:
+  - version: "1.0"
+    date: "2026-04-16"
+    description: "GPE Core Baseline — Resolver, Briefs, Gates, Failure Registry, Skill Index"
+    skills_added: 10
+    resolver_routes_added: 10
+    triggered_by: "manual"
+
+  - version: "1.1"
+    date: "2026-04-16"
+    description: "GPE Evolution Module — GitHub Intelligence, Self-Patcher, Evolution Loop"
+    skills_added: 8
+    resolver_routes_added: 8
+    triggered_by: "manual"
+
+applied_improvements: []
+
+# Improvement entry format:
+# - id: EVOL-[YYYYMMDD]-[SEQ]
+#   learn_queue_id: "LEARN-[ID]"
+#   applied_at: "YYYY-MM-DD"
+#   applied_by: "[manual | self-patcher | evolution-loop]"
+#   source_repo: "owner/repo"
+#   change_type: "[new_skill | skill_enhancement | resolver_update | brief_update | gate_update]"
+#   files_changed:
+#     - "[path/to/file]"
+#   description: "[What was changed and why]"
+#   system_version_bump: "[1.0 -> 1.1]"
+#   validated: true
+#   rollback_available: true
+#   rollback_commit: "[git commit hash if applicable]"
