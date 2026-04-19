@@ -1,0 +1,47 @@
+[Unit]
+Description=GPE-Core Schwarzes-Loch-System
+Documentation=file:///home/user/core/gpe-core/nordstern.md
+After=network.target ollama.service
+Wants=ollama.service
+StartLimitIntervalSec=120
+StartLimitBurst=3
+
+[Service]
+# Type=forking: start_all.sh backgrounded Prozesse und beendet sich → systemd verfolgt die Kinder
+Type=forking
+WorkingDirectory=/home/user/core/gpe-core
+
+# Startup via kontrolliertem Wrapper
+ExecStart=/bin/bash /home/user/core/gpe-core/start_all.sh start
+ExecStop=/bin/bash /home/user/core/gpe-core/start_all.sh stop
+ExecReload=/bin/bash /home/user/core/gpe-core/start_all.sh restart
+
+# Restart nur bei echtem Crash (nicht bei manuellem Stop)
+Restart=on-failure
+RestartSec=15
+
+# Umgebungsvariablen
+User=root
+Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONPATH=/home/user/core/gpe-core:/home/user/core/gpe-core/analyzer:/home/user/core/gpe-core/dispatcher"
+Environment="OLLAMA_URL=http://localhost:11434"
+Environment="ENABLE_SELF_IMPROVEMENT=0"
+
+# Logging direkt zu journald
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gpe-core
+
+# Resource Limits — verhindert RAM-Erschöpfung und Swap-Eskalation
+# 40GB RAM-Limit für den gesamten GPE-Core Prozessbaum
+MemoryMax=40G
+MemorySwapMax=2G
+# CPU nicht limitieren — vollen Ryzen 7950X3D nutzen
+TasksMax=256
+
+# Sicherheit
+NoNewPrivileges=false
+ProtectSystem=false
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,36 @@
+{
+  "id": "pam",
+  "name": "Pam",
+  "role": "Newsletter & Products",
+  "description": "Newsletter Writing, Digital Products, Product Launches",
+  "model": "ollama/qwen3:32b",
+  "provider": "ollama",
+  "device": "server",
+  "capabilities": [
+    "newsletter_writing",
+    "product_creation",
+    "product_launch",
+    "email_marketing",
+    "content_writing",
+    "revenue_tracking"
+  ],
+  "maxSteps": 80,
+  "reasoningMode": "medium",
+  "memoryEnabled": true,
+  "skills": [
+    "content-engine",
+    "agent-earner",
+    "bookkeeper",
+    "laser-focus"
+  ],
+  "commands": {
+    "/pam-newsletter": "Erstelle Newsletter-Entwurf",
+    "/pam-product": "Neues digitales Produkt erstellen",
+    "/pam-launch": "Produkt-Launch-Plan erstellen",
+    "/pam-email": "E-Mail-Sequenz schreiben"
+  },
+  "telegram": {
+    "topic": "Newsletter & Products",
+    "topicEmoji": "📧"
+  }
+}
