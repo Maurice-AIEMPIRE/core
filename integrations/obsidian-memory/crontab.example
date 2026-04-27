@@ -1,0 +1,23 @@
+# Obsidian memory system — example crontab.
+# Replace /path/to with your actual paths, then `crontab crontab.example`.
+#
+# All scripts source $VAULT/.env automatically when VAULT is set.
+
+VAULT=/path/to/ObsidianVault
+OBSIDIAN_MEM=/path/to/core/integrations/obsidian-memory
+PATH=/usr/local/bin:/usr/bin:/bin
+
+# 06:50 — scaffold today's daily note from Todoist + Google Calendar
+50 6 * * * $OBSIDIAN_MEM/scripts/generate-daily-note.sh >> $VAULT/.cron.log 2>&1
+
+# 07:00 — morning briefing to Telegram
+0 7 * * * $OBSIDIAN_MEM/scripts/morning-briefing.sh    >> $VAULT/.cron.log 2>&1
+
+# 09:00 — finance briefing (weekdays only)
+0 9 * * 1-5 $OBSIDIAN_MEM/scripts/finance-briefing.sh   >> $VAULT/.cron.log 2>&1
+
+# Sundays 22:00 — flag orphan notes for the weekly review
+0 22 * * 0 $OBSIDIAN_MEM/scripts/flag-orphans.sh        >> $VAULT/.cron.log 2>&1
+
+# Daily 23:55 — emit hot-memory occupancy report (the AI acts on it)
+55 23 * * * $OBSIDIAN_MEM/scripts/promote-to-vault.sh   >> $VAULT/.cron.log 2>&1
