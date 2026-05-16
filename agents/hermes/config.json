@@ -1,0 +1,85 @@
+{
+  "name": "hermes",
+  "role": "Message Bus & Internal Router",
+  "version": "1.0.0",
+  "port": 18790,
+  "endpoint": "http://127.0.0.1:18790",
+  "runtime": "python",
+  "entrypoint": "gpe-core/dispatcher/task_router.py",
+  "bind": "127.0.0.1",
+  "agents": {
+    "jarvis": {
+      "url": "http://127.0.0.1:18791",
+      "capabilities": ["memory", "orchestration", "conversation", "intent_classification"],
+      "priority": 5,
+      "required": true
+    },
+    "openclaw": {
+      "url": "http://127.0.0.1:18789",
+      "capabilities": ["browser", "skills", "content", "youtube", "code", "file", "trading_monitor"],
+      "priority": 8,
+      "required": true
+    },
+    "harvey": {
+      "url": "http://127.0.0.1:18792",
+      "capabilities": ["legal", "stripe", "trading_decision", "sales", "compliance"],
+      "priority": 7,
+      "required": false
+    }
+  },
+  "fallback_order": ["openclaw", "jarvis", "harvey"],
+  "intent_routing": {
+    "content_creation": "skills",
+    "browser_action": "browser",
+    "code_generation": "skills",
+    "legal_review": "legal",
+    "memory_recall": "memory",
+    "conversation": "conversation",
+    "trading_signal": "trading_decision",
+    "payment_event": "stripe",
+    "youtube_publish": "youtube",
+    "file_operation": "file"
+  },
+  "knowledge_graph": {
+    "backend": "blackhole",
+    "module": "gpe-core/analyzer/knowledge_graph_v2.py",
+    "dbPath": "/root/.openclaw/knowledge_graph.db"
+  },
+  "supervisor": {
+    "enabled": true,
+    "module": "gpe-core/meta_supervisor_full.py",
+    "pidDir": "/var/run/hermes/",
+    "logDir": "/var/log/hermes/",
+    "services": {
+      "jarvis": "agents/jarvis/runtime/main.py",
+      "openclaw": "openclaw/gateway/server.js",
+      "harvey": "agents/harvey/runtime/main.ts"
+    },
+    "restartCooldownSec": 30,
+    "maxRestartsPerHour": 5
+  },
+  "limits": {
+    "messageTimeoutSec": 60,
+    "ratelimit": {
+      "perAgentPerSec": 100,
+      "globalPerSec": 500
+    },
+    "retryPolicy": {
+      "maxAttempts": 4,
+      "backoffSec": [2, 4, 8, 16]
+    }
+  },
+  "audit": {
+    "auditTrail": "clawprint",
+    "deadLetterQueue": "/var/log/hermes/dlq.jsonl"
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "topicId": 2,
+      "topicName": "Hermes — System Status",
+      "alertsOnly": true
+    }
+  },
+  "soul_file": "./SOUL.md"
+}

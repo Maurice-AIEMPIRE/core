@@ -1,0 +1,82 @@
+{
+  "name": "harvey",
+  "role": "Legal & Sales Counsel",
+  "version": "1.0.0",
+  "port": 18792,
+  "endpoint": "http://127.0.0.1:18792",
+  "runtime": "node",
+  "entrypoint": "integrations/telegram/src/legal_review.ts",
+  "model": {
+    "primary": "ollama/deepseek-r1:32b",
+    "fallback": "ollama/qwen3:32b",
+    "temperature": 0.3,
+    "maxTokens": 16384
+  },
+  "capabilities": [
+    "legal",
+    "legal_review",
+    "stripe",
+    "trading_decision",
+    "sales",
+    "compliance",
+    "payment_event"
+  ],
+  "bus": {
+    "hermesUrl": "http://127.0.0.1:18790",
+    "registerOnStart": true,
+    "heartbeatInterval": 30
+  },
+  "skills": [
+    "legal-opponent",
+    "legal-settlement",
+    "legal-claims",
+    "legal-evidence",
+    "legal-warroom",
+    "legal-consistency",
+    "risk-monitor",
+    "sales-leadgen",
+    "revenue-audit",
+    "stripe-webhook"
+  ],
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "topicId": 4,
+      "topicName": "Harvey — Legal & Sales",
+      "persona": "harvey",
+      "envVar": "BOT_PERSONA=harvey"
+    },
+    "stripe": {
+      "enabled": true,
+      "webhookPath": "/webhooks/stripe",
+      "hmacVerify": true,
+      "secretEnvVar": "STRIPE_WEBHOOK_SECRET"
+    }
+  },
+  "monetization": {
+    "freeReviewsPerUser": 2,
+    "monthlyPriceEnvVar": "LEGAL_MONTHLY_PRICE",
+    "monthlyPriceDefault": "49€",
+    "perDocPriceEnvVar": "LEGAL_PER_DOC_PRICE",
+    "perDocPriceDefault": "9€",
+    "paymentLinkEnvVar": "STRIPE_PAYMENT_LINK",
+    "usageDir": "~/.openclaw/legal_usage"
+  },
+  "trading": {
+    "mode": "paper",
+    "riskRulePercent": 1,
+    "executeAllowed": false,
+    "signalsOnly": true
+  },
+  "knowledge_graph": {
+    "subgraph": "legal",
+    "blackholeClient": "integrations/telegram/src/blackhole_client.ts"
+  },
+  "boundaries": {
+    "requireConfirmationFor": ["send_email", "send_contract", "real_trade", "spend"],
+    "disclaimerRequired": true,
+    "disclaimerText": "Keine Rechtsberatung — Indikation auf Basis der vorliegenden Dokumente.",
+    "spendThresholdEur": 50
+  },
+  "soul_file": "./SOUL.md"
+}

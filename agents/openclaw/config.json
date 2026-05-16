@@ -1,0 +1,55 @@
+{
+  "name": "openclaw",
+  "role": "Execution Engine",
+  "version": "1.0.0",
+  "port": 18789,
+  "endpoint": "http://127.0.0.1:18789",
+  "inherits": "../../.openclaw/openclaw.json",
+  "note": "Master-Config bleibt /.openclaw/openclaw.json — diese Datei nur Bus-Integration",
+  "bus": {
+    "hermesUrl": "http://127.0.0.1:18790",
+    "registerOnStart": true,
+    "heartbeatInterval": 30
+  },
+  "capabilities": [
+    "browser",
+    "skills",
+    "content",
+    "youtube",
+    "code",
+    "file",
+    "trading_monitor",
+    "seo",
+    "meta_ads"
+  ],
+  "skills_routing": {
+    "content_creation": ["content-engine", "x-twitter-browser"],
+    "youtube_publish": ["youtube-factory", "thumbnail-optimizer", "youtube-studio-uploader"],
+    "code_generation": ["pi-coder"],
+    "browser_action": ["*"],
+    "file_operation": ["pi-coder", "agent-memory-ultimate"],
+    "trading_signal": ["trading-monitor"],
+    "ads_management": ["meta-ads"]
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "topicId": 3,
+      "topicName": "OpenClaw — Execution"
+    }
+  },
+  "browser": {
+    "defaultProfile": "openclaw",
+    "profiles": {
+      "openclaw": { "cdpPort": 18800 },
+      "work":     { "cdpPort": 18801 },
+      "chrome":   { "cdpUrl": "http://127.0.0.1:18792" }
+    }
+  },
+  "boundaries": {
+    "deniedDomains": ["banking", "paypal-direct"],
+    "requireConfirmationFor": ["publish", "send_message", "spend"],
+    "auditTrail": "clawprint"
+  },
+  "soul_file": "./SOUL.md"
+}

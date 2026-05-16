@@ -1,11 +1,21 @@
 #!/usr/bin/env python3
 """
-GPE-Core Task Router v2 — Intelligent Routing
-Fixes:
-  - Nutzt knowledge_graph_v2 (BlackHoleGraph) — konsistent mit napoleon_core
-  - Ersetzt random.randint durch gewichtetes Scoring
-  - Fügt Agent-Health-Checks hinzu
-  - Verhindert SQL-Injection durch Parameter-Binding
+Hermes Task Router v3 — Core4 Bus
+
+This module IS Hermes' routing core. It dispatches tasks to the 3 downstream
+agents (Jarvis, OpenClaw, Harvey) based on capability scoring.
+
+History:
+  v1 — random routing
+  v2 — capability scoring + BlackHole KG
+  v3 — Core4 migration: 7 Friends agents collapsed to 3 downstream targets.
+       See /agents/ARCHITECTURE.md and /agents/MIGRATION.md.
+
+Features:
+  - knowledge_graph_v2 (BlackHoleGraph) audit on every dispatch
+  - Weighted capability scoring (no random)
+  - Per-agent health stats
+  - Parameter-bound SQL (no injection)
 """
 import sys
 import json
@@ -20,33 +30,45 @@ BASE_DIR = Path(__file__).parent.parent
 LOG_DIR  = BASE_DIR / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-# Agent-Fähigkeiten: höherer Score = bevorzugter für diesen Task-Typ
+# Core4 routing: Hermes itself is THIS router. Downstream agents are 3:
+#   jarvis   — memory, orchestration, conversation
+#   openclaw — execution: browser, skills, content, youtube, code, file
+#   harvey   — legal review, stripe, trading-decision, sales, compliance
+#
+# Higher score = preferred agent for that task type.
+# See /agents/hermes/config.json for the canonical config.
 AGENT_CAPABILITIES: dict[str, dict[str, int]] = {
-    "hermes": {
-        "legal_document": 10,
-        "skill": 8,
-        "file": 7,
-        "default": 6,
-    },
-    "gemma4": {
-        "code": 10,
-        "skill": 7,
-        "default": 5,
+    "jarvis": {
+        "conversation":          10,
+        "memory_recall":         10,
+        "intent_classification":  9,
+        "orchestration":          8,
+        "default":                5,
     },
     "openclaw": {
-        "file": 10,
-        "legal_document": 8,
-        "default": 6,
+        "browser_action":        10,
+        "content_creation":      10,
+        "youtube_publish":       10,
+        "code_generation":        9,
+        "file":                  10,
+        "trading_monitor":        8,
+        "skill":                  9,
+        "default":                7,
     },
-    "napoleon": {
-        "mission": 10,
-        "agent": 9,
-        "default": 4,
+    "harvey": {
+        "legal_document":        10,
+        "legal_review":          10,
+        "payment_event":         10,
+        "trading_signal":         9,
+        "trading_decision":       9,
+        "sales":                  9,
+        "compliance":            10,
+        "default":                4,
     },
 }
 
 # Fallback-Reihenfolge wenn kein Agent verfügbar
-FALLBACK_ORDER = ["hermes", "openclaw", "gemma4", "napoleon"]
+FALLBACK_ORDER = ["openclaw", "jarvis", "harvey"]
 
 
 class TaskRouter:
