@@ -1,0 +1,183 @@
+# Jarvis Intent Router
+# -------------------
+# Mapping von User-Intent zu Hermes-Dispatch.
+# Jarvis nutzt diese Tabelle um zu entscheiden:
+#   1. Welche Agent kann das?
+#   2. Welcher Skill wird gebraucht?
+#   3. Welches Goal-Template passt?
+#
+# Format: jeder Eintrag matched eine Klasse von User-Inputs.
+
+version: 1.0
+owner: jarvis
+
+intents:
+  # ------------------------------------------------------------------
+  #  CONVERSATION / META
+  # ------------------------------------------------------------------
+  - id: greeting
+    triggers: ["hi", "hallo", "moin", "guten morgen", "guten tag"]
+    handler: self                       # Jarvis antwortet selbst
+    response_style: warm_brief
+
+  - id: status_check
+    triggers: ["status", "was läuft", "wie sieht's aus", "open goals"]
+    handler: self
+    action: list_active_goals
+    sources: [hermes_api, kg]
+
+  - id: memory_recall
+    triggers: ["was haben wir", "erinner mich", "weißt du noch", "letzte woche"]
+    handler: self
+    action: memory_search
+
+  - id: explain_self
+    triggers: ["was bist du", "was kannst du", "wer bin ich für dich"]
+    handler: self
+    response_style: capability_summary
+
+  # ------------------------------------------------------------------
+  #  EXECUTION (OpenClaw)
+  # ------------------------------------------------------------------
+  - id: content_creation
+    triggers: ["post", "thread", "tweet", "content", "blog"]
+    delegate_to: openclaw
+    goal_template: build
+    skill_hint: content-engine
+    needs_confirmation: true
+
+  - id: code_generation
+    triggers: ["code", "script", "template", "build", "implement"]
+    delegate_to: openclaw
+    goal_template: build
+    skill_hint: pi-coder
+    needs_confirmation: false
+
+  - id: youtube_publish
+    triggers: ["youtube", "video", "yt-upload"]
+    delegate_to: openclaw
+    goal_template: publish
+    skill_hint: youtube-factory
+    needs_confirmation: true
+
+  - id: browser_action
+    triggers: ["öffne", "klick", "browser", "scrape"]
+    delegate_to: openclaw
+    goal_template: build
+    skill_hint: x-twitter-browser
+    needs_confirmation: true
+
+  - id: seo_audit
+    triggers: ["seo", "ranking", "keywords"]
+    delegate_to: openclaw
+    goal_template: research
+    skill_hint: seo-ranker
+
+  - id: trading_monitor
+    triggers: ["chart", "kurs", "trading watch"]
+    delegate_to: openclaw
+    goal_template: monitor
+    skill_hint: trading-monitor
+    safety_gate: paper_only
+
+  - id: meta_ads
+    triggers: ["meta ads", "facebook ads", "ad campaign"]
+    delegate_to: openclaw
+    goal_template: build
+    skill_hint: meta-ads
+    needs_confirmation: true
+    spend_threshold_eur: 0
+
+  # ------------------------------------------------------------------
+  #  LEGAL / SALES (Harvey)
+  # ------------------------------------------------------------------
+  - id: legal_review
+    triggers: ["vertrag", "anwalt", "schriftsatz", "klage", "abmahnung"]
+    delegate_to: harvey
+    goal_template: legal_review
+    skill_hint: legal-opponent
+    output_format: harvey_standard
+
+  - id: settlement
+    triggers: ["vergleich", "settlement", "einigung"]
+    delegate_to: harvey
+    goal_template: legal_review
+    skill_hint: legal-settlement
+
+  - id: evidence_matrix
+    triggers: ["beweise", "evidence", "belegmatrix"]
+    delegate_to: harvey
+    skill_hint: legal-evidence
+
+  - id: sales_pipeline
+    triggers: ["verkauf", "kunde", "angebot", "outreach", "lead"]
+    delegate_to: harvey
+    goal_template: build
+    skill_hint: sales-leadgen
+
+  - id: customer_email
+    triggers: ["mail schreiben", "antwort an kunde", "newsletter"]
+    delegate_to: harvey
+    goal_template: build
+    skill_hint: customer-communication
+
+  - id: stripe_event
+    triggers: ["stripe", "payment", "zahlung eingegangen"]
+    delegate_to: harvey
+    auto: true                          # Webhook-driven, kein User-Input nötig
+
+  - id: revenue_audit
+    triggers: ["revenue", "umsatz", "was haben wir verdient", "empire status"]
+    delegate_to: harvey
+    skill_hint: revenue-audit
+
+  - id: trading_decision
+    triggers: ["trade entscheidung", "soll ich kaufen", "signal"]
+    delegate_to: harvey
+    skill_hint: risk-monitor
+    safety_gate: signal_only             # NIE Live-Execute
+
+  # ------------------------------------------------------------------
+  #  DECISIONS (Jarvis fragt Maurice)
+  # ------------------------------------------------------------------
+  - id: maurice_decide
+    triggers: ["ich muss entscheiden", "was meinst du", "go/no-go"]
+    handler: self
+    goal_template: decide
+    needs_confirmation: true
+
+# ------------------------------------------------------------------
+#  ROUTING RULES
+# ------------------------------------------------------------------
+routing_rules:
+  - rule: max_delegation_hops
+    value: 1
+    note: "Jarvis delegiert max. 1× — kein A→B→C"
+
+  - rule: parallel_delegation
+    enabled: true
+    max_parallel: 3
+    note: "Multi-Skill-Goals dürfen 3 Agenten parallel triggern"
+
+  - rule: confirmation_threshold
+    spend_eur: 50
+    action: ask_maurice
+    note: ">50€ Spend immer Bestätigung holen"
+
+  - rule: legal_disclaimer
+    enabled: true
+    note: "Bei Legal-Output IMMER Disclaimer 'Keine Rechtsberatung'"
+
+  - rule: fallback_intent
+    when: no_intent_matched
+    action: ask_maurice_for_clarification
+    prompt: "Ich verstehe nicht ganz — meinst du A oder B?"
+
+# ------------------------------------------------------------------
+#  MEMORY HOOKS
+# ------------------------------------------------------------------
+memory_hooks:
+  before_routing: load_recent_context_24h
+  after_routing: save_intent_and_result
+  on_goal_done: write_completion_event
+  on_confirmation_needed: pause_and_query_kg_for_precedents

@@ -158,30 +158,27 @@ User → Telegram → Jarvis
 ## 6. Verzeichnis-Layout
 
 ```
-/agents/
-  ARCHITECTURE.md      ← dieses File
-  MIGRATION.md         ← Galaxia → Core4 Mapping
-  BUS.md               ← Inter-Agent Protokoll
-  README.md            ← Quickstart
-  jarvis/
-    SOUL.md            ← Identität & Verhalten
-    config.json        ← Modell, Ports, Memory-Config
-  hermes/
-    SOUL.md
-    config.json        ← Routing-Table, Capabilities
-  openclaw/
-    SOUL.md            ← Verweist auf /openclaw/workspace/SOUL.md
-    config.json        ← Verweist auf /.openclaw/openclaw.json
-  harvey/
-    SOUL.md
-    config.json        ← Stripe-Config, Legal-Skills
+control-plane/
+  README.md            Quickstart
+  CORE_ARCHITECTURE.md (dieses File)
+  MIGRATION_PLAN.md
+  SYSTEM_INVENTORY.md
+  AGENT_ROLES.md
+  LEGACY_MAP.md
+  GOAL_STANDARD.md
+  TELEGRAM_TOPICS.md
+  jarvis/    JARVIS.md + config.json + router.yaml + memory_policy.md
+  hermes/    HERMES.md + config.json + BUS.md + goal_engine.yaml + verifier_rules.md
+  openclaw/  OPENCLAW.md + config.json + skills_index.md + execution_policy.md
+  harvey/    HARVEY.md + config.json + legal_policy.md + business_policy.md
+  shared-memory/ skills/ telegram/ goals/ reports/
 ```
 
 **Bestehende Ordner — was passiert:**
 - `/openclaw/` → bleibt (ist OpenClaws Heimat)
 - `/gpe-core/` → wird zu Hermes umbenannt im Code (siehe MIGRATION.md)
-- `/galaxia/` → Vector-Core wandert nach `/agents/jarvis/memory/`
-- `/openclaw/agents/{monica,dwight,kelly,pam,ryan,chandler,ross}/` → archiviert, deaktiviert
+- `/galaxia/` → Vector-Core wandert nach `/control-plane/jarvis/memory/` (Phase 3)
+- `/openclaw/agents/{monica,dwight,kelly,pam,ryan,chandler,ross}/` → archiviert nach `/legacy/galaxia/friends/` (Phase 5)
 - `/openclaw/workspace/` → bleibt (Skills + SOPs), wird OpenClaws Wissensbasis
 
 ---
@@ -202,7 +199,7 @@ User → Telegram → Jarvis
 
 | Komponente             | Status     | Ziel                          |
 |------------------------|------------|-------------------------------|
-| Galaxia 7-Agents       | 🟡 To-Archive | `/openclaw/agents/_archive/` |
+| Galaxia 7-Agents       | 🟡 To-Archive | `/legacy/galaxia/friends/` (Phase 5) |
 | Galaxia Vector Core    | 🟡 Migrate | → Jarvis Memory               |
 | GPE-Core Task Router   | 🟢 Adapt   | → Hermes Core                 |
 | GPE-Core Meta-Sup      | 🟢 Adapt   | → Hermes Daemon Manager       |

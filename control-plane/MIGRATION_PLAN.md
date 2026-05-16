@@ -43,12 +43,12 @@
 
 ### Galaxia Vector Core → Jarvis Memory
 - **Quelle:** `/galaxia/galaxia-vector-core.py`
-- **Ziel:** `/agents/jarvis/memory/vector_core.py` (Symlink für Phase 1)
+- **Ziel:** `/control-plane/jarvis/memory/vector_core.py` (Phase 3)
 - **Grund:** Jarvis braucht das für Memory-Recall
 
 ### Friends-Agent-Configs → Archiv
 - **Quelle:** `/openclaw/agents/{monica,dwight,kelly,pam,ryan,chandler,ross}/`
-- **Ziel:** `/openclaw/agents/_archive/` (nicht gelöscht — als Referenz)
+- **Ziel:** `/legacy/galaxia/friends/` (nicht gelöscht — als Referenz, Phase 5)
 - **Wann:** Sobald die 4 neuen Agenten produktiv laufen
 
 ### Telegram-Topics von 7 auf 4 reduzieren
@@ -72,14 +72,16 @@
 ## 5. Phasen-Plan
 
 ### Phase 1 — Setup (HEUTE) ✅
-- [x] `/agents/` Struktur anlegen
-- [x] `ARCHITECTURE.md` + `MIGRATION.md` + `BUS.md` schreiben
-- [x] 4 Agent-SOULs + Configs schreiben
-- [x] Task Router umbenennen/erweitern → Hermes
+- [x] `/control-plane/` Struktur anlegen
+- [x] SYSTEM_INVENTORY.md, CORE_ARCHITECTURE.md, AGENT_ROLES.md, LEGACY_MAP.md, GOAL_STANDARD.md, TELEGRAM_TOPICS.md, MIGRATION_PLAN.md, BUS.md schreiben
+- [x] 4 Agent-Personas (JARVIS.md / HERMES.md / OPENCLAW.md / HARVEY.md) + Configs
+- [x] Per-Agent Policies: router.yaml, memory_policy.md, goal_engine.yaml, verifier_rules.md, skills_index.md, execution_policy.md, legal_policy.md, business_policy.md
+- [x] Task Router auf Core4 (3 Downstream-Agenten) umgeschrieben
+- [x] Audit-Report unter `/audit/reports/CORE_CONSOLIDATION_*.md`
 - [x] Commit + Push auf `claude/export-branches-kYh7h`
 
 ### Phase 2 — Hermes scharfschalten
-- [ ] `gpe-core/` → `agents/hermes/runtime/` portieren
+- [ ] `gpe-core/` → `control-plane/hermes/runtime/` portieren
 - [ ] Bus-Protokoll (HTTP API) implementieren
 - [ ] Health-Check-Endpoint für alle 4 Agents
 - [ ] Knowledge-Graph-Schema dokumentieren

@@ -1,0 +1,160 @@
+# Hermes Goal Engine
+# ------------------
+# Definiert wie Hermes Goal-Cards verwaltet, routet, und verifiziert.
+# Siehe auch: GOAL_STANDARD.md (Schema) und verifier_rules.md (Done-Checks).
+
+version: 1.0
+owner: hermes
+
+# ------------------------------------------------------------------
+#  STORAGE
+# ------------------------------------------------------------------
+storage:
+  active_dir:   control-plane/goals/active/
+  archive_dir:  control-plane/goals/archive/
+  templates_dir: control-plane/goals/_templates/
+  index_file:   control-plane/goals/INDEX.md
+  format: yaml
+  filename_pattern: "goal_{ulid}.yaml"
+
+# ------------------------------------------------------------------
+#  KANBAN STATES
+# ------------------------------------------------------------------
+states:
+  - id: todo
+    next: [in_progress, cancelled]
+    notify_on_enter: false
+  - id: in_progress
+    next: [review, blocked, cancelled]
+    notify_on_enter: true
+    timeout_minutes: 240            # 4h ohne Update → ping Owner-Agent
+  - id: review
+    next: [done, in_progress, blocked]
+    notify_on_enter: true
+    must_run_verifier: true         # Verifier MUSS laufen
+  - id: blocked
+    next: [in_progress, cancelled]
+    notify_on_enter: true
+    require_reason: true
+  - id: done
+    terminal: true
+    archive_after_days: 365
+  - id: cancelled
+    terminal: true
+    archive_after_days: 30
+    require_reason: true
+
+# ------------------------------------------------------------------
+#  GOAL TYPES → DEFAULT OWNER + VERIFIER
+# ------------------------------------------------------------------
+goal_types:
+  build:
+    default_owner: openclaw
+    default_verifier: composite_build
+    description: "Code, Content, Asset bauen"
+
+  publish:
+    default_owner: openclaw
+    default_verifier: composite_publish
+    description: "Etwas live schalten (Browser, Channel)"
+    requires_human_signoff: true
+
+  legal_review:
+    default_owner: harvey
+    default_verifier: composite_legal
+    description: "Dokument prüfen, Risiko bewerten"
+
+  research:
+    default_owner: openclaw
+    default_verifier: report_with_sources
+    description: "Info recherchieren + Report"
+
+  decide:
+    default_owner: jarvis
+    default_verifier: human_signoff_required
+    description: "Maurice trifft Entscheidung"
+
+  monitor:
+    default_owner: openclaw
+    default_verifier: composite_monitor
+    description: "Periodischer Check (Trading, Compliance, Health)"
+
+# ------------------------------------------------------------------
+#  ROUTING
+# ------------------------------------------------------------------
+routing:
+  algorithm: capability_score_weighted
+  fallback_order: [openclaw, jarvis, harvey]
+  parallel_max_per_goal: 3
+  timeout_per_hop_seconds: 60
+
+  capabilities:
+    jarvis:   [memory, orchestration, conversation, intent_classification, decide]
+    openclaw: [browser_action, content_creation, code_generation, youtube_publish, file, trading_monitor, seo, ads_management, build]
+    harvey:   [legal_review, trading_decision, sales, compliance, payment_event, customer_communication]
+
+# ------------------------------------------------------------------
+#  HANDOFF (Builder → Reviewer)
+# ------------------------------------------------------------------
+handoff:
+  enabled: true
+  rules:
+    - from: openclaw
+      goal_type: build
+      reviewer: jarvis              # Jarvis prüft ob das Goal wirklich erreicht ist
+    - from: openclaw
+      goal_type: publish
+      reviewer: harvey              # Harvey prüft Sales/Legal-Implikationen
+    - from: harvey
+      goal_type: legal_review
+      reviewer: jarvis              # Jarvis fasst zusammen für Maurice
+  reviewer_timeout_minutes: 60
+
+# ------------------------------------------------------------------
+#  WORKER ASSIGNMENT
+# ------------------------------------------------------------------
+worker:
+  max_concurrent_per_agent:
+    jarvis:   3     # parallele Conversations
+    openclaw: 5     # parallele Skills
+    harvey:   2     # legal/sales — eher seriell
+  queue_strategy: priority_then_fifo
+  retry_on_failure:
+    max_attempts: 4
+    backoff_seconds: [2, 4, 8, 16]
+
+# ------------------------------------------------------------------
+#  REPORTING
+# ------------------------------------------------------------------
+reporting:
+  goal_done_report:
+    enabled: true
+    destination: control-plane/reports/
+    filename_pattern: "report_{goal_id}_{ts}.md"
+    fields: [title, owner, duration, acceptance_criteria, verifier_results, artifacts]
+  daily_summary:
+    enabled: true
+    hour: 22
+    destination: control-plane/reports/daily/
+  alert_on_blocked:
+    threshold_hours: 24
+    notify_topic: hermes_topic_2
+
+# ------------------------------------------------------------------
+#  AUDIT
+# ------------------------------------------------------------------
+audit:
+  kg_write_every_transition: true
+  trace_full_message_flow: true
+  clawprint_enabled: true
+  log_dir: /var/log/hermes/
+
+# ------------------------------------------------------------------
+#  HARD LIMITS
+# ------------------------------------------------------------------
+limits:
+  max_goals_active_global: 50
+  max_goals_per_owner: 10
+  max_sub_goals_per_parent: 8
+  goal_age_warning_days: 14
+  cancellation_grace_seconds: 60     # User kann Cancel binnen 60s zurücknehmen
